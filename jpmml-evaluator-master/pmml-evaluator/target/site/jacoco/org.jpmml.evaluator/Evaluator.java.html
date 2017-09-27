@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Evaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">Evaluator.java</span></div><h1>Evaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Map;
+
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.Model;
+
+/**
+ * &lt;p&gt;
+ * Performs the evaluation of a {@link Model}.
+ * &lt;/p&gt;
+ *
+ * &lt;h3&gt;Obtaining and verifying an Evaluator instance&lt;/h3&gt;
+ * &lt;pre&gt;
+ * PMML pmml = ...;
+ * ModelEvaluatorFactory modelEvaluatorFactory = ModelEvaluatorFactory.newInstance();
+ * Evaluator evaluator = (Evaluator)modelEvaluatorFactory.newModelEvaluator(pmml);
+ * evaluator.verify();
+ * &lt;/pre&gt;
+ *
+ * &lt;h3&gt;Preparing arguments&lt;/h3&gt;
+ * Converting an user-supplied map of arguments to a prepared map of arguments:
+ * &lt;pre&gt;
+ * Map&amp;lt;FieldName, ?&amp;gt; userArguments = ...;
+ * Map&amp;lt;FieldName, FieldValue&amp;gt; arguments = new LinkedHashMap&amp;lt;&amp;gt;();
+ * List&amp;lt;InputField&amp;gt; inputFields = evaluator.getInputFields();
+ * for(InputField inputField : inputFields){
+ *   FieldName inputFieldName = inputField.getName();
+ *   FieldValue inputFieldValue = inputField.prepare(userArguments.get(inputFieldName));
+ *   arguments.put(inputFieldName, inputFieldValue);
+ * }
+ * &lt;/pre&gt;
+ *
+ * &lt;h3&gt;Performing the evaluation&lt;/h3&gt;
+ * &lt;pre&gt;
+ * Map&amp;lt;FieldName, ?&amp;gt; result = evaluator.evaluate(arguments);
+ * &lt;/pre&gt;
+ *
+ * &lt;h3&gt;Processing results&lt;/h3&gt;
+ * Retrieving the values of {@link #getTargetField() target fields} (ie. primary results):
+ * &lt;pre&gt;
+ * List&amp;lt;TargetField&amp;gt; targetFields = evaluator.getTargetFields();
+ * for(TargetField targetField : targetFields){
+ *   FieldName targetFieldName = targetField.getName();
+ *   Object targetFieldValue = result.get(targetFieldName);
+ * }
+ * &lt;/pre&gt;
+ *
+ * Decoding a {@link Computable complex value} to a Java primitive value:
+ * &lt;pre&gt;
+ * if(targetFieldValue instanceof Computable){
+ *   Computable computable = (Computable)targetFieldValue;
+ *
+ *   targetFieldValue = computable.getResult();
+ * }
+ * &lt;/pre&gt;
+ *
+ * Retrieving the values of {@link #getOutputFields() output fields} (ie. secondary results):
+ * &lt;pre&gt;
+ * List&amp;lt;OutputField&amp;gt; outputFields = evaluator.getOutputFields();
+ * for(OutputField outputField : outputFields){
+ *   FieldName outputFieldName = outputField.getName();
+ *   Object outputFieldValue = result.get(outputFieldName);
+ * }
+ * &lt;/pre&gt;
+ *
+ * &lt;h3&gt;Handling exceptions&lt;/h3&gt;
+ * A code block that does exception-prone work should be surrounded with two levels of try-catch statements.
+ * The inner try statement should catch {@link EvaluationException} instances that indicate &quot;local&quot; problems, which are related to individual data records.
+ * The outer try statement should catch {@link InvalidFeatureException} and {@link UnsupportedFeatureException} instances that indicate &quot;global&quot; problems, which are related to the class model object.
+ * &lt;pre&gt;
+ * try {
+ *   List&amp;lt;Map&amp;lt;FieldName, ?&amp;gt;&amp;gt; records = ...;
+ *   for(Map&amp;lt;FieldName, ?&amp;gt; record : records){
+ *     try {
+ *       // Do exception-prone work
+ *     } catch(EvaluationException ee){
+ *       // The work failed because of the data record.
+ *       // Skip this data record and proceed as usual with the next one
+ *     }
+ *   }
+ * } catch(InvalidFeatureException | UnsupportedFeatureException fe){
+ *   // The work failed because of the class model object.
+ *   // This is a persistent problem that is very likely to affect all data records
+ *   // Decommission the Evaluator instance
+ * }
+ * &lt;/pre&gt;
+ *
+ * @see EvaluatorUtil
+ *
+ * @see HasGroupFields
+ * @see HasOrderFields
+ */
+public interface Evaluator extends HasInputFields, HasResultFields {
+
+	/**
+	 * &lt;p&gt;
+	 * Gets a short description of the {@link Model}.
+	 * &lt;/p&gt;
+	 */
+	String getSummary();
+
+	/**
+	 * &lt;p&gt;
+	 * Gets the type of the {@link Model}.
+	 * &lt;/p&gt;
+	 */
+	MiningFunction getMiningFunction();
+
+	/**
+	 * &lt;p&gt;
+	 * Verifies the model.
+	 * &lt;/p&gt;
+	 *
+	 * @throws EvaluationException If the verification fails.
+	 * @throws InvalidFeatureException
+	 * @throws UnsupportedFeatureException
+	 */
+	void verify();
+
+	/**
+	 * &lt;p&gt;
+	 * Evaluates the model with the specified arguments.
+	 * &lt;/p&gt;
+	 *
+	 * @param arguments Map of {@link #getInputFields() input field} values.
+	 *
+	 * @return Map of {@link #getTargetFields() target field} and {@link #getOutputFields() output field} values.
+	 * A target field could be mapped to a complex value or a simple value.
+	 * An output field is always mapped to a simple value.
+	 * Complex values are represented as instances of {@link Computable} that return simple values.
+	 * Simple values are represented using the Java equivalents of PMML data types (eg. String, Integer, Float, Double etc.).
+	 * A missing value is represented by &lt;code&gt;null&lt;/code&gt;.
+	 *
+	 * @throws EvaluationException If the evaluation fails.
+	 * @throws InvalidFeatureException
+	 * @throws UnsupportedFeatureException
+	 *
+	 * @see Computable
+	 */
+	Map&lt;FieldName, ?&gt; evaluate(Map&lt;FieldName, ?&gt; arguments);
+
+	/**
+	 * &lt;p&gt;
+	 * The name of the default target field.
+	 * &lt;/p&gt;
+	 */
+<span class="fc" id="L167">	public static final FieldName DEFAULT_TARGET_NAME = null;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

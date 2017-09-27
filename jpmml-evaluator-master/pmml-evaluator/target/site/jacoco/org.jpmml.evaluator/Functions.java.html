@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Functions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">Functions.java</span></div><h1>Functions.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.IllegalFormatException;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.rank.Max;
+import org.apache.commons.math3.stat.descriptive.rank.Min;
+import org.apache.commons.math3.stat.descriptive.summary.Product;
+import org.apache.commons.math3.stat.descriptive.summary.Sum;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.OpType;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
+import org.joda.time.LocalTime;
+import org.joda.time.Seconds;
+import org.jpmml.evaluator.functions.AbstractFunction;
+import org.jpmml.evaluator.functions.AggregateFunction;
+import org.jpmml.evaluator.functions.ArithmeticFunction;
+import org.jpmml.evaluator.functions.BinaryBooleanFunction;
+import org.jpmml.evaluator.functions.ComparisonFunction;
+import org.jpmml.evaluator.functions.EqualityFunction;
+import org.jpmml.evaluator.functions.FpMathFunction;
+import org.jpmml.evaluator.functions.MathFunction;
+import org.jpmml.evaluator.functions.StringFunction;
+import org.jpmml.evaluator.functions.TrigonometricFunction;
+import org.jpmml.evaluator.functions.UnaryBooleanFunction;
+import org.jpmml.evaluator.functions.ValueFunction;
+import org.jpmml.evaluator.functions.ValueListFunction;
+
+public class Functions {
+
+<span class="nc" id="L55">	private Functions(){</span>
+<span class="nc" id="L56">	}</span>
+
+<span class="fc" id="L58">	public static final ArithmeticFunction PLUS = new ArithmeticFunction(&quot;+&quot;){</span>
+
+		@Override
+		public Double evaluate(Number left, Number right){
+<span class="fc" id="L62">			return Double.valueOf(left.doubleValue() + right.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L66">	public static final ArithmeticFunction MINUS = new ArithmeticFunction(&quot;-&quot;){</span>
+
+		@Override
+		public Double evaluate(Number left, Number right){
+<span class="fc" id="L70">			return Double.valueOf(left.doubleValue() - right.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L74">	public static final ArithmeticFunction MULTIPLY = new ArithmeticFunction(&quot;*&quot;){</span>
+
+		@Override
+		public Double evaluate(Number left, Number right){
+<span class="fc" id="L78">			return Double.valueOf(left.doubleValue() * right.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L82">	public static final ArithmeticFunction DIVIDE = new ArithmeticFunction(&quot;/&quot;){</span>
+
+		@Override
+		public Number evaluate(Number left, Number right){
+
+<span class="fc bfc" id="L87" title="All 4 branches covered.">			if(left instanceof Integer &amp;&amp; right instanceof Integer){</span>
+<span class="fc" id="L88">				return Integer.valueOf(left.intValue() / right.intValue());</span>
+			}
+
+<span class="fc" id="L91">			return Double.valueOf(left.doubleValue() / right.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L95">	public static final AggregateFunction MIN = new AggregateFunction(&quot;min&quot;){</span>
+
+		@Override
+		public Min createStatistic(){
+<span class="fc" id="L99">			return new Min();</span>
+		}
+	};
+
+<span class="fc" id="L103">	public static final AggregateFunction MAX = new AggregateFunction(&quot;max&quot;){</span>
+
+		@Override
+		public Max createStatistic(){
+<span class="fc" id="L107">			return new Max();</span>
+		}
+	};
+
+<span class="fc" id="L111">	public static final AggregateFunction AVG = new AggregateFunction(&quot;avg&quot;){</span>
+
+		@Override
+		public Mean createStatistic(){
+<span class="fc" id="L115">			return new Mean();</span>
+		}
+
+		@Override
+		public DataType getResultType(DataType dataType){
+<span class="fc" id="L120">			return integerToDouble(dataType);</span>
+		}
+	};
+
+<span class="fc" id="L124">	public static final AggregateFunction SUM = new AggregateFunction(&quot;sum&quot;){</span>
+
+		@Override
+		public Sum createStatistic(){
+<span class="fc" id="L128">			return new Sum();</span>
+		}
+	};
+
+<span class="fc" id="L132">	public static final AggregateFunction PRODUCT = new AggregateFunction(&quot;product&quot;){</span>
+
+		@Override
+		public Product createStatistic(){
+<span class="fc" id="L136">			return new Product();</span>
+		}
+	};
+
+<span class="fc" id="L140">	public static final FpMathFunction LOG10 = new FpMathFunction(&quot;log10&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L144">			return Math.log10(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L148">	public static final FpMathFunction LN = new FpMathFunction(&quot;ln&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L152">			return Math.log(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L156">	public static final FpMathFunction LN1P = new FpMathFunction(&quot;x-ln1p&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="nc" id="L160">			return Math.log1p(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L164">	public static final FpMathFunction EXP = new FpMathFunction(&quot;exp&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L168">			return Math.exp(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L172">	public static final FpMathFunction EXPM1 = new FpMathFunction(&quot;x-expm1&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="nc" id="L176">			return Math.expm1(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L180">	public static final FpMathFunction SQRT = new FpMathFunction(&quot;sqrt&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L184">			return Math.sqrt(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L188">	public static final MathFunction ABS = new MathFunction(&quot;abs&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L192">			return Math.abs(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L196">	public static final AbstractFunction POW = new AbstractFunction(&quot;pow&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L200">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L202">			FieldValue left = arguments.get(0);</span>
+<span class="fc" id="L203">			FieldValue right = arguments.get(1);</span>
+
+<span class="fc" id="L205">			DataType dataType = TypeUtil.getResultDataType(left.getDataType(), right.getDataType());</span>
+
+<span class="fc" id="L207">			Double result = Math.pow((left.asNumber()).doubleValue(), (right.asNumber()).doubleValue());</span>
+
+<span class="fc" id="L209">			return FieldValueUtil.create(dataType, OpType.CONTINUOUS, result);</span>
+		}
+	};
+
+<span class="fc" id="L213">	public static final AbstractFunction THRESHOLD = new AbstractFunction(&quot;threshold&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L217">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L219">			FieldValue left = arguments.get(0);</span>
+<span class="fc" id="L220">			FieldValue right = arguments.get(1);</span>
+
+<span class="fc" id="L222">			DataType dataType = TypeUtil.getResultDataType(left.getDataType(), right.getDataType());</span>
+
+<span class="fc bfc" id="L224" title="All 2 branches covered.">			Integer result = ((left.asNumber()).doubleValue() &gt; (right.asNumber()).doubleValue()) ? Numbers.INTEGER_ONE : Numbers.INTEGER_ZERO;</span>
+
+<span class="fc" id="L226">			return FieldValueUtil.create(dataType, OpType.CONTINUOUS, result);</span>
+		}
+	};
+
+<span class="fc" id="L230">	public static final MathFunction FLOOR = new MathFunction(&quot;floor&quot;){</span>
+
+		@Override
+		public Double evaluate(Number number){
+<span class="fc" id="L234">			return Math.floor(number.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L238">	public static final MathFunction CEIL = new MathFunction(&quot;ceil&quot;){</span>
+
+		@Override
+		public Double evaluate(Number number){
+<span class="fc" id="L242">			return Math.ceil(number.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L246">	public static final MathFunction ROUND = new MathFunction(&quot;round&quot;){</span>
+
+		@Override
+		public Double evaluate(Number number){
+<span class="fc" id="L250">			return (double)Math.round(number.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L254">	public static final MathFunction RINT = new MathFunction(&quot;x-rint&quot;){</span>
+
+		@Override
+		public Double evaluate(Number number){
+<span class="nc" id="L258">			return Math.rint(number.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L262">	public static final ValueFunction IS_MISSING = new ValueFunction(&quot;isMissing&quot;){</span>
+
+		@Override
+		public Boolean evaluate(FieldValue value){
+<span class="fc bfc" id="L266" title="All 2 branches covered.">			return Boolean.valueOf(value == null);</span>
+		}
+	};
+
+<span class="fc" id="L270">	public static final ValueFunction IS_NOT_MISSING = new ValueFunction(&quot;isNotMissing&quot;){</span>
+
+		@Override
+		public Boolean evaluate(FieldValue value){
+<span class="fc bfc" id="L274" title="All 2 branches covered.">			return Boolean.valueOf(value != null);</span>
+		}
+	};
+
+<span class="fc" id="L278">	public static final EqualityFunction EQUAL = new EqualityFunction(&quot;equal&quot;){</span>
+
+		@Override
+		public Boolean evaluate(boolean equals){
+<span class="fc" id="L282">			return Boolean.valueOf(equals);</span>
+		}
+	};
+
+<span class="fc" id="L286">	public static final EqualityFunction NOT_EQUAL = new EqualityFunction(&quot;notEqual&quot;){</span>
+
+		@Override
+		public Boolean evaluate(boolean equals){
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">			return Boolean.valueOf(!equals);</span>
+		}
+	};
+
+<span class="fc" id="L294">	public static final ComparisonFunction LESS_THAN = new ComparisonFunction(&quot;lessThan&quot;){</span>
+
+		@Override
+		public Boolean evaluate(int order){
+<span class="fc bfc" id="L298" title="All 2 branches covered.">			return Boolean.valueOf(order &lt; 0);</span>
+		}
+	};
+
+<span class="fc" id="L302">	public static final ComparisonFunction LESS_OR_EQUAL = new ComparisonFunction(&quot;lessOrEqual&quot;){</span>
+
+		@Override
+		public Boolean evaluate(int order){
+<span class="fc bfc" id="L306" title="All 2 branches covered.">			return Boolean.valueOf(order &lt;= 0);</span>
+		}
+	};
+
+<span class="fc" id="L310">	public static final ComparisonFunction GREATER_THAN = new ComparisonFunction(&quot;greaterThan&quot;){</span>
+
+		@Override
+		public Boolean evaluate(int order){
+<span class="fc bfc" id="L314" title="All 2 branches covered.">			return Boolean.valueOf(order &gt; 0);</span>
+		}
+	};
+
+<span class="fc" id="L318">	public static final ComparisonFunction GREATER_OR_EQUAL = new ComparisonFunction(&quot;greaterOrEqual&quot;){</span>
+
+		@Override
+		public Boolean evaluate(int order){
+<span class="fc bfc" id="L322" title="All 2 branches covered.">			return Boolean.valueOf(order &gt;= 0);</span>
+		}
+	};
+
+<span class="fc" id="L326">	public static final BinaryBooleanFunction AND = new BinaryBooleanFunction(&quot;and&quot;){</span>
+
+		@Override
+		public Boolean evaluate(Boolean left, Boolean right){
+<span class="fc" id="L330">			return Boolean.valueOf(left.booleanValue() &amp; right.booleanValue());</span>
+		}
+	};
+
+<span class="fc" id="L334">	public static final BinaryBooleanFunction OR = new BinaryBooleanFunction(&quot;or&quot;){</span>
+
+		@Override
+		public Boolean evaluate(Boolean left, Boolean right){
+<span class="fc" id="L338">			return Boolean.valueOf(left.booleanValue() | right.booleanValue());</span>
+		}
+	};
+
+<span class="fc" id="L342">	public static final UnaryBooleanFunction NOT = new UnaryBooleanFunction(&quot;not&quot;){</span>
+
+		@Override
+		public Boolean evaluate(Boolean value){
+<span class="fc bfc" id="L346" title="All 2 branches covered.">			return Boolean.valueOf(!value.booleanValue());</span>
+		}
+	};
+
+<span class="fc" id="L350">	public static final ValueListFunction IS_IN = new ValueListFunction(&quot;isIn&quot;){</span>
+
+		@Override
+		public Boolean evaluate(int index){
+<span class="pc bpc" id="L354" title="1 of 2 branches missed.">			return Boolean.valueOf(index &gt;= 0);</span>
+		}
+	};
+
+<span class="fc" id="L358">	public static final ValueListFunction IS_NOT_IN = new ValueListFunction(&quot;isNotIn&quot;){</span>
+
+		@Override
+		public Boolean evaluate(int index){
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">			return Boolean.valueOf(index &lt; 0);</span>
+		}
+	};
+
+<span class="fc" id="L366">	public static final AbstractFunction IF = new AbstractFunction(&quot;if&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+
+<span class="fc bfc" id="L371" title="All 4 branches covered.">			if((arguments.size() &lt; 2 || arguments.size() &gt; 3)){</span>
+<span class="fc" id="L372">				throw new FunctionException(this, &quot;Expected 2 or 3 arguments, but got &quot; + arguments.size() + &quot; arguments&quot;);</span>
+			}
+
+<span class="fc" id="L375">			FieldValue flag = arguments.get(0);</span>
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">			if(flag == null){</span>
+<span class="nc" id="L377">				throw new FunctionException(this, &quot;Missing arguments&quot;);</span>
+			} // End if
+
+<span class="fc bfc" id="L380" title="All 2 branches covered.">			if(flag.asBoolean()){</span>
+<span class="fc" id="L381">				FieldValue trueValue = arguments.get(1);</span>
+
+				// &quot;The THEN part is required&quot;
+<span class="pc bpc" id="L384" title="1 of 2 branches missed.">				if(trueValue == null){</span>
+<span class="nc" id="L385">					throw new FunctionException(this, &quot;Missing arguments&quot;);</span>
+				}
+
+<span class="fc" id="L388">				return trueValue;</span>
+			} else
+
+			{
+<span class="fc bfc" id="L392" title="All 2 branches covered.">				FieldValue falseValue = (arguments.size() &gt; 2 ? arguments.get(2) : null);</span>
+
+				// &quot;The ELSE part is optional. If the ELSE part is absent, then a missing value is returned&quot;
+<span class="fc bfc" id="L395" title="All 2 branches covered.">				if(falseValue == null){</span>
+<span class="fc" id="L396">					return null;</span>
+				}
+
+<span class="fc" id="L399">				return falseValue;</span>
+			}
+		}
+	};
+
+<span class="fc" id="L404">	public static final StringFunction UPPERCASE = new StringFunction(&quot;uppercase&quot;){</span>
+
+		@Override
+		public String evaluate(String value){
+<span class="fc" id="L408">			return value.toUpperCase();</span>
+		}
+	};
+
+<span class="fc" id="L412">	public static final StringFunction LOWERCASE = new StringFunction(&quot;lowercase&quot;){</span>
+
+		@Override
+		public String evaluate(String value){
+<span class="fc" id="L416">			return value.toLowerCase();</span>
+		}
+	};
+
+<span class="fc" id="L420">	public static final AbstractFunction SUBSTRING = new AbstractFunction(&quot;substring&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L424">			checkArguments(arguments, 3);</span>
+
+<span class="fc" id="L426">			String string = (arguments.get(0)).asString();</span>
+
+<span class="fc" id="L428">			int position = (arguments.get(1)).asInteger();</span>
+<span class="pc bpc" id="L429" title="1 of 2 branches missed.">			if(position &lt; 1){</span>
+<span class="nc" id="L430">				throw new FunctionException(this, &quot;Invalid position value &quot; + position + &quot;. Must be equal or greater than 1&quot;);</span>
+			}
+
+			// &quot;The first character of a string is located at position 1 (not position 0)&quot;
+<span class="fc" id="L434">			int javaPosition = Math.min(position - 1, string.length());</span>
+
+<span class="fc" id="L436">			int length = (arguments.get(2)).asInteger();</span>
+<span class="pc bpc" id="L437" title="1 of 2 branches missed.">			if(length &lt; 0){</span>
+<span class="nc" id="L438">				throw new FunctionException(this, &quot;Invalid length value &quot; + length);</span>
+			}
+
+<span class="fc" id="L441">			int javaLength = Math.min(length, (string.length() - javaPosition));</span>
+
+			// This expression must never throw a StringIndexOutOfBoundsException
+<span class="fc" id="L444">			String result = string.substring(javaPosition, javaPosition + javaLength);</span>
+
+<span class="fc" id="L446">			return FieldValueUtil.create(DataType.STRING, OpType.CATEGORICAL, result);</span>
+		}
+	};
+
+<span class="fc" id="L450">	public static final StringFunction TRIM_BLANKS = new StringFunction(&quot;trimBlanks&quot;){</span>
+
+		@Override
+		public String evaluate(String value){
+<span class="fc" id="L454">			return value.trim();</span>
+		}
+	};
+
+<span class="fc" id="L458">	public static final AbstractFunction CONCAT = new AbstractFunction(&quot;concat&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L462">			checkVariableArguments(arguments, 2, true);</span>
+
+<span class="fc" id="L464">			StringBuilder sb = new StringBuilder();</span>
+
+<span class="fc" id="L466">			Iterable&lt;FieldValue&gt; values = Iterables.filter(arguments, Predicates.notNull());</span>
+<span class="fc bfc" id="L467" title="All 2 branches covered.">			for(FieldValue value : values){</span>
+<span class="fc" id="L468">				String string = (String)TypeUtil.cast(DataType.STRING, value.getValue());</span>
+
+<span class="fc" id="L470">				sb.append(string);</span>
+<span class="fc" id="L471">			}</span>
+
+<span class="fc" id="L473">			return FieldValueUtil.create(DataType.STRING, OpType.CATEGORICAL, sb.toString());</span>
+		}
+	};
+
+<span class="fc" id="L477">	public static final AbstractFunction REPLACE = new AbstractFunction(&quot;replace&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L481">			checkArguments(arguments, 3);</span>
+
+<span class="fc" id="L483">			String input = (arguments.get(0)).asString();</span>
+<span class="fc" id="L484">			String regex = (arguments.get(1)).asString();</span>
+<span class="fc" id="L485">			String replacement = (arguments.get(2)).asString();</span>
+
+<span class="fc" id="L487">			Pattern pattern = RegExUtil.compile(regex, null);</span>
+
+<span class="fc" id="L489">			Matcher matcher = pattern.matcher(input);</span>
+
+<span class="fc" id="L491">			String result = matcher.replaceAll(replacement);</span>
+
+<span class="fc" id="L493">			return FieldValueUtil.create(DataType.STRING, OpType.CATEGORICAL, result);</span>
+		}
+	};
+
+<span class="fc" id="L497">	public static final AbstractFunction MATCHES = new AbstractFunction(&quot;matches&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L501">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L503">			String input = (arguments.get(0)).asString();</span>
+<span class="fc" id="L504">			String pattern = (arguments.get(1)).asString();</span>
+
+<span class="fc" id="L506">			Matcher matcher = Pattern.compile(pattern).matcher(input);</span>
+
+			// &quot;The string is considered to match the pattern if any substring matches the pattern&quot;
+<span class="fc" id="L509">			Boolean result = Boolean.valueOf(matcher.find());</span>
+
+<span class="fc" id="L511">			return FieldValueUtil.create(DataType.BOOLEAN, OpType.CATEGORICAL, result);</span>
+		}
+	};
+
+<span class="fc" id="L515">	public static final AbstractFunction FORMAT_NUMBER = new AbstractFunction(&quot;formatNumber&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L519">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L521">			FieldValue value = arguments.get(0);</span>
+<span class="fc" id="L522">			FieldValue pattern = arguments.get(1);</span>
+
+			String result;
+
+			// According to the java.util.Formatter javadoc, Java formatting is more strict than C's printf formatting.
+			// For example, in Java, if a conversion is incompatible with a flag, an exception will be thrown. In C's printf, inapplicable flags are silently ignored.
+			try {
+<span class="fc" id="L529">				result = String.format(pattern.asString(), value.asNumber());</span>
+<span class="nc" id="L530">			} catch(IllegalFormatException ife){</span>
+<span class="nc" id="L531">				throw new FunctionException(this, formatMessage(&quot;Invalid format value \&quot;&quot; + pattern.asString() + &quot;\&quot;&quot;, ife));</span>
+<span class="fc" id="L532">			}</span>
+
+<span class="fc" id="L534">			return FieldValueUtil.create(DataType.STRING, OpType.CATEGORICAL, result);</span>
+		}
+	};
+
+<span class="fc" id="L538">	public static final AbstractFunction FORMAT_DATETIME = new AbstractFunction(&quot;formatDatetime&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L542">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L544">			FieldValue value = arguments.get(0);</span>
+<span class="fc" id="L545">			FieldValue pattern = arguments.get(1);</span>
+
+			String result;
+
+			try {
+<span class="fc" id="L550">				result = String.format(translatePattern(pattern.asString()), (value.asDateTime()).toDate());</span>
+<span class="nc" id="L551">			} catch(IllegalFormatException ife){</span>
+<span class="nc" id="L552">				throw new FunctionException(this, formatMessage(&quot;Invalid format value \&quot;&quot; + pattern.asString() + &quot;\&quot;&quot;, ife));</span>
+<span class="fc" id="L553">			}</span>
+
+<span class="fc" id="L555">			return FieldValueUtil.create(DataType.STRING, OpType.CATEGORICAL, result);</span>
+		}
+
+		private String translatePattern(String pattern){
+<span class="fc" id="L559">			StringBuilder sb = new StringBuilder();</span>
+
+<span class="fc bfc" id="L561" title="All 2 branches covered.">			for(int i = 0; i &lt; pattern.length(); i++){</span>
+<span class="fc" id="L562">				char c = pattern.charAt(i);</span>
+
+<span class="fc" id="L564">				sb.append(c);</span>
+
+<span class="fc bfc" id="L566" title="All 2 branches covered.">				if(c == '%'){</span>
+
+					// Every %[conversion] has to become %1$t[conversion]
+					// Here, &quot;1$&quot; denotes the first argument, and &quot;t&quot; denotes the prefix for date and time conversion characters
+<span class="pc bpc" id="L570" title="2 of 4 branches missed.">					if(i &lt; (pattern.length() - 1) &amp;&amp; pattern.charAt(i + 1) != '%'){</span>
+<span class="fc" id="L571">						sb.append(&quot;1$t&quot;);</span>
+					}
+				}
+			}
+
+<span class="fc" id="L576">			return sb.toString();</span>
+		}
+	};
+
+<span class="fc" id="L580">	public static final AbstractFunction DATE_DAYS_SINCE_YEAR = new AbstractFunction(&quot;dateDaysSinceYear&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L584">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L586">			LocalDate instant = (arguments.get(0)).asLocalDate();</span>
+
+<span class="fc" id="L588">			int year = (arguments.get(1)).asInteger();</span>
+
+<span class="fc" id="L590">			DaysSinceDate period = new DaysSinceDate(year, instant);</span>
+
+<span class="fc" id="L592">			return FieldValueUtil.create(DataType.INTEGER, OpType.CONTINUOUS, period.intValue());</span>
+		}
+	};
+
+<span class="fc" id="L596">	public static final AbstractFunction DATE_SECONDS_SINCE_MIDNIGHT = new AbstractFunction(&quot;dateSecondsSinceMidnight&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L600">			checkArguments(arguments, 1);</span>
+
+<span class="fc" id="L602">			LocalTime instant = (arguments.get(0)).asLocalTime();</span>
+
+<span class="fc" id="L604">			Seconds seconds = Seconds.seconds(instant.getHourOfDay() * 60 * 60 + instant.getMinuteOfHour() * 60 + instant.getSecondOfMinute());</span>
+
+<span class="fc" id="L606">			SecondsSinceMidnight period = new SecondsSinceMidnight(seconds);</span>
+
+<span class="fc" id="L608">			return FieldValueUtil.create(DataType.INTEGER, OpType.CONTINUOUS, period.intValue());</span>
+		}
+	};
+
+<span class="fc" id="L612">	public static final AbstractFunction DATE_SECONDS_SINCE_YEAR = new AbstractFunction(&quot;dateSecondsSinceYear&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="fc" id="L616">			checkArguments(arguments, 2);</span>
+
+<span class="fc" id="L618">			LocalDateTime instant = (arguments.get(0)).asLocalDateTime();</span>
+
+<span class="fc" id="L620">			int year = (arguments.get(1)).asInteger();</span>
+
+<span class="fc" id="L622">			SecondsSinceDate period = new SecondsSinceDate(year, instant);</span>
+
+<span class="fc" id="L624">			return FieldValueUtil.create(DataType.INTEGER, OpType.CONTINUOUS, period.intValue());</span>
+		}
+	};
+
+<span class="fc" id="L628">	public static final AbstractFunction HYPOT = new AbstractFunction(&quot;x-hypot&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="nc" id="L632">			checkArguments(arguments, 2);</span>
+
+<span class="nc" id="L634">			Number x = (arguments.get(0)).asNumber();</span>
+<span class="nc" id="L635">			Number y = (arguments.get(1)).asNumber();</span>
+
+<span class="nc" id="L637">			Double result = Math.hypot(x.doubleValue(), y.doubleValue());</span>
+
+<span class="nc" id="L639">			return FieldValueUtil.create(DataType.DOUBLE, OpType.CONTINUOUS, result);</span>
+		}
+	};
+
+<span class="fc" id="L643">	public static final TrigonometricFunction SIN = new TrigonometricFunction(&quot;x-sin&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L647">			return Math.sin(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L651">	public static final TrigonometricFunction COS = new TrigonometricFunction(&quot;x-cos&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L655">			return Math.cos(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L659">	public static final TrigonometricFunction TAN = new TrigonometricFunction(&quot;x-tan&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L663">			return Math.tan(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L667">	public static final TrigonometricFunction ASIN = new TrigonometricFunction(&quot;x-asin&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L671">			return Math.asin(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L675">	public static final TrigonometricFunction ACOS = new TrigonometricFunction(&quot;x-acos&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L679">			return Math.acos(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L683">	public static final TrigonometricFunction ATAN = new TrigonometricFunction(&quot;x-atan&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L687">			return Math.atan(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L691">	public static final AbstractFunction ATAN2 = new AbstractFunction(&quot;x-atan2&quot;){</span>
+
+		@Override
+		public FieldValue evaluate(List&lt;FieldValue&gt; arguments){
+<span class="nc" id="L695">			checkArguments(arguments, 2);</span>
+
+<span class="nc" id="L697">			Number y = (arguments.get(0)).asNumber();</span>
+<span class="nc" id="L698">			Number x = (arguments.get(1)).asNumber();</span>
+
+<span class="nc" id="L700">			Double result = Math.atan2(y.doubleValue(), x.doubleValue());</span>
+<span class="nc bnc" id="L701" title="All 2 branches missed.">			if(result.isNaN()){</span>
+<span class="nc" id="L702">				throw new InvalidResultException(null);</span>
+			}
+
+<span class="nc" id="L705">			return FieldValueUtil.create(DataType.DOUBLE, OpType.CONTINUOUS, result);</span>
+		}
+	};
+
+<span class="fc" id="L709">	public static final TrigonometricFunction SINH = new TrigonometricFunction(&quot;x-sinh&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L713">			return Math.sinh(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L717">	public static final TrigonometricFunction COSH = new TrigonometricFunction(&quot;x-cosh&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L721">			return Math.cosh(value.doubleValue());</span>
+		}
+	};
+
+<span class="fc" id="L725">	public static final TrigonometricFunction TANH = new TrigonometricFunction(&quot;x-tanh&quot;){</span>
+
+		@Override
+		public Double evaluate(Number value){
+<span class="fc" id="L729">			return Math.tanh(value.doubleValue());</span>
+		}
+	};
+
+	static
+	private String formatMessage(String message, Exception cause){
+<span class="nc" id="L735">		String causeMessage = cause.getMessage();</span>
+
+<span class="nc bnc" id="L737" title="All 2 branches missed.">		if(causeMessage != null){</span>
+<span class="nc" id="L738">			message += &quot; (&quot; + causeMessage + &quot;)&quot;;</span>
+		}
+
+<span class="nc" id="L741">		return message;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

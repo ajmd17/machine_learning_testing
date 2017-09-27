@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VerificationUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">VerificationUtil.java</span></div><h1>VerificationUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Objects;
+
+public class VerificationUtil {
+
+<span class="nc" id="L25">	private VerificationUtil(){</span>
+<span class="nc" id="L26">	}</span>
+
+	static
+	public boolean acceptable(Object expected, Object actual, double precision, double zeroThreshold){
+
+<span class="pc bpc" id="L31" title="1 of 4 branches missed.">		if(expected instanceof Number &amp;&amp; actual instanceof Number){</span>
+<span class="fc" id="L32">			return acceptable((Number)expected, (Number)actual, precision, zeroThreshold);</span>
+		}
+
+<span class="fc" id="L35">		return Objects.equals(expected, actual);</span>
+	}
+
+	/**
+	 * @param precision The acceptable range given &lt;em&gt;in proportion&lt;/em&gt; of the expected value, including its boundaries.
+	 * @param zeroThreshold The threshold for distinguishing between zero and non-zero values.
+	 */
+	static
+	public boolean acceptable(Number expected, Number actual, double precision, double zeroThreshold){
+
+<span class="pc bpc" id="L45" title="2 of 4 branches missed.">		if(precision &lt; 0d || zeroThreshold &lt; 0d){</span>
+<span class="nc" id="L46">			throw new IllegalArgumentException();</span>
+		} // End if
+
+<span class="pc bpc" id="L49" title="1 of 4 branches missed.">		if(isZero(expected, zeroThreshold) &amp;&amp; isZero(actual, zeroThreshold)){</span>
+<span class="fc" id="L50">			return true;</span>
+		}
+
+<span class="fc" id="L53">		double zeroBoundary = expected.doubleValue() * (1d - precision); // Pointed towards zero</span>
+<span class="fc" id="L54">		double infinityBoundary = expected.doubleValue() * (1d + precision); // Pointed towards positive or negative infinity</span>
+
+		// Positive values
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		if(expected.doubleValue() &gt;= 0){</span>
+<span class="fc bfc" id="L58" title="All 4 branches covered.">			return (actual.doubleValue() &gt;= zeroBoundary) &amp;&amp; (actual.doubleValue() &lt;= infinityBoundary);</span>
+		} else
+
+		// Negative values
+		{
+<span class="fc bfc" id="L63" title="All 4 branches covered.">			return (actual.doubleValue() &lt;= zeroBoundary) &amp;&amp; (actual.doubleValue() &gt;= infinityBoundary);</span>
+		}
+	}
+
+	static
+	public boolean isZero(Number value, double zeroThreshold){
+<span class="fc bfc" id="L69" title="All 4 branches covered.">		return (value.doubleValue() &gt;= -zeroThreshold) &amp;&amp; (value.doubleValue() &lt;= zeroThreshold);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

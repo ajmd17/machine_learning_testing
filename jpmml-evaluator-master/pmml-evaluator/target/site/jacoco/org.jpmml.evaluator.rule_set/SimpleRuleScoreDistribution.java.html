@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SimpleRuleScoreDistribution.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.rule_set</a> &gt; <span class="el_source">SimpleRuleScoreDistribution.java</span></div><h1>SimpleRuleScoreDistribution.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.rule_set;
+
+import java.util.Set;
+
+import com.google.common.collect.BiMap;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.rule_set.SimpleRule;
+import org.jpmml.evaluator.EntityClassification;
+import org.jpmml.evaluator.HasConfidence;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.TypeUtil;
+
+public class SimpleRuleScoreDistribution extends EntityClassification&lt;SimpleRule&gt; implements HasConfidence {
+
+	SimpleRuleScoreDistribution(BiMap&lt;String, SimpleRule&gt; entityRegistry){
+<span class="fc" id="L34">		super(Type.CONFIDENCE, entityRegistry);</span>
+<span class="fc" id="L35">	}</span>
+
+	@Override
+	public void computeResult(DataType dataType){
+<span class="fc" id="L39">		SimpleRule simpleRule = getEntity();</span>
+
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">		if(simpleRule != null){</span>
+<span class="fc" id="L42">			String score = simpleRule.getScore();</span>
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">			if(score == null){</span>
+<span class="nc" id="L44">				throw new InvalidFeatureException(simpleRule);</span>
+			}
+
+<span class="fc" id="L47">			Object result = TypeUtil.parseOrCast(dataType, score);</span>
+
+<span class="fc" id="L49">			super.setResult(result);</span>
+
+<span class="fc" id="L51">			return;</span>
+		}
+
+<span class="nc" id="L54">		super.computeResult(dataType);</span>
+<span class="nc" id="L55">	}</span>
+
+	@Override
+	public Set&lt;String&gt; getCategoryValues(){
+<span class="nc" id="L59">		return keySet();</span>
+	}
+
+	@Override
+	public Double getConfidence(String value){
+<span class="nc" id="L64">		return get(value);</span>
+	}
+
+	@Override
+	protected void setEntity(SimpleRule simpleRule){
+<span class="fc" id="L69">		super.setEntity(simpleRule);</span>
+<span class="fc" id="L70">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

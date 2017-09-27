@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IntegrationTestBatch.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">IntegrationTestBatch.java</span></div><h1>IntegrationTestBatch.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectOutputStream;
+import java.util.Arrays;
+import java.util.List;
+
+import com.google.common.base.Predicate;
+import com.google.common.io.ByteStreams;
+import org.dmg.pmml.Application;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MiningSchema;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.Visitor;
+import org.dmg.pmml.VisitorAction;
+import org.jpmml.evaluator.visitors.InvalidFeatureInspector;
+import org.jpmml.evaluator.visitors.UnsupportedFeatureInspector;
+import org.jpmml.model.visitors.LocatorTransformer;
+
+abstract
+public class IntegrationTestBatch extends ArchiveBatch {
+
+<span class="fc" id="L43">	private Evaluator evaluator = null;</span>
+
+
+	public IntegrationTestBatch(String name, String dataset, Predicate&lt;FieldName&gt; predicate){
+<span class="fc" id="L47">		super(name, dataset, predicate);</span>
+<span class="fc" id="L48">	}</span>
+
+	abstract
+	public IntegrationTest getIntegrationTest();
+
+	@Override
+	public InputStream open(String path){
+<span class="fc" id="L55">		IntegrationTest integrationTest = getIntegrationTest();</span>
+
+<span class="fc" id="L57">		Class&lt;? extends IntegrationTest&gt; clazz = integrationTest.getClass();</span>
+
+<span class="fc" id="L59">		return clazz.getResourceAsStream(path);</span>
+	}
+
+	@Override
+	public PMML getPMML() throws Exception {
+<span class="fc" id="L64">		PMML pmml = super.getPMML();</span>
+
+<span class="fc" id="L66">		LocatorTransformer locatorTransformer = new LocatorTransformer();</span>
+<span class="fc" id="L67">		locatorTransformer.applyTo(pmml);</span>
+
+<span class="fc" id="L69">		return pmml;</span>
+	}
+
+	@Override
+	public Evaluator getEvaluator() throws Exception {
+
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		if(this.evaluator == null){</span>
+<span class="fc" id="L76">			Evaluator evaluator =  super.getEvaluator();</span>
+
+<span class="fc" id="L78">			ensureSerializability(evaluator);</span>
+
+<span class="fc" id="L80">			this.evaluator = evaluator;</span>
+		}
+
+<span class="fc" id="L83">		return this.evaluator;</span>
+	}
+
+	@Override
+	public void close() throws Exception {
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">		if(this.evaluator != null){</span>
+
+			try {
+<span class="fc" id="L92">				ensureSerializability(this.evaluator);</span>
+			} finally {
+<span class="pc" id="L94">				this.evaluator = null;</span>
+<span class="fc" id="L95">			}</span>
+		}
+<span class="fc" id="L97">	}</span>
+
+	static
+	protected void ensureValidity(PMMLObject object){
+<span class="nc" id="L101">		List&lt;Visitor&gt; visitors = Arrays.&lt;Visitor&gt;asList(</span>
+			new UnsupportedFeatureInspector(),
+<span class="nc" id="L103">			new InvalidFeatureInspector(){</span>
+
+				@Override
+				public VisitorAction visit(Application application){
+<span class="nc" id="L107">					String name = application.getName();</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">					if(name == null){</span>
+<span class="nc" id="L110">						return VisitorAction.SKIP;</span>
+					}
+
+<span class="nc" id="L113">					return super.visit(application);</span>
+				}
+
+				@Override
+				public VisitorAction visit(MiningSchema miningSchema){
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">					if(!miningSchema.hasMiningFields()){</span>
+<span class="nc" id="L120">						return VisitorAction.SKIP;</span>
+					}
+
+<span class="nc" id="L123">					return super.visit(miningSchema);</span>
+				}
+			}
+		);
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">		for(Visitor visitor : visitors){</span>
+<span class="nc" id="L129">			visitor.applyTo(object);</span>
+<span class="nc" id="L130">		}</span>
+<span class="nc" id="L131">	}</span>
+
+	static
+	protected void ensureSerializability(Object object) throws IOException {
+
+<span class="pc" id="L136">		try(ObjectOutputStream oos = new ObjectOutputStream(ByteStreams.nullOutputStream())){</span>
+<span class="fc" id="L137">			oos.writeObject(object);</span>
+<span class="pc bpc" id="L138" title="6 of 8 branches missed.">		}</span>
+<span class="fc" id="L139">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

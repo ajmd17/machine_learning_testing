@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TextUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">TextUtil.java</span></div><h1>TextUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2017 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.google.common.cache.Cache;
+import com.google.common.collect.Table;
+import org.dmg.pmml.InlineTable;
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.Row;
+import org.dmg.pmml.TextIndex;
+import org.dmg.pmml.TextIndexNormalization;
+import org.jpmml.model.ReflectionUtil;
+
+public class TextUtil {
+
+<span class="nc" id="L38">	private TextUtil(){</span>
+<span class="nc" id="L39">	}</span>
+
+	static
+	public String normalize(TextIndex textIndex, String string){
+
+<span class="fc bfc" id="L44" title="All 2 branches covered.">		if(textIndex.hasTextIndexNormalizations()){</span>
+<span class="fc" id="L45">			List&lt;TextIndexNormalization&gt; textIndexNormalizations = textIndex.getTextIndexNormalizations();</span>
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">			for(TextIndexNormalization textIndexNormalization : textIndexNormalizations){</span>
+<span class="fc" id="L48">				string = TextUtil.normalize(textIndex, textIndexNormalization, string);</span>
+<span class="fc" id="L49">			}</span>
+		}
+
+<span class="fc" id="L52">		return string;</span>
+	}
+
+	static
+	public String normalize(TextIndex textIndex, TextIndexNormalization textIndexNormalization, String string){
+<span class="fc" id="L57">		TextTokenizer tokenizer = null;</span>
+
+<span class="fc" id="L59">		Boolean tokenize = textIndexNormalization.isTokenize();</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">		if(tokenize == null){</span>
+<span class="fc" id="L61">			tokenize = textIndex.isTokenize();</span>
+		} // End if
+
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">		if(tokenize){</span>
+<span class="fc" id="L65">			PMMLObject locatable = textIndexNormalization;</span>
+
+<span class="fc" id="L67">			String wordSeparatorCharacterRE = textIndexNormalization.getWordSeparatorCharacterRE();</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">			if(wordSeparatorCharacterRE == null){</span>
+<span class="fc" id="L69">				locatable = textIndex;</span>
+
+<span class="fc" id="L71">				wordSeparatorCharacterRE = textIndex.getWordSeparatorCharacterRE();</span>
+			}
+
+<span class="fc" id="L74">			Pattern pattern = RegExUtil.compile(wordSeparatorCharacterRE, locatable);</span>
+
+<span class="fc" id="L76">			tokenizer = new TextTokenizer(pattern);</span>
+		}
+
+<span class="fc" id="L79">		Boolean caseSensitive = textIndexNormalization.isCaseSensitive();</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">		if(caseSensitive == null){</span>
+<span class="fc" id="L81">			caseSensitive = textIndex.isCaseSensitive();</span>
+		}
+
+<span class="fc" id="L84">		PMMLObject locatable = textIndexNormalization;</span>
+
+<span class="fc" id="L86">		Integer maxLevenshteinDistance = textIndexNormalization.getMaxLevenshteinDistance();</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">		if(maxLevenshteinDistance == null){</span>
+<span class="fc" id="L88">			locatable = textIndex;</span>
+
+<span class="fc" id="L90">			maxLevenshteinDistance = textIndex.getMaxLevenshteinDistance();</span>
+		} // End if
+
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">		if(maxLevenshteinDistance &lt; 0){</span>
+<span class="nc" id="L94">			throw new InvalidFeatureException(locatable, ReflectionUtil.getField(locatable.getClass(), &quot;maxLevenshteinDistance&quot;), maxLevenshteinDistance);</span>
+		}
+
+<span class="fc" id="L97">		InlineTable inlineTable = InlineTableUtil.getInlineTable(textIndexNormalization);</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">		if(inlineTable != null){</span>
+
+			normalization:
+			while(true){
+				String normalizedString;
+
+				try {
+<span class="fc" id="L105">					normalizedString = normalize(inlineTable, textIndexNormalization.getInField(), textIndexNormalization.getOutField(), textIndexNormalization.getRegexField(), string, tokenizer, caseSensitive, maxLevenshteinDistance);</span>
+<span class="nc" id="L106">				} catch(PMMLException pe){</span>
+<span class="nc" id="L107">					pe.ensureContext(textIndexNormalization);</span>
+
+<span class="nc" id="L109">					throw pe;</span>
+<span class="fc" id="L110">				}</span>
+
+				// &quot;If the recursive flag is set to true, then the normalization table is reapplied until none of its rows causes a change to the input text.&quot;
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">				if(textIndexNormalization.isRecursive()){</span>
+
+<span class="nc bnc" id="L115" title="All 2 branches missed.">					if(!(normalizedString).equals(string)){</span>
+<span class="nc" id="L116">						string = normalizedString;</span>
+
+<span class="nc" id="L118">						continue normalization;</span>
+					}
+				}
+
+<span class="fc" id="L122">				return normalizedString;</span>
+			}
+		}
+
+<span class="nc" id="L126">		return string;</span>
+	}
+
+	static
+	String normalize(InlineTable inlineTable, String inColumn, String outColumn, String regexColumn, String string, TextTokenizer tokenizer, boolean caseSensitive, int maxLevenshteinDistance){
+<span class="fc" id="L131">		Table&lt;Integer, String, String&gt; table = InlineTableUtil.getContent(inlineTable);</span>
+
+<span class="fc bfc" id="L133" title="All 2 branches covered.">		int regexFlags = (caseSensitive ? 0 : (Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE));</span>
+
+<span class="fc" id="L135">		List&lt;Row&gt; rows = inlineTable.getRows();</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">		for(int i = 0; i &lt; rows.size(); i++){</span>
+<span class="fc" id="L137">			Row row = rows.get(i);</span>
+
+<span class="fc" id="L139">			Integer rowKey = (i + 1);</span>
+
+<span class="fc" id="L141">			String inValue = table.get(rowKey, inColumn);</span>
+<span class="fc" id="L142">			String outValue = table.get(rowKey, outColumn);</span>
+<span class="pc bpc" id="L143" title="2 of 4 branches missed.">			if(inValue == null || outValue == null){</span>
+<span class="nc" id="L144">				throw new InvalidFeatureException(row);</span>
+			}
+
+<span class="fc" id="L147">			String regexValue = table.get(rowKey, regexColumn);</span>
+
+			// &quot;If there is a regexField column and its value for that row is true, then the string in the inField column should be treated as a PCRE regular expression&quot;
+<span class="fc" id="L150">			boolean regex = (&quot;true&quot;).equalsIgnoreCase(regexValue);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">			if(regex){</span>
+<span class="fc" id="L152">				Pattern pattern = RegExUtil.compile(inValue, regexFlags, row);</span>
+
+<span class="fc" id="L154">				Matcher matcher = pattern.matcher(string);</span>
+
+<span class="fc" id="L156">				string = matcher.replaceAll(outValue);</span>
+<span class="fc" id="L157">			} else</span>
+
+			{
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">				if(tokenizer != null){</span>
+<span class="nc" id="L161">					throw new UnsupportedFeatureException(row);</span>
+				}
+
+<span class="fc" id="L164">				Pattern pattern = RegExUtil.compile(Pattern.quote(inValue), regexFlags, row);</span>
+
+<span class="fc" id="L166">				Matcher matcher = pattern.matcher(string);</span>
+
+<span class="fc" id="L168">				string = matcher.replaceAll(outValue);</span>
+			}
+		}
+
+<span class="fc" id="L172">		return string;</span>
+	}
+
+
+	static
+	public List&lt;String&gt; tokenize(TextIndex textIndex, String text){
+<span class="fc" id="L178">		boolean tokenize = textIndex.isTokenize();</span>
+
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">		if(tokenize){</span>
+<span class="fc" id="L181">			String wordSeparatorCharacterRE = textIndex.getWordSeparatorCharacterRE();</span>
+
+<span class="fc" id="L183">			Pattern pattern = RegExUtil.compile(wordSeparatorCharacterRE, textIndex);</span>
+
+<span class="fc" id="L185">			TextTokenizer tokenizer = new TextTokenizer(pattern);</span>
+
+<span class="fc" id="L187">			return tokenizer.tokenize(text);</span>
+		} else
+
+		{
+<span class="nc" id="L191">			throw new UnsupportedFeatureException(textIndex, ReflectionUtil.getField(TextIndex.class, &quot;tokenize&quot;), tokenize);</span>
+		}
+	}
+
+	static
+	public int termFrequency(TextIndex textIndex, List&lt;String&gt; textTokens, List&lt;String&gt; termTokens){
+
+<span class="pc bpc" id="L198" title="2 of 4 branches missed.">		if(textTokens.isEmpty() || termTokens.isEmpty()){</span>
+<span class="nc" id="L199">			return 0;</span>
+		}
+
+<span class="fc" id="L202">		boolean caseSensitive = textIndex.isCaseSensitive();</span>
+
+<span class="fc" id="L204">		int maxLevenshteinDistance = textIndex.getMaxLevenshteinDistance();</span>
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">		if(maxLevenshteinDistance &lt; 0){</span>
+<span class="nc" id="L206">			throw new InvalidFeatureException(textIndex, ReflectionUtil.getField(TextIndex.class, &quot;maxLevenshteinDistance&quot;), maxLevenshteinDistance);</span>
+		}
+
+		boolean bestHits;
+
+<span class="fc" id="L211">		TextIndex.CountHits countHits = textIndex.getCountHits();</span>
+<span class="pc bpc" id="L212" title="1 of 3 branches missed.">		switch(countHits){</span>
+			case BEST_HITS:
+<span class="fc" id="L214">				bestHits = true;</span>
+<span class="fc" id="L215">				break;</span>
+			case ALL_HITS:
+<span class="fc" id="L217">				bestHits = false;</span>
+<span class="fc" id="L218">				break;</span>
+			default:
+<span class="nc" id="L220">				throw new UnsupportedFeatureException(textIndex, countHits);</span>
+		}
+
+		int maxFrequency;
+
+<span class="fc" id="L225">		TextIndex.LocalTermWeights localTermWeights = textIndex.getLocalTermWeights();</span>
+<span class="pc bpc" id="L226" title="1 of 3 branches missed.">		switch(localTermWeights){</span>
+			case BINARY:
+<span class="fc" id="L228">				maxFrequency = 1;</span>
+<span class="fc" id="L229">				break;</span>
+			case TERM_FREQUENCY:
+			case LOGARITHMIC:
+<span class="fc" id="L232">				maxFrequency = Integer.MAX_VALUE;</span>
+<span class="fc" id="L233">				break;</span>
+			default:
+<span class="nc" id="L235">				throw new UnsupportedFeatureException(textIndex, localTermWeights);</span>
+		}
+
+		try {
+<span class="fc" id="L239">			return termFrequency(textTokens, termTokens, caseSensitive, maxLevenshteinDistance, bestHits, maxFrequency);</span>
+<span class="nc" id="L240">		} catch(PMMLException pe){</span>
+<span class="nc" id="L241">			pe.ensureContext(textIndex);</span>
+
+<span class="nc" id="L243">			throw pe;</span>
+		}
+	}
+
+	static
+	int termFrequency(List&lt;String&gt; textTokens, List&lt;String&gt; termTokens, boolean caseSensitive, int maxLevenshteinDistance, boolean bestHits, int maxFrequency){
+<span class="fc" id="L249">		int frequency = 0;</span>
+
+<span class="fc" id="L251">		int bestLevenshteinDistance = Integer.MAX_VALUE;</span>
+
+<span class="fc" id="L253">		int textSize = textTokens.size();</span>
+<span class="fc" id="L254">		int termSize = termTokens.size();</span>
+
+		text:
+<span class="fc bfc" id="L257" title="All 2 branches covered.">		for(int i = 0, max = (textSize - termSize); i &lt;= max; i++){</span>
+<span class="fc" id="L258">			int levenshteinDistance = 0;</span>
+
+			term:
+<span class="fc bfc" id="L261" title="All 2 branches covered.">			for(int j = 0; j &lt; termSize; j++){</span>
+<span class="fc" id="L262">				int threshold = (maxLevenshteinDistance - levenshteinDistance);</span>
+
+<span class="fc" id="L264">				String textToken = textTokens.get(i + j);</span>
+<span class="fc" id="L265">				String termToken = termTokens.get(j);</span>
+
+<span class="fc bfc" id="L267" title="All 2 branches covered.">				if(threshold == 0){</span>
+					boolean equals;
+
+<span class="fc bfc" id="L270" title="All 2 branches covered.">					if(caseSensitive){</span>
+<span class="fc" id="L271">						equals = (textToken).equals(termToken);</span>
+					} else
+
+					{
+<span class="fc" id="L275">						equals = (textToken).equalsIgnoreCase(termToken);</span>
+					} // End if
+
+<span class="fc bfc" id="L278" title="All 2 branches covered.">					if(!equals){</span>
+<span class="fc" id="L279">						continue text;</span>
+					}
+<span class="fc" id="L281">				} else</span>
+
+				{
+<span class="fc" id="L284">					int tokenLevenshteinDistance = StringUtil.getLevenshteinDistance(textToken, termToken, caseSensitive, threshold);</span>
+
+<span class="fc bfc" id="L286" title="All 2 branches covered.">					if(tokenLevenshteinDistance &lt; 0){</span>
+<span class="fc" id="L287">						continue text;</span>
+					}
+
+<span class="fc" id="L290">					levenshteinDistance += tokenLevenshteinDistance;</span>
+				}
+			}
+
+<span class="fc bfc" id="L294" title="All 2 branches covered.">			if(bestHits){</span>
+
+<span class="fc bfc" id="L296" title="All 2 branches covered.">				if(levenshteinDistance &lt; bestLevenshteinDistance){</span>
+<span class="fc" id="L297">					frequency = 1;</span>
+
+<span class="fc" id="L299">					bestLevenshteinDistance = levenshteinDistance;</span>
+				} else
+
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">				if(levenshteinDistance == bestLevenshteinDistance){</span>
+<span class="nc" id="L303">					frequency++;</span>
+				} else
+
+				{
+					continue text;
+				} // End if
+
+<span class="pc bpc" id="L310" title="1 of 4 branches missed.">				if((bestLevenshteinDistance == 0) &amp;&amp; (frequency &gt;= maxFrequency)){</span>
+<span class="nc" id="L311">					return frequency;</span>
+				}
+			} else
+
+			{
+<span class="fc" id="L316">				frequency++;</span>
+
+<span class="fc bfc" id="L318" title="All 2 branches covered.">				if(frequency &gt;= maxFrequency){</span>
+<span class="fc" id="L319">					return frequency;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L324">		return Math.min(maxFrequency, frequency);</span>
+	}
+
+	static
+	abstract
+	class StringProcessor {
+
+<span class="fc" id="L331">		private TextIndex textIndex = null;</span>
+
+<span class="fc" id="L333">		private FieldValue value = null;</span>
+
+
+<span class="fc" id="L336">		public StringProcessor(TextIndex textIndex, FieldValue value){</span>
+<span class="fc" id="L337">			setTextIndex(Objects.requireNonNull(textIndex));</span>
+<span class="fc" id="L338">			setValue(Objects.requireNonNull(value));</span>
+<span class="fc" id="L339">		}</span>
+
+		abstract
+		public List&lt;String&gt; process();
+
+		public TextIndex getTextIndex(){
+<span class="fc" id="L345">			return this.textIndex;</span>
+		}
+
+		private void setTextIndex(TextIndex textIndex){
+<span class="fc" id="L349">			this.textIndex = textIndex;</span>
+<span class="fc" id="L350">		}</span>
+
+		public FieldValue getValue(){
+<span class="fc" id="L353">			return this.value;</span>
+		}
+
+		private void setValue(FieldValue value){
+<span class="fc" id="L357">			this.value = value;</span>
+<span class="fc" id="L358">		}</span>
+	}
+
+	static
+	class TextProcessor extends StringProcessor {
+
+		TextProcessor(TextIndex textIndex, FieldValue value){
+<span class="fc" id="L365">			super(textIndex, value);</span>
+<span class="fc" id="L366">		}</span>
+
+		@Override
+		public List&lt;String&gt; process(){
+<span class="fc" id="L370">			TextIndex textIndex = getTextIndex();</span>
+<span class="fc" id="L371">			FieldValue value = getValue();</span>
+
+<span class="fc" id="L373">			Cache&lt;FieldValue, List&lt;String&gt;&gt; textTokenCache = CacheUtil.getValue(textIndex, TextUtil.textTokenCaches, TextUtil.textTokenCacheLoader);</span>
+
+<span class="fc" id="L375">			List&lt;String&gt; tokens = textTokenCache.getIfPresent(value);</span>
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">			if(tokens == null){</span>
+<span class="fc" id="L377">				String string = TextUtil.normalize(textIndex, value.asString());</span>
+
+<span class="fc" id="L379">				tokens = TextUtil.tokenize(textIndex, string);</span>
+
+<span class="fc" id="L381">				textTokenCache.put(value, tokens);</span>
+			}
+
+<span class="fc" id="L384">			return tokens;</span>
+		}
+	}
+
+	static
+	class TermProcessor extends StringProcessor {
+
+		TermProcessor(TextIndex textIndex, FieldValue value){
+<span class="fc" id="L392">			super(textIndex, value);</span>
+<span class="fc" id="L393">		}</span>
+
+		@Override
+		public List&lt;String&gt; process(){
+<span class="fc" id="L397">			TextIndex textIndex = getTextIndex();</span>
+<span class="fc" id="L398">			FieldValue value = getValue();</span>
+
+<span class="fc" id="L400">			Cache&lt;FieldValue, List&lt;String&gt;&gt; termTokenCache = CacheUtil.getValue(textIndex, TextUtil.termTokenCaches, TextUtil.termTokenCacheLoader);</span>
+
+<span class="fc" id="L402">			List&lt;String&gt; tokens = termTokenCache.getIfPresent(value);</span>
+<span class="pc bpc" id="L403" title="1 of 2 branches missed.">			if(tokens == null){</span>
+<span class="fc" id="L404">				String string = value.asString();</span>
+
+<span class="fc" id="L406">				tokens = TextUtil.tokenize(textIndex, string);</span>
+
+<span class="fc" id="L408">				termTokenCache.put(value, tokens);</span>
+			}
+
+<span class="fc" id="L411">			return tokens;</span>
+		}
+	}
+
+<span class="fc" id="L415">	private static final Cache&lt;TextIndex, Cache&lt;FieldValue, List&lt;String&gt;&gt;&gt; textTokenCaches = CacheUtil.buildCache();</span>
+
+<span class="fc" id="L417">	private static final Callable&lt;Cache&lt;FieldValue, List&lt;String&gt;&gt;&gt; textTokenCacheLoader = new Callable&lt;Cache&lt;FieldValue, List&lt;String&gt;&gt;&gt;(){</span>
+
+		@Override
+		public Cache&lt;FieldValue, List&lt;String&gt;&gt; call(){
+<span class="fc" id="L421">			return CacheUtil.buildCache();</span>
+		}
+	};
+
+<span class="fc" id="L425">	private static final Cache&lt;TextIndex, Cache&lt;FieldValue, List&lt;String&gt;&gt;&gt; termTokenCaches = CacheUtil.buildCache();</span>
+
+<span class="fc" id="L427">	private static final Callable&lt;Cache&lt;FieldValue, List&lt;String&gt;&gt;&gt; termTokenCacheLoader = new Callable&lt;Cache&lt;FieldValue, List&lt;String&gt;&gt;&gt;(){</span>
+
+		@Override
+		public Cache&lt;FieldValue, List&lt;String&gt;&gt; call(){
+<span class="fc" id="L431">			return CacheUtil.buildCache();</span>
+		}
+	};
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

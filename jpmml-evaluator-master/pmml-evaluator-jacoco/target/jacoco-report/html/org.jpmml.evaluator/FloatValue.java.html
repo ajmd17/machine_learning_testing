@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FloatValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">FloatValue.java</span></div><h1>FloatValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2017 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.List;
+
+public class FloatValue extends Value&lt;Float&gt; {
+
+<span class="fc" id="L25">	protected float value = 0f;</span>
+
+
+	@Operation (
+		value = &quot;${0}&quot;
+	)
+<span class="fc" id="L31">	public FloatValue(float value){</span>
+<span class="fc" id="L32">		this.value = value;</span>
+<span class="fc" id="L33">	}</span>
+
+	@Override
+	public int compareTo(Value&lt;Float&gt; that){
+<span class="nc" id="L37">		return Float.compare(this.floatValue(), that.floatValue());</span>
+	}
+
+	@Override
+	public String toString(){
+<span class="nc" id="L42">		return Float.toString(this.value);</span>
+	}
+
+	@Override
+	public int hashCode(){
+<span class="nc" id="L47">		return Float.floatToIntBits(this.value);</span>
+	}
+
+	@Override
+	public boolean equals(Object object){
+
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">		if(object instanceof FloatValue){</span>
+<span class="fc" id="L54">			FloatValue that = (FloatValue)object;</span>
+
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">			return (Float.floatToIntBits(this.value) == Float.floatToIntBits(that.value));</span>
+		}
+
+<span class="nc" id="L59">		return false;</span>
+	}
+
+	@Override
+	public FloatValue copy(){
+<span class="fc" id="L64">		return new FloatValue(this.value);</span>
+	}
+
+	@Override
+	public FloatValue add(double value){
+<span class="fc" id="L69">		this.value += (float)value;</span>
+
+<span class="fc" id="L71">		return this;</span>
+	}
+
+	@Override
+	public FloatValue add(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L76">		this.value += value.floatValue();</span>
+
+<span class="fc" id="L78">		return this;</span>
+	}
+
+	@Override
+	public FloatValue add(double coefficient, Number factor){
+<span class="nc" id="L83">		this.value += (float)coefficient * factor.floatValue();</span>
+
+<span class="nc" id="L85">		return this;</span>
+	}
+
+	@Override
+	public FloatValue add(double coefficient, Number factor, int exponent){
+<span class="nc" id="L90">		this.value += (float)coefficient * FloatValue.pow(factor.floatValue(), exponent);</span>
+
+<span class="nc" id="L92">		return this;</span>
+	}
+
+	@Override
+	public FloatValue add(double coefficient, List&lt;? extends Number&gt; factors){
+<span class="nc" id="L97">		float value = (float)coefficient;</span>
+
+<span class="nc bnc" id="L99" title="All 2 branches missed.">		for(int i = 0; i &lt; factors.size(); i++){</span>
+<span class="nc" id="L100">			Number factor = factors.get(i);</span>
+
+<span class="nc" id="L102">			value *= factor.floatValue();</span>
+		}
+
+<span class="nc" id="L105">		this.value += value;</span>
+
+<span class="nc" id="L107">		return this;</span>
+	}
+
+	@Override
+	public FloatValue subtract(double value){
+<span class="nc" id="L112">		this.value -= (float)value;</span>
+
+<span class="nc" id="L114">		return this;</span>
+	}
+
+	@Override
+	public FloatValue subtract(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L119">		this.value -= value.floatValue();</span>
+
+<span class="fc" id="L121">		return this;</span>
+	}
+
+	@Override
+	public FloatValue multiply(double value){
+<span class="fc" id="L126">		this.value *= (float)value;</span>
+
+<span class="fc" id="L128">		return this;</span>
+	}
+
+	@Override
+	public FloatValue multiply(Value&lt;? extends Number&gt; value){
+<span class="nc" id="L133">		this.value *= value.floatValue();</span>
+
+<span class="nc" id="L135">		return this;</span>
+	}
+
+	@Override
+	public FloatValue multiply(Number factor, double exponent){
+<span class="nc" id="L140">		this.value *= FloatValue.pow(factor.floatValue(), (float)exponent);</span>
+
+<span class="nc" id="L142">		return this;</span>
+	}
+
+	@Override
+	public FloatValue divide(double value){
+<span class="nc" id="L147">		this.value /= (float)value;</span>
+
+<span class="nc" id="L149">		return this;</span>
+	}
+
+	@Override
+	public FloatValue divide(Value&lt;? extends Number&gt; value){
+<span class="nc" id="L154">		this.value /= value.floatValue();</span>
+
+<span class="nc" id="L156">		return this;</span>
+	}
+
+	@Override
+	public FloatValue residual(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L161">		this.value = 1f - value.floatValue();</span>
+
+<span class="fc" id="L163">		return this;</span>
+	}
+
+	@Override
+	public FloatValue square(){
+<span class="nc" id="L168">		this.value *= this.value;</span>
+
+<span class="nc" id="L170">		return this;</span>
+	}
+
+	@Override
+	public FloatValue reciprocal(){
+<span class="nc" id="L175">		this.value = 1f / this.value;</span>
+
+<span class="nc" id="L177">		return this;</span>
+	}
+
+	@Override
+	public FloatValue elliott(){
+<span class="nc" id="L182">		this.value /= (1f + Math.abs(this.value));</span>
+
+<span class="nc" id="L184">		return this;</span>
+	}
+
+	@Override
+	public FloatValue exp(){
+<span class="nc" id="L189">		this.value = FloatValue.exp(this.value);</span>
+
+<span class="nc" id="L191">		return this;</span>
+	}
+
+	@Override
+	public FloatValue gauss(){
+<span class="nc" id="L196">		this.value = FloatValue.exp(-(this.value * this.value));</span>
+
+<span class="nc" id="L198">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseLogit(){
+<span class="nc" id="L203">		this.value = 1f / (1f + FloatValue.exp(-this.value));</span>
+
+<span class="nc" id="L205">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseCloglog(){
+<span class="nc" id="L210">		this.value = 1f - FloatValue.exp(-FloatValue.exp(this.value));</span>
+
+<span class="nc" id="L212">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseLoglog(){
+<span class="nc" id="L217">		this.value = FloatValue.exp(-FloatValue.exp(-this.value));</span>
+
+<span class="nc" id="L219">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseLogc(){
+<span class="nc" id="L224">		this.value = 1f - FloatValue.exp(this.value);</span>
+
+<span class="nc" id="L226">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseNegbin(double value){
+<span class="nc" id="L231">		this.value = 1f / ((float)value * (FloatValue.exp(-this.value) - 1f));</span>
+
+<span class="nc" id="L233">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseOddspower(double value){
+
+<span class="nc bnc" id="L239" title="All 4 branches missed.">		if(value &lt; 0d || value &gt; 0d){</span>
+<span class="nc" id="L240">			this.value = 1f / (1f + FloatValue.pow(1f + ((float)value * this.value), -(1f / (float)value)));</span>
+		} else
+
+		{
+<span class="nc" id="L244">			this.value = 1f / (1f + FloatValue.exp(-this.value));</span>
+		}
+
+<span class="nc" id="L247">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inversePower(double value){
+
+<span class="nc bnc" id="L253" title="All 4 branches missed.">		if(value &lt; 0d || value &gt; 0d){</span>
+<span class="nc" id="L254">			this.value = FloatValue.pow(this.value, 1f / (float)value);</span>
+		} else
+
+		{
+<span class="nc" id="L258">			this.value = FloatValue.exp(this.value);</span>
+		}
+
+<span class="nc" id="L261">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseCauchit(){
+<span class="nc" id="L266">		this.value = 0.5f + (1f / (float)FloatValue.PI) * (float)Math.atan(this.value);</span>
+
+<span class="nc" id="L268">		return this;</span>
+	}
+
+	@Override
+	public FloatValue inverseProbit(){
+<span class="nc" id="L273">		throw new EvaluationException();</span>
+	}
+
+	@Override
+	public FloatValue sin(){
+<span class="nc" id="L278">		this.value = (float)Math.sin(this.value);</span>
+
+<span class="nc" id="L280">		return this;</span>
+	}
+
+	@Override
+	public FloatValue cos(){
+<span class="nc" id="L285">		this.value = (float)Math.cos(this.value);</span>
+
+<span class="nc" id="L287">		return this;</span>
+	}
+
+	@Override
+	public FloatValue atan(){
+<span class="nc" id="L292">		this.value = (float)Math.atan(this.value);</span>
+
+<span class="nc" id="L294">		return this;</span>
+	}
+
+	@Override
+	public FloatValue tanh(){
+<span class="nc" id="L299">		this.value = (float)Math.tanh(this.value);</span>
+
+<span class="nc" id="L301">		return this;</span>
+	}
+
+	@Override
+	public FloatValue threshold(double value){
+<span class="nc bnc" id="L306" title="All 2 branches missed.">		this.value = (this.value &gt; (float)value ? 1f : 0f);</span>
+
+<span class="nc" id="L308">		return this;</span>
+	}
+
+	@Override
+	public FloatValue relu(){
+<span class="nc" id="L313">		this.value = Math.max(this.value, 0);</span>
+
+<span class="nc" id="L315">		return this;</span>
+	}
+
+	@Override
+	public FloatValue restrict(double lowValue, double highValue){
+<span class="fc" id="L320">		this.value = Math.max(this.value, (float)lowValue);</span>
+<span class="fc" id="L321">		this.value = Math.min(this.value, (float)highValue);</span>
+
+<span class="fc" id="L323">		return this;</span>
+	}
+
+	@Override
+	public FloatValue round(){
+<span class="fc" id="L328">		this.value = Math.round(this.value);</span>
+
+<span class="fc" id="L330">		return this;</span>
+	}
+
+	@Override
+	public FloatValue ceiling(){
+<span class="nc" id="L335">		this.value = (float)Math.ceil(this.value);</span>
+
+<span class="nc" id="L337">		return this;</span>
+	}
+
+	@Override
+	public FloatValue floor(){
+<span class="nc" id="L342">		this.value = (float)Math.floor(this.value);</span>
+
+<span class="nc" id="L344">		return this;</span>
+	}
+
+	@Override
+	public FloatValue denormalize(double leftOrig, double leftNorm, double rightOrig, double rightNorm){
+<span class="nc" id="L349">		this.value = ((this.value - (float)leftNorm) / ((float)rightNorm - (float)leftNorm)) * ((float)rightOrig - (float)leftOrig) + (float)leftOrig;</span>
+
+<span class="nc" id="L351">		return this;</span>
+	}
+
+	@Override
+	public float floatValue(){
+<span class="fc" id="L356">		return this.value;</span>
+	}
+
+	@Override
+	public double doubleValue(){
+<span class="fc" id="L361">		return (double)this.value;</span>
+	}
+
+	@Override
+	public Float getValue(){
+<span class="fc" id="L366">		return this.value;</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Computes &lt;code&gt;exp(float)&lt;/code&gt;.
+	 * &lt;/p&gt;
+	 *
+	 * The function &lt;code&gt;exp(float)&lt;/code&gt; can be reasonably emulated as &lt;code&gt;(float)Math#pow(2.7182817d, double)&lt;/code&gt;.
+	 *
+	 * The constant &lt;code&gt;2.7182817d&lt;/code&gt; has to be hard-coded as double literal, because a float value,
+	 * which could be either hard-coded as float literal or computed as &lt;code&gt;(float)Math#E&lt;/code&gt;,
+	 * would be promoted to a double value &lt;code&gt;2.7182817459106445d&lt;/code&gt; (via a widening primitive conversion) by the method invocation expression.
+	 */
+	static
+	public float exp(float value){
+<span class="fc" id="L382">		return (float)Math.pow(FloatValue.E, value);</span>
+	}
+
+	static
+	public float pow(float value, float power){
+<span class="nc" id="L387">		return (float)Math.pow(value, power);</span>
+	}
+
+	public static final double E = 2.7182817d;
+
+	public static final double PI = 3.1415927d;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

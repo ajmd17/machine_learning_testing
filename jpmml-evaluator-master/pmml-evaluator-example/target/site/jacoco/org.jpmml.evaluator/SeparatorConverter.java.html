@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SeparatorConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator example applications</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">SeparatorConverter.java</span></div><h1>SeparatorConverter.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2017 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.converters.BaseConverter;
+
+public class SeparatorConverter extends BaseConverter&lt;String&gt; {
+
+	public SeparatorConverter(String optionName){
+<span class="nc" id="L27">		super(optionName);</span>
+<span class="nc" id="L28">	}</span>
+
+	@Override
+	public String convert(String value){
+
+		try {
+<span class="nc" id="L34">			return unescape(value);</span>
+<span class="nc" id="L35">		} catch(IllegalArgumentException iae){</span>
+<span class="nc" id="L36">			throw new ParameterException(getErrorString(value, &quot;a Java-style escaped string&quot;));</span>
+		}
+	}
+
+	static
+	public String unescape(String string){
+<span class="fc" id="L42">		StringBuilder sb = new StringBuilder();</span>
+
+<span class="fc" id="L44">		boolean escaped = false;</span>
+
+<span class="fc bfc" id="L46" title="All 2 branches covered.">		for(int i = 0; i &lt; string.length(); i++){</span>
+<span class="fc" id="L47">			char c = string.charAt(i);</span>
+
+<span class="fc bfc" id="L49" title="All 2 branches covered.">			if(c == '\\'){</span>
+
+<span class="fc bfc" id="L51" title="All 2 branches covered.">				if(escaped){</span>
+<span class="fc" id="L52">					sb.append('\\');</span>
+
+<span class="fc" id="L54">					escaped = false;</span>
+				} else
+
+				{
+<span class="fc" id="L58">					escaped = true;</span>
+				}
+
+<span class="fc" id="L61">				continue;</span>
+			} // End if
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">			if(escaped){</span>
+<span class="fc" id="L65">				sb.append(translate(c));</span>
+			} else
+
+			{
+<span class="fc" id="L69">				sb.append(c);</span>
+			}
+
+<span class="fc" id="L72">			escaped = false;</span>
+		}
+
+<span class="fc bfc" id="L75" title="All 2 branches covered.">		if(escaped){</span>
+<span class="fc" id="L76">			throw new IllegalArgumentException();</span>
+		} // End if
+
+<span class="fc bfc" id="L79" title="All 2 branches covered.">		if(sb.length() == 0){</span>
+<span class="fc" id="L80">			throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc" id="L83">		return sb.toString();</span>
+	}
+
+	static
+	private char translate(char c){
+
+<span class="pc bpc" id="L89" title="5 of 7 branches missed.">		switch(c){</span>
+			case 'b':
+<span class="nc" id="L91">				return '\b';</span>
+			case 't':
+<span class="fc" id="L93">				return '\t';</span>
+			case 'n':
+<span class="nc" id="L95">				return '\n';</span>
+			case 'f':
+<span class="nc" id="L97">				return '\f';</span>
+			case 'r':
+<span class="nc" id="L99">				return '\r';</span>
+			case '\&quot;':
+			case '\'':
+<span class="nc" id="L102">				return c;</span>
+			default:
+<span class="fc" id="L104">				throw new IllegalArgumentException();</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

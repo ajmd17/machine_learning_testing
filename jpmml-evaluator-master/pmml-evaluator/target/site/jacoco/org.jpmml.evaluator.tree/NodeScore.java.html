@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NodeScore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.tree</a> &gt; <span class="el_source">NodeScore.java</span></div><h1>NodeScore.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.tree;
+
+import com.google.common.base.Objects;
+import com.google.common.base.Objects.ToStringHelper;
+import com.google.common.collect.BiMap;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.tree.Node;
+import org.jpmml.evaluator.Computable;
+import org.jpmml.evaluator.EntityUtil;
+import org.jpmml.evaluator.HasEntityId;
+import org.jpmml.evaluator.HasEntityRegistry;
+
+/**
+ * @see MiningFunction#REGRESSION
+ */
+public class NodeScore implements Computable, HasEntityId, HasEntityRegistry&lt;Node&gt; {
+
+<span class="nc" id="L36">	private BiMap&lt;String, Node&gt; entityRegistry = null;</span>
+
+<span class="nc" id="L38">	private Node node = null;</span>
+
+<span class="nc" id="L40">	private Object result = null;</span>
+
+
+<span class="nc" id="L43">	NodeScore(BiMap&lt;String, Node&gt; entityRegistry, Node node, Object result){</span>
+<span class="nc" id="L44">		setEntityRegistry(entityRegistry);</span>
+<span class="nc" id="L45">		setNode(node);</span>
+<span class="nc" id="L46">		setResult(result);</span>
+<span class="nc" id="L47">	}</span>
+
+	@Override
+	public Object getResult(){
+<span class="nc" id="L51">		return this.result;</span>
+	}
+
+	private void setResult(Object result){
+<span class="nc" id="L55">		this.result = result;</span>
+<span class="nc" id="L56">	}</span>
+
+	@Override
+	public String getEntityId(){
+<span class="nc" id="L60">		Node node = getNode();</span>
+
+<span class="nc" id="L62">		return EntityUtil.getId(node, this);</span>
+	}
+
+	@Override
+	public BiMap&lt;String, Node&gt; getEntityRegistry(){
+<span class="nc" id="L67">		return this.entityRegistry;</span>
+	}
+
+	private void setEntityRegistry(BiMap&lt;String, Node&gt; entityRegistry){
+<span class="nc" id="L71">		this.entityRegistry = entityRegistry;</span>
+<span class="nc" id="L72">	}</span>
+
+	@Override
+	public String toString(){
+<span class="nc" id="L76">		ToStringHelper helper = Objects.toStringHelper(this)</span>
+<span class="nc" id="L77">			.add(&quot;result&quot;, getResult())</span>
+<span class="nc" id="L78">			.add(&quot;entityId&quot;, getEntityId());</span>
+
+<span class="nc" id="L80">		return helper.toString();</span>
+	}
+
+	public Node getNode(){
+<span class="nc" id="L84">		return this.node;</span>
+	}
+
+	private void setNode(Node node){
+<span class="nc" id="L88">		this.node = node;</span>
+<span class="nc" id="L89">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

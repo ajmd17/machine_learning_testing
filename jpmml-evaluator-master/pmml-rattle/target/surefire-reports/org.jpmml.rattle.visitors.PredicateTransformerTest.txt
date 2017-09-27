@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.jpmml.rattle.visitors.PredicateTransformerTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in org.jpmml.rattle.visitors.PredicateTransformerTest

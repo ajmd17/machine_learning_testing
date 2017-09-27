@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Classification.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">Classification.java</span></div><h1>Classification.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+
+import com.google.common.base.Function;
+import com.google.common.base.Objects;
+import com.google.common.base.Objects.ToStringHelper;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.Range;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.MiningFunction;
+
+/**
+ * @see MiningFunction#CLASSIFICATION
+ * @see MiningFunction#CLUSTERING
+ */
+public class Classification implements Computable {
+
+<span class="fc" id="L44">	private Map&lt;String, Double&gt; map = null;</span>
+
+<span class="fc" id="L46">	private Object result = null;</span>
+
+<span class="fc" id="L48">	private Type type = null;</span>
+
+
+<span class="fc" id="L51">	public Classification(Type type){</span>
+<span class="fc" id="L52">		setType(type);</span>
+
+<span class="fc" id="L54">		this.map = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L55">	}</span>
+
+<span class="fc" id="L57">	public Classification(Type type, Map&lt;String, Double&gt; values){</span>
+<span class="fc" id="L58">		setType(type);</span>
+
+<span class="fc" id="L60">		this.map = new LinkedHashMap&lt;&gt;(values);</span>
+<span class="fc" id="L61">	}</span>
+
+	@Override
+	public Object getResult(){
+
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if(this.result == null){</span>
+<span class="fc" id="L67">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L70">		return this.result;</span>
+	}
+
+	public void computeResult(DataType dataType){
+<span class="fc" id="L74">		Map.Entry&lt;String, Double&gt; entry = getWinner();</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		if(entry == null){</span>
+<span class="nc" id="L76">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L79">		Object result = TypeUtil.parseOrCast(dataType, entry.getKey());</span>
+
+<span class="fc" id="L81">		setResult(result);</span>
+<span class="fc" id="L82">	}</span>
+
+	protected void setResult(Object result){
+<span class="fc" id="L85">		this.result = result;</span>
+<span class="fc" id="L86">	}</span>
+
+	@Override
+	public String toString(){
+<span class="nc" id="L90">		ToStringHelper helper = toStringHelper();</span>
+
+<span class="nc" id="L92">		return helper.toString();</span>
+	}
+
+	protected ToStringHelper toStringHelper(){
+<span class="nc" id="L96">		ToStringHelper helper = Objects.toStringHelper(this)</span>
+<span class="nc" id="L97">			.add(&quot;result&quot;, getResult())</span>
+<span class="nc" id="L98">			.add(getType().entryKey(), entrySet());</span>
+
+<span class="nc" id="L100">		return helper;</span>
+	}
+
+	public Double get(String key){
+<span class="fc" id="L104">		Double value = this.map.get(key);</span>
+
+		// The specified value was not encountered during scoring
+<span class="fc bfc" id="L107" title="All 2 branches covered.">		if(value == null){</span>
+<span class="fc" id="L108">			Type type = getType();</span>
+
+<span class="fc" id="L110">			return type.getDefault();</span>
+		}
+
+<span class="fc" id="L113">		return value;</span>
+	}
+
+	public Double put(String key, Double value){
+<span class="fc" id="L117">		return this.map.put(key, value);</span>
+	}
+
+	protected boolean isEmpty(){
+<span class="fc" id="L121">		return this.map.isEmpty();</span>
+	}
+
+	protected Map.Entry&lt;String, Double&gt; getWinner(){
+<span class="fc" id="L125">		return getWinner(getType(), entrySet());</span>
+	}
+
+	protected List&lt;Map.Entry&lt;String, Double&gt;&gt; getWinnerRanking(){
+<span class="fc" id="L129">		return getWinnerList(getType(), entrySet());</span>
+	}
+
+	protected List&lt;String&gt; getWinnerKeys(){
+<span class="fc" id="L133">		return entryKeys(getWinnerRanking());</span>
+	}
+
+	protected List&lt;Double&gt; getWinnerValues(){
+<span class="fc" id="L137">		return entryValues(getWinnerRanking());</span>
+	}
+
+	protected Set&lt;String&gt; keySet(){
+<span class="fc" id="L141">		return this.map.keySet();</span>
+	}
+
+	protected Collection&lt;Double&gt; values(){
+<span class="fc" id="L145">		return this.map.values();</span>
+	}
+
+	protected Set&lt;Map.Entry&lt;String, Double&gt;&gt; entrySet(){
+<span class="fc" id="L149">		return this.map.entrySet();</span>
+	}
+
+	public Type getType(){
+<span class="fc" id="L153">		return this.type;</span>
+	}
+
+	private void setType(Type type){
+<span class="fc" id="L157">		this.type = type;</span>
+<span class="fc" id="L158">	}</span>
+
+	static
+	public Map.Entry&lt;String, Double&gt; getWinner(Type type, Collection&lt;Map.Entry&lt;String, Double&gt;&gt; entries){
+<span class="fc" id="L162">		Ordering&lt;Map.Entry&lt;String, Double&gt;&gt; ordering = createOrdering(type);</span>
+
+		try {
+<span class="fc" id="L165">			return ordering.max(entries);</span>
+<span class="nc" id="L166">		} catch(NoSuchElementException nsee){</span>
+<span class="nc" id="L167">			return null;</span>
+		}
+	}
+
+	static
+	public List&lt;Map.Entry&lt;String, Double&gt;&gt; getWinnerList(Type type, Collection&lt;Map.Entry&lt;String, Double&gt;&gt; entries){
+<span class="fc" id="L173">		Ordering&lt;Map.Entry&lt;String, Double&gt;&gt; ordering = (createOrdering(type)).reverse();</span>
+
+<span class="fc" id="L175">		return ordering.sortedCopy(entries);</span>
+	}
+
+	static
+	protected Ordering&lt;Map.Entry&lt;String, Double&gt;&gt; createOrdering(final Type type){
+<span class="fc" id="L180">		Comparator&lt;Map.Entry&lt;String, Double&gt;&gt; comparator = new Comparator&lt;Map.Entry&lt;String, Double&gt;&gt;(){</span>
+
+			@Override
+			public int compare(Map.Entry&lt;String, Double&gt; left, Map.Entry&lt;String, Double&gt; right){
+<span class="fc" id="L184">				return type.compare(left.getValue(), right.getValue());</span>
+			}
+		};
+
+<span class="fc" id="L188">		return Ordering.from(comparator);</span>
+	}
+
+	static
+	public &lt;K, V&gt; List&lt;K&gt; entryKeys(List&lt;Map.Entry&lt;K, V&gt;&gt; entries){
+<span class="fc" id="L193">		Function&lt;Map.Entry&lt;K, V&gt;, K&gt; function = new Function&lt;Map.Entry&lt;K, V&gt;, K&gt;(){</span>
+
+			@Override
+			public K apply(Map.Entry&lt;K, V&gt; entry){
+<span class="fc" id="L197">				return entry.getKey();</span>
+			}
+		};
+
+<span class="fc" id="L201">		return Lists.transform(entries, function);</span>
+	}
+
+	static
+	public &lt;K, V&gt; List&lt;V&gt; entryValues(List&lt;Map.Entry&lt;K, V&gt;&gt; entries){
+<span class="fc" id="L206">		Function&lt;Map.Entry&lt;K, V&gt;, V&gt; function = new Function&lt;Map.Entry&lt;K, V&gt;, V&gt;(){</span>
+
+			@Override
+			public V apply(Map.Entry&lt;K, V&gt; entry){
+<span class="fc" id="L210">				return entry.getValue();</span>
+			}
+		};
+
+<span class="fc" id="L214">		return Lists.transform(entries, function);</span>
+	}
+
+<span class="fc" id="L217">	private static final Ordering&lt;Double&gt; BIGGER_IS_BETTER = Ordering.&lt;Double&gt;natural();</span>
+<span class="fc" id="L218">	private static final Ordering&lt;Double&gt; SMALLER_IS_BETTER = Ordering.&lt;Double&gt;natural().reverse();</span>
+
+<span class="pc" id="L220">	static</span>
+	public enum Type implements Comparator&lt;Double&gt; {
+<span class="fc" id="L222">		PROBABILITY(Classification.BIGGER_IS_BETTER, Range.closed(Numbers.DOUBLE_ZERO, Numbers.DOUBLE_ONE)),</span>
+<span class="fc" id="L223">		CONFIDENCE(Classification.BIGGER_IS_BETTER, Range.atLeast(Numbers.DOUBLE_ZERO)),</span>
+<span class="fc" id="L224">		DISTANCE(Classification.SMALLER_IS_BETTER, Range.atLeast(Numbers.DOUBLE_ZERO)){</span>
+
+			@Override
+			public Double getDefault(){
+<span class="nc" id="L228">				return Double.POSITIVE_INFINITY;</span>
+			}
+		},
+<span class="fc" id="L231">		SIMILARITY(Classification.BIGGER_IS_BETTER, Range.atLeast(Numbers.DOUBLE_ZERO)),</span>
+<span class="fc" id="L232">		VOTE(Classification.BIGGER_IS_BETTER, Range.atLeast(Numbers.DOUBLE_ZERO)),</span>
+		;
+
+		private Ordering&lt;Double&gt; ordering;
+
+		private Range&lt;Double&gt; range;
+
+
+<span class="fc" id="L240">		private Type(Ordering&lt;Double&gt; ordering, Range&lt;Double&gt; range){</span>
+<span class="fc" id="L241">			setOrdering(ordering);</span>
+<span class="fc" id="L242">			setRange(range);</span>
+<span class="fc" id="L243">		}</span>
+
+		/**
+		 * &lt;p&gt;
+		 * Calculates the order between arguments.
+		 * &lt;/p&gt;
+		 *
+		 * @param left A value
+		 * @param right The reference value
+		 */
+		@Override
+		public int compare(Double left, Double right){
+
+			// The behaviour of missing values in comparison operations is not defined
+<span class="pc bpc" id="L257" title="2 of 4 branches missed.">			if(left == null || right == null){</span>
+<span class="nc" id="L258">				throw new EvaluationException();</span>
+			}
+
+<span class="fc" id="L261">			Ordering&lt;Double&gt; ordering = getOrdering();</span>
+
+<span class="fc" id="L263">			return ordering.compare(left, right);</span>
+		}
+
+		/**
+		 * &lt;p&gt;
+		 * Gets the least optimal value in the range of valid values.
+		 * &lt;/p&gt;
+		 */
+		public Double getDefault(){
+<span class="fc" id="L272">			return Numbers.DOUBLE_ZERO;</span>
+		}
+
+		public boolean isValid(Double value){
+<span class="fc" id="L276">			Range&lt;Double&gt; range = getRange();</span>
+
+<span class="fc" id="L278">			return range.contains(value);</span>
+		}
+
+		public String entryKey(){
+<span class="nc" id="L282">			String name = name();</span>
+
+<span class="nc" id="L284">			return (name.toLowerCase() + &quot;_entries&quot;);</span>
+		}
+
+		public Ordering&lt;Double&gt; getOrdering(){
+<span class="fc" id="L288">			return this.ordering;</span>
+		}
+
+		private void setOrdering(Ordering&lt;Double&gt; ordering){
+<span class="fc" id="L292">			this.ordering = ordering;</span>
+<span class="fc" id="L293">		}</span>
+
+		public Range&lt;Double&gt; getRange(){
+<span class="fc" id="L296">			return this.range;</span>
+		}
+
+		private void setRange(Range&lt;Double&gt; range){
+<span class="fc" id="L300">			this.range = range;</span>
+<span class="fc" id="L301">		}</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

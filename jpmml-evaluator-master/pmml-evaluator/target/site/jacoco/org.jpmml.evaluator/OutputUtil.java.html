@@ -1,0 +1,921 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OutputUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">OutputUtil.java</span></div><h1>OutputUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Ordering;
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.Expression;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.Output;
+import org.dmg.pmml.OutputField;
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.ResultFeature;
+import org.dmg.pmml.Target;
+import org.dmg.pmml.TargetValue;
+import org.dmg.pmml.Value;
+import org.dmg.pmml.association.AssociationRule;
+import org.dmg.pmml.association.Item;
+import org.dmg.pmml.association.ItemRef;
+import org.dmg.pmml.association.Itemset;
+import org.dmg.pmml.mining.MiningModel;
+import org.jpmml.evaluator.mining.MiningModelEvaluationContext;
+import org.jpmml.evaluator.mining.SegmentResult;
+
+public class OutputUtil {
+
+<span class="nc" id="L52">	private OutputUtil(){</span>
+<span class="nc" id="L53">	}</span>
+
+	/**
+	 * &lt;p&gt;
+	 * Evaluates the {@link Output} element.
+	 * &lt;/p&gt;
+	 *
+	 * @param predictions A map of {@link Evaluator#getTargetFields() target field} values.
+	 *
+	 * @return A map of {@link Evaluator#getTargetFields() target field} values together with {@link Evaluator#getOutputFields() output field} values.
+	 */
+	@SuppressWarnings (
+		value = {&quot;fallthrough&quot;}
+	)
+	static
+	public Map&lt;FieldName, ?&gt; evaluate(Map&lt;FieldName, ?&gt; predictions, ModelEvaluationContext context){
+<span class="fc" id="L69">		ModelEvaluator&lt;?&gt; modelEvaluator = context.getModelEvaluator();</span>
+
+<span class="fc" id="L71">		Model model = modelEvaluator.getModel();</span>
+
+<span class="fc" id="L73">		Output output = model.getOutput();</span>
+<span class="pc bpc" id="L74" title="1 of 4 branches missed.">		if(output == null || !output.hasOutputFields()){</span>
+<span class="fc" id="L75">			return predictions;</span>
+		}
+
+<span class="fc" id="L78">		Map&lt;FieldName, Object&gt; result = new LinkedHashMap&lt;&gt;(predictions);</span>
+
+<span class="fc" id="L80">		List&lt;OutputField&gt; outputFields = output.getOutputFields();</span>
+
+		outputFields:
+<span class="fc bfc" id="L83" title="All 2 branches covered.">		for(OutputField outputField : outputFields){</span>
+<span class="fc" id="L84">			FieldName targetFieldName = outputField.getTargetField();</span>
+
+<span class="fc" id="L86">			Object targetValue = null;</span>
+
+<span class="fc" id="L88">			ResultFeature resultFeature = outputField.getResultFeature();</span>
+
+<span class="fc" id="L90">			String segmentId = outputField.getSegmentId();</span>
+
+<span class="fc" id="L92">			SegmentResult segmentPredictions = null;</span>
+
+			// Load the target value of the specified segment
+<span class="fc bfc" id="L95" title="All 2 branches covered.">			if(segmentId != null){</span>
+
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">				if(!(model instanceof MiningModel)){</span>
+<span class="nc" id="L98">					throw new InvalidFeatureException(outputField);</span>
+				}
+
+<span class="fc" id="L101">				MiningModelEvaluationContext miningModelContext = (MiningModelEvaluationContext)context;</span>
+
+<span class="fc" id="L103">				segmentPredictions = miningModelContext.getResult(segmentId);</span>
+
+				// &quot;If there is no Segment matching segmentId or if the predicate of the matching Segment evaluated to false, then the result delivered by this OutputField is missing&quot;
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">				if(segmentPredictions == null){</span>
+<span class="nc" id="L107">					continue outputFields;</span>
+				} // End if
+
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">				if(targetFieldName != null){</span>
+
+<span class="nc bnc" id="L112" title="All 2 branches missed.">					if(!segmentPredictions.containsKey(targetFieldName)){</span>
+<span class="nc" id="L113">						throw new MissingValueException(targetFieldName, outputField);</span>
+					}
+
+<span class="nc" id="L116">					targetValue = segmentPredictions.get(targetFieldName);</span>
+				} else
+
+				{
+<span class="fc" id="L120">					targetValue = segmentPredictions.getTargetValue();</span>
+				}
+<span class="fc" id="L122">			} else</span>
+
+			// Load the target value
+			{
+<span class="pc bfc" id="L126" title="All 2 branches covered.">				switch(resultFeature){</span>
+					case ENTITY_ID:
+						{
+							// &quot;Result feature entityId returns the id of the winning segment&quot;
+<span class="fc bfc" id="L130" title="All 2 branches covered.">							if(model instanceof MiningModel){</span>
+<span class="fc" id="L131">								targetValue = TypeUtil.cast(HasEntityId.class, predictions);</span>
+
+<span class="fc" id="L133">								break;</span>
+							}
+						}
+						// Falls through
+					default:
+						{
+<span class="fc bfc" id="L139" title="All 2 branches covered.">							if(targetFieldName == null){</span>
+<span class="fc" id="L140">								targetFieldName = modelEvaluator.getTargetFieldName();</span>
+							} // End if
+
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">							if(!predictions.containsKey(targetFieldName)){</span>
+<span class="nc" id="L144">								throw new MissingValueException(targetFieldName, outputField);</span>
+							}
+
+<span class="fc" id="L147">							targetValue = predictions.get(targetFieldName);</span>
+						}
+						break;
+				}
+			}
+
+			// &quot;If the target value is missing, then the result delivered by this OutputField is missing&quot;
+<span class="fc bfc" id="L154" title="All 2 branches covered.">			if(targetValue == null){</span>
+<span class="fc" id="L155">				continue outputFields;</span>
+			}
+
+			Object value;
+
+			// Perform the requested computation on the target value
+<span class="pc bpc" id="L161" title="5 of 21 branches missed.">			switch(resultFeature){</span>
+				case PREDICTED_VALUE:
+					{
+<span class="fc" id="L164">						value = getPredictedValue(targetValue);</span>
+					}
+<span class="fc" id="L166">					break;</span>
+				case PREDICTED_DISPLAY_VALUE:
+					{
+<span class="fc" id="L169">						DataField dataField = modelEvaluator.getDataField(targetFieldName);</span>
+<span class="pc bpc" id="L170" title="1 of 2 branches missed.">						if(dataField == null){</span>
+<span class="nc" id="L171">							throw new MissingFieldException(targetFieldName, outputField);</span>
+						}
+
+<span class="fc" id="L174">						Target target = modelEvaluator.getTarget(targetFieldName);</span>
+
+<span class="fc" id="L176">						value = getPredictedDisplayValue(targetValue, dataField, target);</span>
+					}
+<span class="fc" id="L178">					break;</span>
+				case TRANSFORMED_VALUE:
+				case DECISION:
+					{
+<span class="fc bfc" id="L182" title="All 2 branches covered.">						if(segmentId != null){</span>
+<span class="fc" id="L183">							String name = outputField.getValue();</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">							if(name == null){</span>
+<span class="nc" id="L185">								throw new InvalidFeatureException(outputField);</span>
+							}
+
+<span class="fc" id="L188">							Expression expression = outputField.getExpression();</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">							if(expression != null){</span>
+<span class="nc" id="L190">								throw new InvalidFeatureException(outputField);</span>
+							}
+
+<span class="fc" id="L193">							value = segmentPredictions.get(FieldName.create(name));</span>
+
+<span class="fc" id="L195">							break;</span>
+						}
+
+<span class="fc" id="L198">						Expression expression = outputField.getExpression();</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">						if(expression == null){</span>
+<span class="nc" id="L200">							throw new InvalidFeatureException(outputField);</span>
+						}
+
+<span class="fc" id="L203">						value = FieldValueUtil.getValue(ExpressionUtil.evaluate(expression, context));</span>
+					}
+<span class="fc" id="L205">					break;</span>
+				case PROBABILITY:
+					{
+<span class="fc" id="L208">						value = getProbability(targetValue, outputField);</span>
+					}
+<span class="fc" id="L210">					break;</span>
+				case RESIDUAL:
+					{
+<span class="fc" id="L213">						FieldValue expectedTargetValue = context.evaluate(targetFieldName);</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">						if(expectedTargetValue == null){</span>
+<span class="nc" id="L215">							throw new MissingValueException(targetFieldName, outputField);</span>
+						}
+
+<span class="fc" id="L218">						DataField dataField = modelEvaluator.getDataField(targetFieldName);</span>
+
+<span class="fc" id="L220">						OpType opType = dataField.getOpType();</span>
+<span class="pc bpc" id="L221" title="1 of 3 branches missed.">						switch(opType){</span>
+							case CONTINUOUS:
+<span class="fc" id="L223">								value = getContinuousResidual(targetValue, expectedTargetValue);</span>
+<span class="fc" id="L224">								break;</span>
+							case CATEGORICAL:
+<span class="fc" id="L226">								value = getCategoricalResidual(targetValue, expectedTargetValue);</span>
+<span class="fc" id="L227">								break;</span>
+							default:
+<span class="nc" id="L229">								throw new UnsupportedFeatureException(dataField, opType);</span>
+						}
+					}
+<span class="fc" id="L232">					break;</span>
+				case CLUSTER_ID:
+					{
+<span class="nc" id="L235">						value = getClusterId(targetValue);</span>
+					}
+<span class="nc" id="L237">					break;</span>
+				case ENTITY_ID:
+					{
+<span class="fc bfc" id="L240" title="All 2 branches covered.">						if(targetValue instanceof HasRuleValues){</span>
+<span class="fc" id="L241">							value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.RULE_ID);</span>
+
+<span class="fc" id="L243">							break;</span>
+						}
+
+<span class="fc" id="L246">						value = getEntityId(targetValue, outputField);</span>
+					}
+<span class="fc" id="L248">					break;</span>
+				case AFFINITY:
+					{
+<span class="fc" id="L251">						value = getAffinity(targetValue, outputField);</span>
+					}
+<span class="fc" id="L253">					break;</span>
+				case CLUSTER_AFFINITY:
+				case ENTITY_AFFINITY:
+					{
+<span class="nc" id="L257">						String entityId = outputField.getValue();</span>
+
+						// Select the specified entity instead of the winning entity
+<span class="nc bnc" id="L260" title="All 2 branches missed.">						if(entityId != null){</span>
+<span class="nc" id="L261">							value = getAffinity(targetValue, outputField);</span>
+
+<span class="nc" id="L263">							break;</span>
+						}
+
+<span class="nc" id="L266">						value = getEntityAffinity(targetValue);</span>
+					}
+<span class="nc" id="L268">					break;</span>
+				case REASON_CODE:
+					{
+<span class="fc" id="L271">						value = getReasonCode(targetValue, outputField);</span>
+					}
+<span class="fc" id="L273">					break;</span>
+				case RULE_VALUE:
+					{
+<span class="fc" id="L276">						value = getRuleValue(targetValue, outputField);</span>
+					}
+<span class="fc" id="L278">					break;</span>
+				case ANTECEDENT:
+					{
+<span class="fc" id="L281">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.ANTECEDENT);</span>
+					}
+<span class="fc" id="L283">					break;</span>
+				case CONSEQUENT:
+					{
+<span class="fc" id="L286">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.CONSEQUENT);</span>
+					}
+<span class="fc" id="L288">					break;</span>
+				case RULE:
+					{
+<span class="fc" id="L291">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.RULE);</span>
+					}
+<span class="fc" id="L293">					break;</span>
+				case RULE_ID:
+					{
+<span class="fc" id="L296">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.RULE_ID);</span>
+					}
+<span class="fc" id="L298">					break;</span>
+				case CONFIDENCE:
+					{
+<span class="fc" id="L301">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.CONFIDENCE);</span>
+					}
+<span class="fc" id="L303">					break;</span>
+				case SUPPORT:
+					{
+<span class="fc" id="L306">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.SUPPORT);</span>
+					}
+<span class="fc" id="L308">					break;</span>
+				case LIFT:
+					{
+<span class="fc" id="L311">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.LIFT);</span>
+					}
+<span class="fc" id="L313">					break;</span>
+				case LEVERAGE:
+					{
+<span class="nc" id="L316">						value = getRuleValue(targetValue, outputField, OutputField.RuleFeature.LEVERAGE);</span>
+					}
+<span class="nc" id="L318">					break;</span>
+				case WARNING:
+					{
+<span class="nc" id="L321">						value = context.getWarnings();</span>
+					}
+<span class="nc" id="L323">					break;</span>
+				default:
+<span class="nc" id="L325">					throw new UnsupportedFeatureException(outputField, resultFeature);</span>
+			}
+
+<span class="fc" id="L328">			FieldValue outputValue = FieldValueUtil.create(outputField, value);</span>
+
+			// The result of one output field becomes available to other output fields
+<span class="fc" id="L331">			context.declare(outputField.getName(), outputValue);</span>
+
+<span class="fc" id="L333">			result.put(outputField.getName(), FieldValueUtil.getValue(outputValue));</span>
+<span class="fc" id="L334">		}</span>
+
+<span class="fc" id="L336">		return result;</span>
+	}
+
+	/**
+	 * @throws TypeAnalysisException If the data type cannot be determined.
+	 */
+	static
+	public DataType getDataType(OutputField outputField, ModelEvaluator&lt;?&gt; modelEvaluator){
+<span class="fc" id="L344">		FieldName name = outputField.getName();</span>
+
+<span class="fc" id="L346">		DataType dataType = outputField.getDataType();</span>
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">		if(dataType != null){</span>
+<span class="nc" id="L348">			return dataType;</span>
+		}
+
+<span class="fc" id="L351">		String segmentId = outputField.getSegmentId();</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">		if(segmentId != null){</span>
+<span class="nc" id="L353">			throw new TypeAnalysisException(outputField);</span>
+		}
+
+<span class="fc" id="L356">		ResultFeature resultFeature = outputField.getResultFeature();</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">		switch(resultFeature){</span>
+			case PREDICTED_VALUE:
+			case TRANSFORMED_VALUE:
+			case DECISION:
+				{
+<span class="fc" id="L362">					OutputField evaluatorOutputField = modelEvaluator.getOutputField(name);</span>
+
+<span class="pc bpc" id="L364" title="1 of 2 branches missed.">					if(!(outputField).equals(evaluatorOutputField)){</span>
+<span class="nc" id="L365">						throw new TypeAnalysisException(outputField);</span>
+					}
+				}
+<span class="fc" id="L368">				break;</span>
+			default:
+				break;
+		} // End switch
+
+<span class="pc bpc" id="L373" title="9 of 18 branches missed.">		switch(resultFeature){</span>
+			case PREDICTED_VALUE:
+				{
+<span class="fc" id="L376">					FieldName targetFieldName = outputField.getTargetField();</span>
+<span class="pc bpc" id="L377" title="1 of 2 branches missed.">					if(targetFieldName == null){</span>
+<span class="fc" id="L378">						targetFieldName = modelEvaluator.getTargetFieldName();</span>
+					}
+
+<span class="fc" id="L381">					DataField dataField = modelEvaluator.getDataField(targetFieldName);</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">					if(dataField == null){</span>
+<span class="nc" id="L383">						throw new MissingFieldException(targetFieldName, outputField);</span>
+					}
+
+<span class="fc" id="L386">					return dataField.getDataType();</span>
+				}
+			case PREDICTED_DISPLAY_VALUE:
+				{
+<span class="fc" id="L390">					return DataType.STRING; // XXX</span>
+				}
+			case TRANSFORMED_VALUE:
+			case DECISION:
+				{
+<span class="nc" id="L395">					Expression expression = outputField.getExpression();</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">					if(expression == null){</span>
+<span class="nc" id="L397">						throw new InvalidFeatureException(outputField);</span>
+					}
+
+<span class="nc" id="L400">					return ExpressionUtil.getDataType(expression, modelEvaluator);</span>
+				}
+			case PROBABILITY:
+			case RESIDUAL:
+			case STANDARD_ERROR:
+				{
+<span class="fc" id="L406">					return DataType.DOUBLE;</span>
+				}
+			case ENTITY_ID:
+			case CLUSTER_ID:
+				{
+<span class="nc" id="L411">					return DataType.STRING;</span>
+				}
+			case AFFINITY:
+			case ENTITY_AFFINITY:
+			case CLUSTER_AFFINITY:
+				{
+<span class="nc" id="L417">					return DataType.DOUBLE;</span>
+				}
+			case REASON_CODE:
+				{
+<span class="nc" id="L421">					return DataType.STRING;</span>
+				}
+			case RULE_VALUE:
+				{
+<span class="fc" id="L425">					return getRuleDataType(outputField);</span>
+				}
+			case ANTECEDENT:
+				{
+<span class="nc" id="L429">					return getRuleDataType(outputField, OutputField.RuleFeature.ANTECEDENT);</span>
+				}
+			case CONSEQUENT:
+				{
+<span class="nc" id="L433">					return getRuleDataType(outputField, OutputField.RuleFeature.CONSEQUENT);</span>
+				}
+			case RULE:
+				{
+<span class="fc" id="L437">					return getRuleDataType(outputField, OutputField.RuleFeature.RULE);</span>
+				}
+			case RULE_ID:
+				{
+<span class="fc" id="L441">					return getRuleDataType(outputField, OutputField.RuleFeature.RULE_ID);</span>
+				}
+			case SUPPORT:
+				{
+<span class="fc" id="L445">					return getRuleDataType(outputField, OutputField.RuleFeature.SUPPORT);</span>
+				}
+			case CONFIDENCE:
+				{
+<span class="fc" id="L449">					return getRuleDataType(outputField, OutputField.RuleFeature.CONFIDENCE);</span>
+				}
+			case LIFT:
+				{
+<span class="fc" id="L453">					return getRuleDataType(outputField, OutputField.RuleFeature.LIFT);</span>
+				}
+			case LEVERAGE:
+				{
+<span class="nc" id="L457">					return getRuleDataType(outputField, OutputField.RuleFeature.LEVERAGE);</span>
+				}
+			case WARNING:
+				{
+<span class="nc" id="L461">					throw new TypeAnalysisException(outputField);</span>
+				}
+			default:
+<span class="nc" id="L464">				throw new UnsupportedFeatureException(outputField, resultFeature);</span>
+		}
+	}
+
+	static
+	private Object getPredictedValue(Object object){
+<span class="fc" id="L470">		return EvaluatorUtil.decode(object);</span>
+	}
+
+	static
+	private Object getPredictedDisplayValue(Object object, DataField dataField, Target target){
+
+<span class="pc bpc" id="L476" title="1 of 2 branches missed.">		if(object instanceof HasDisplayValue){</span>
+<span class="nc" id="L477">			HasDisplayValue hasDisplayValue = TypeUtil.cast(HasDisplayValue.class, object);</span>
+
+<span class="nc" id="L479">			return hasDisplayValue.getDisplayValue();</span>
+		}
+
+<span class="fc" id="L482">		object = getPredictedValue(object);</span>
+
+<span class="fc bfc" id="L484" title="All 2 branches covered.">		if(target != null){</span>
+<span class="fc" id="L485">			TargetValue targetValue = TargetUtil.getTargetValue(target, object);</span>
+
+<span class="pc bpc" id="L487" title="1 of 2 branches missed.">			if(targetValue != null){</span>
+<span class="fc" id="L488">				String displayValue = targetValue.getDisplayValue();</span>
+
+<span class="pc bpc" id="L490" title="1 of 2 branches missed.">				if(displayValue != null){</span>
+<span class="fc" id="L491">					return displayValue;</span>
+				}
+			}
+		}
+
+<span class="fc" id="L496">		OpType opType = dataField.getOpType();</span>
+<span class="pc bpc" id="L497" title="2 of 3 branches missed.">		switch(opType){</span>
+			case CONTINUOUS:
+<span class="nc" id="L499">				break;</span>
+			case CATEGORICAL:
+			case ORDINAL:
+				{
+<span class="fc" id="L503">					Value value = FieldValueUtil.getValidValue(dataField, object);</span>
+
+<span class="pc bpc" id="L505" title="1 of 2 branches missed.">					if(value != null){</span>
+<span class="fc" id="L506">						String displayValue = value.getDisplayValue();</span>
+
+<span class="pc bpc" id="L508" title="1 of 2 branches missed.">						if(displayValue != null){</span>
+<span class="fc" id="L509">							return displayValue;</span>
+						}
+					}
+				}
+<span class="nc" id="L513">				break;</span>
+			default:
+<span class="nc" id="L515">				throw new UnsupportedFeatureException(dataField, opType);</span>
+		}
+
+		// &quot;If the display value is not specified explicitly, then the raw predicted value is used by default&quot;
+<span class="nc" id="L519">		return object;</span>
+	}
+
+	static
+	private Double getProbability(Object object, OutputField outputField){
+<span class="fc" id="L524">		HasProbability hasProbability = TypeUtil.cast(HasProbability.class, object);</span>
+
+<span class="fc" id="L526">		String value = getCategoryValue(object, outputField);</span>
+
+<span class="fc" id="L528">		return hasProbability.getProbability(value);</span>
+	}
+
+	static
+	private String getCategoryValue(Object object, OutputField outputField){
+<span class="fc" id="L533">		String value = outputField.getValue();</span>
+
+		// &quot;If the value attribute is not specified, then the predicted categorical value should be returned as a result&quot;
+<span class="fc bfc" id="L536" title="All 2 branches covered.">		if(value == null){</span>
+<span class="fc" id="L537">			return TypeUtil.format(getPredictedValue(object));</span>
+		}
+
+<span class="fc" id="L540">		return value;</span>
+	}
+
+	static
+	private Double getContinuousResidual(Object object, FieldValue expectedObject){
+<span class="fc" id="L545">		Number value = (Number)getPredictedValue(object);</span>
+<span class="fc" id="L546">		Number expectedValue = (Number)FieldValueUtil.getValue(expectedObject);</span>
+
+<span class="fc" id="L548">		return Double.valueOf(expectedValue.doubleValue() - value.doubleValue());</span>
+	}
+
+	static
+	public Double getCategoricalResidual(Object object, FieldValue expectedObject){
+<span class="fc" id="L553">		HasProbability hasProbability = TypeUtil.cast(HasProbability.class, object);</span>
+
+<span class="fc" id="L555">		String value = TypeUtil.format(getPredictedValue(object));</span>
+<span class="fc" id="L556">		String expectedValue = TypeUtil.format(FieldValueUtil.getValue(expectedObject));</span>
+
+<span class="fc" id="L558">		boolean equals = TypeUtil.equals(DataType.STRING, value, expectedValue);</span>
+
+<span class="fc bfc" id="L560" title="All 2 branches covered.">		return Double.valueOf((equals ? 1d : 0d) - hasProbability.getProbability(value));</span>
+	}
+
+	static
+	private String getClusterId(Object object){
+<span class="nc" id="L565">		HasEntityId hasEntityId = TypeUtil.cast(HasEntityId.class, object);</span>
+
+<span class="nc" id="L567">		return hasEntityId.getEntityId();</span>
+	}
+
+	static
+	private String getEntityId(Object object, OutputField outputField){
+<span class="fc" id="L572">		HasEntityId hasEntityId = TypeUtil.cast(HasEntityId.class, object);</span>
+
+<span class="fc" id="L574">		int rank = outputField.getRank();</span>
+<span class="pc bpc" id="L575" title="1 of 2 branches missed.">		if(rank &lt;= 0){</span>
+<span class="nc" id="L576">			throw new InvalidFeatureException(outputField);</span>
+		}
+
+<span class="fc bfc" id="L579" title="All 2 branches covered.">		if(rank &gt; 1){</span>
+<span class="fc" id="L580">			HasEntityIdRanking hasEntityIdRanking = TypeUtil.cast(HasEntityIdRanking.class, object);</span>
+
+<span class="fc" id="L582">			OutputField.RankOrder rankOrder = outputField.getRankOrder();</span>
+<span class="pc bpc" id="L583" title="1 of 2 branches missed.">			switch(rankOrder){</span>
+				case DESCENDING:
+<span class="fc" id="L585">					break;</span>
+				default:
+<span class="nc" id="L587">					throw new UnsupportedFeatureException(outputField, rankOrder);</span>
+			}
+
+<span class="fc" id="L590">			return getElement(hasEntityIdRanking.getEntityIdRanking(), rank);</span>
+		}
+
+<span class="fc" id="L593">		return hasEntityId.getEntityId();</span>
+	}
+
+	static
+	public Double getAffinity(Object object, OutputField outputField){
+<span class="fc" id="L598">		HasAffinity hasAffinity = TypeUtil.cast(HasAffinity.class, object);</span>
+
+<span class="fc" id="L600">		int rank = outputField.getRank();</span>
+<span class="pc bpc" id="L601" title="1 of 2 branches missed.">		if(rank &lt;= 0){</span>
+<span class="nc" id="L602">			throw new InvalidFeatureException(outputField);</span>
+		}
+
+<span class="fc bfc" id="L605" title="All 2 branches covered.">		if(rank &gt; 1){</span>
+<span class="fc" id="L606">			HasAffinityRanking hasAffinityRanking = TypeUtil.cast(HasAffinityRanking.class, object);</span>
+
+<span class="fc" id="L608">			OutputField.RankOrder rankOrder = outputField.getRankOrder();</span>
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">			switch(rankOrder){</span>
+				case DESCENDING:
+<span class="fc" id="L611">					break;</span>
+				default:
+<span class="nc" id="L613">					throw new UnsupportedFeatureException(outputField, rankOrder);</span>
+			}
+
+<span class="fc" id="L616">			return getElement(hasAffinityRanking.getAffinityRanking(), rank);</span>
+		}
+
+<span class="fc" id="L619">		String value = getCategoryValue(object, outputField);</span>
+
+<span class="fc" id="L621">		return hasAffinity.getAffinity(value);</span>
+	}
+
+	static
+	public Double getEntityAffinity(Object object){
+<span class="nc" id="L626">		HasEntityAffinity hasEntityAffinity = TypeUtil.cast(HasEntityAffinity.class, object);</span>
+
+<span class="nc" id="L628">		return hasEntityAffinity.getEntityAffinity();</span>
+	}
+
+	static
+	public String getReasonCode(Object object, OutputField outputField){
+<span class="fc" id="L633">		HasReasonCodeRanking hasReasonCodeRanking = TypeUtil.cast(HasReasonCodeRanking.class, object);</span>
+
+<span class="fc" id="L635">		int rank = outputField.getRank();</span>
+<span class="pc bpc" id="L636" title="1 of 2 branches missed.">		if(rank &lt;= 0){</span>
+<span class="nc" id="L637">			throw new InvalidFeatureException(outputField);</span>
+		}
+
+<span class="fc" id="L640">		return getElement(hasReasonCodeRanking.getReasonCodeRanking(), rank);</span>
+	}
+
+	static
+	public Object getRuleValue(Object object, OutputField outputField, OutputField.RuleFeature ruleFeature){
+<span class="fc" id="L645">		HasRuleValues hasRuleValues = TypeUtil.cast(HasRuleValues.class, object);</span>
+
+<span class="fc" id="L647">		List&lt;AssociationRule&gt; associationRules = getRuleValues(hasRuleValues, outputField);</span>
+
+<span class="fc" id="L649">		String isMultiValued = outputField.getIsMultiValued();</span>
+<span class="pc bpc" id="L650" title="1 of 2 branches missed.">		if(!(&quot;0&quot;).equals(isMultiValued)){</span>
+<span class="nc" id="L651">			throw new UnsupportedFeatureException(outputField);</span>
+		}
+
+<span class="fc" id="L654">		int rank = outputField.getRank();</span>
+<span class="pc bpc" id="L655" title="1 of 2 branches missed.">		if(rank &lt;= 0){</span>
+<span class="nc" id="L656">			throw new InvalidFeatureException(outputField);</span>
+		}
+
+<span class="fc" id="L659">		AssociationRule associationRule = getElement(associationRules, rank);</span>
+<span class="pc bpc" id="L660" title="1 of 2 branches missed.">		if(associationRule != null){</span>
+<span class="fc" id="L661">			return getRuleFeature(hasRuleValues, associationRule, outputField, ruleFeature);</span>
+		}
+
+<span class="nc" id="L664">		return null;</span>
+	}
+
+	static
+	public Object getRuleValue(Object object, OutputField outputField){
+<span class="fc" id="L669">		HasRuleValues hasRuleValues = TypeUtil.cast(HasRuleValues.class, object);</span>
+
+<span class="fc" id="L671">		List&lt;AssociationRule&gt; associationRules = getRuleValues(hasRuleValues, outputField);</span>
+
+<span class="fc" id="L673">		String isMultiValued = outputField.getIsMultiValued();</span>
+
+		// Return a single result
+<span class="fc bfc" id="L676" title="All 2 branches covered.">		if((&quot;0&quot;).equals(isMultiValued)){</span>
+<span class="fc" id="L677">			int rank = outputField.getRank();</span>
+<span class="pc bpc" id="L678" title="1 of 2 branches missed.">			if(rank &lt;= 0){</span>
+<span class="nc" id="L679">				throw new InvalidFeatureException(outputField);</span>
+			}
+
+<span class="fc" id="L682">			AssociationRule associationRule = getElement(associationRules, rank);</span>
+<span class="fc bfc" id="L683" title="All 2 branches covered.">			if(associationRule != null){</span>
+<span class="fc" id="L684">				return getRuleFeature(hasRuleValues, associationRule, outputField);</span>
+			}
+
+<span class="fc" id="L687">			return null;</span>
+		} else
+
+		// Return multiple results
+<span class="pc bpc" id="L691" title="1 of 2 branches missed.">		if((&quot;1&quot;).equals(isMultiValued)){</span>
+			int size;
+
+<span class="fc" id="L694">			int rank = outputField.getRank();</span>
+<span class="pc bpc" id="L695" title="1 of 2 branches missed.">			if(rank &lt; 0){</span>
+<span class="nc" id="L696">				throw new InvalidFeatureException(outputField);</span>
+			} else
+
+			// &quot;A zero value indicates that all output values are to be returned&quot;
+<span class="pc bpc" id="L700" title="1 of 2 branches missed.">			if(rank == 0){</span>
+<span class="fc" id="L701">				size = associationRules.size();</span>
+			} else
+
+			// &quot;A positive value indicates the number of output values to be returned&quot;
+			{
+<span class="nc" id="L706">				size = Math.min(rank, associationRules.size());</span>
+			}
+
+<span class="fc" id="L709">			associationRules = associationRules.subList(0, size);</span>
+
+<span class="fc" id="L711">			List&lt;Object&gt; result = new ArrayList&lt;&gt;(associationRules.size());</span>
+
+<span class="fc bfc" id="L713" title="All 2 branches covered.">			for(AssociationRule associationRule : associationRules){</span>
+<span class="fc" id="L714">				result.add(getRuleFeature(hasRuleValues, associationRule, outputField));</span>
+<span class="fc" id="L715">			}</span>
+
+<span class="fc" id="L717">			return result;</span>
+		} else
+
+		{
+<span class="nc" id="L721">			throw new InvalidFeatureException(outputField);</span>
+		}
+	}
+
+	static
+	private List&lt;AssociationRule&gt; getRuleValues(HasRuleValues hasRuleValues, final OutputField outputField){
+<span class="fc" id="L727">		List&lt;AssociationRule&gt; associationRules = hasRuleValues.getRuleValues(outputField.getAlgorithm());</span>
+
+<span class="fc" id="L729">		Comparator&lt;AssociationRule&gt; comparator = new Comparator&lt;AssociationRule&gt;(){</span>
+
+<span class="fc" id="L731">			private OutputField.RankBasis rankBasis = outputField.getRankBasis();</span>
+
+<span class="fc" id="L733">			private OutputField.RankOrder rankOrder = outputField.getRankOrder();</span>
+
+
+			@Override
+			public int compare(AssociationRule left, AssociationRule right){
+				int order;
+
+<span class="pc bpc" id="L740" title="5 of 6 branches missed.">				switch(this.rankBasis){</span>
+					case CONFIDENCE:
+<span class="nc" id="L742">						order = (getConfidence(left)).compareTo(getConfidence(right));</span>
+<span class="nc" id="L743">						break;</span>
+					case SUPPORT:
+<span class="nc" id="L745">						order = (getSupport(left)).compareTo(getSupport(right));</span>
+<span class="nc" id="L746">						break;</span>
+					case LIFT:
+<span class="fc" id="L748">						order = (getLift(left)).compareTo(getLift(right));</span>
+<span class="fc" id="L749">						break;</span>
+					case LEVERAGE:
+<span class="nc" id="L751">						order = (getLeverage(left)).compareTo(getLeverage(right));</span>
+<span class="nc" id="L752">						break;</span>
+					case AFFINITY:
+<span class="nc" id="L754">						order = (getAffinity(left)).compareTo(getAffinity(right));</span>
+<span class="nc" id="L755">						break;</span>
+					default:
+<span class="nc" id="L757">						throw new UnsupportedFeatureException(outputField, this.rankBasis);</span>
+				} // End switch
+
+<span class="pc bpc" id="L760" title="2 of 3 branches missed.">				switch(this.rankOrder){</span>
+					case ASCENDING:
+<span class="nc" id="L762">						return order;</span>
+					case DESCENDING:
+<span class="fc" id="L764">						return -order;</span>
+					default:
+<span class="nc" id="L766">						throw new UnsupportedFeatureException(outputField, this.rankOrder);</span>
+				}
+			}
+
+			private Double getConfidence(AssociationRule rule){
+<span class="nc" id="L771">				return checkRuleFeature(rule, rule.getConfidence());</span>
+			}
+
+			private Double getSupport(AssociationRule rule){
+<span class="nc" id="L775">				return checkRuleFeature(rule, rule.getSupport());</span>
+			}
+
+			private Double getLift(AssociationRule rule){
+<span class="fc" id="L779">				return checkRuleFeature(rule, rule.getLift());</span>
+			}
+
+			private Double getLeverage(AssociationRule rule){
+<span class="nc" id="L783">				return checkRuleFeature(rule, rule.getLeverage());</span>
+			}
+
+			private Double getAffinity(AssociationRule rule){
+<span class="nc" id="L787">				return checkRuleFeature(rule, rule.getAffinity());</span>
+			}
+
+			private &lt;V&gt; V checkRuleFeature(AssociationRule rule, V value){
+
+<span class="pc bpc" id="L792" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L793">					throw new InvalidFeatureException(rule);</span>
+				}
+
+<span class="fc" id="L796">				return value;</span>
+			}
+		};
+
+<span class="fc" id="L800">		Ordering&lt;AssociationRule&gt; ordering = Ordering.from(comparator);</span>
+
+<span class="fc" id="L802">		return ordering.sortedCopy(associationRules);</span>
+	}
+
+	static
+	private Object getRuleFeature(HasRuleValues hasRuleValues, AssociationRule associationRule, OutputField outputField){
+<span class="fc" id="L807">		return getRuleFeature(hasRuleValues, associationRule, outputField, outputField.getRuleFeature());</span>
+	}
+
+	@SuppressWarnings (
+		value = {&quot;unchecked&quot;}
+	)
+	static
+	private Object getRuleFeature(HasRuleValues hasRuleValues, AssociationRule associationRule, PMMLObject element, OutputField.RuleFeature ruleFeature){
+
+<span class="pc bpc" id="L816" title="3 of 10 branches missed.">		switch(ruleFeature){</span>
+			case ANTECEDENT:
+<span class="fc" id="L818">				return getItemValues(hasRuleValues, associationRule.getAntecedent());</span>
+			case CONSEQUENT:
+<span class="fc" id="L820">				return getItemValues(hasRuleValues, associationRule.getConsequent());</span>
+			case RULE:
+				{
+<span class="fc" id="L823">					Joiner joiner = Joiner.on(',');</span>
+
+<span class="fc" id="L825">					StringBuilder sb = new StringBuilder();</span>
+
+<span class="fc" id="L827">					String left = joiner.join(getItemValues(hasRuleValues, associationRule.getAntecedent()));</span>
+<span class="fc" id="L828">					sb.append('{').append(left).append('}');</span>
+
+<span class="fc" id="L830">					sb.append(&quot;-&gt;&quot;);</span>
+
+<span class="fc" id="L832">					String right = joiner.join(getItemValues(hasRuleValues, associationRule.getConsequent()));</span>
+<span class="fc" id="L833">					sb.append('{').append(right).append('}');</span>
+
+<span class="fc" id="L835">					return sb.toString();</span>
+				}
+			case RULE_ID:
+				{
+<span class="fc" id="L839">					HasEntityRegistry&lt;AssociationRule&gt; hasEntityRegistry = (HasEntityRegistry&lt;AssociationRule&gt;)hasRuleValues;</span>
+
+<span class="fc" id="L841">					return EntityUtil.getId(associationRule, hasEntityRegistry);</span>
+				}
+			case CONFIDENCE:
+<span class="fc" id="L844">				return associationRule.getConfidence();</span>
+			case SUPPORT:
+<span class="fc" id="L846">				return associationRule.getSupport();</span>
+			case LIFT:
+<span class="fc" id="L848">				return associationRule.getLift();</span>
+			case LEVERAGE:
+<span class="nc" id="L850">				return associationRule.getLeverage();</span>
+			case AFFINITY:
+<span class="nc" id="L852">				return associationRule.getAffinity();</span>
+			default:
+<span class="nc" id="L854">				throw new UnsupportedFeatureException(element, ruleFeature);</span>
+		}
+	}
+
+	static
+	private DataType getRuleDataType(OutputField outputField){
+<span class="fc" id="L860">		return getRuleDataType(outputField, outputField.getRuleFeature());</span>
+	}
+
+	static
+	private DataType getRuleDataType(OutputField outputField, OutputField.RuleFeature ruleFeature){
+<span class="fc" id="L865">		String isMultiValued = outputField.getIsMultiValued();</span>
+<span class="pc bpc" id="L866" title="1 of 2 branches missed.">		if(!(&quot;0&quot;).equals(isMultiValued)){</span>
+<span class="nc" id="L867">			throw new TypeAnalysisException(outputField);</span>
+		}
+
+<span class="pc bpc" id="L870" title="2 of 4 branches missed.">		switch(ruleFeature){</span>
+			case ANTECEDENT:
+			case CONSEQUENT:
+<span class="nc" id="L873">				throw new TypeAnalysisException(outputField);</span>
+			case RULE:
+			case RULE_ID:
+<span class="fc" id="L876">				return DataType.STRING;</span>
+			case SUPPORT:
+			case CONFIDENCE:
+			case LIFT:
+			case LEVERAGE:
+			case AFFINITY:
+<span class="fc" id="L882">				return DataType.DOUBLE;</span>
+			default:
+<span class="nc" id="L884">				throw new UnsupportedFeatureException(outputField, ruleFeature);</span>
+		}
+	}
+
+	static
+	private List&lt;String&gt; getItemValues(HasRuleValues hasRuleValues, String id){
+<span class="fc" id="L890">		Map&lt;String, Item&gt; items = hasRuleValues.getItems();</span>
+<span class="fc" id="L891">		Map&lt;String, Itemset&gt; itemsets = hasRuleValues.getItemsets();</span>
+
+<span class="fc" id="L893">		Itemset itemset = itemsets.get(id);</span>
+
+<span class="fc" id="L895">		List&lt;ItemRef&gt; itemRefs = itemset.getItemRefs();</span>
+
+<span class="fc" id="L897">		List&lt;String&gt; result = new ArrayList&lt;&gt;(itemRefs.size());</span>
+
+<span class="fc bfc" id="L899" title="All 2 branches covered.">		for(int i = 0, max = itemRefs.size(); i &lt; max; i++){</span>
+<span class="fc" id="L900">			ItemRef itemRef = itemRefs.get(i);</span>
+
+<span class="fc" id="L902">			Item item = items.get(itemRef.getItemRef());</span>
+
+<span class="fc" id="L904">			result.add(item.getValue());</span>
+		}
+
+<span class="fc" id="L907">		return result;</span>
+	}
+
+	static
+	private &lt;E&gt; E getElement(List&lt;E&gt; elements, int rank){
+<span class="fc" id="L912">		int index = (rank - 1);</span>
+
+<span class="fc bfc" id="L914" title="All 2 branches covered.">		if(index &lt; elements.size()){</span>
+<span class="fc" id="L915">			return elements.get(index);</span>
+		}
+
+<span class="fc" id="L918">		return null;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

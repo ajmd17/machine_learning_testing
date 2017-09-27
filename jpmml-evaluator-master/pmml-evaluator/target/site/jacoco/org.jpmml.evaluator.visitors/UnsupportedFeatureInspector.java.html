@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UnsupportedFeatureInspector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.visitors</a> &gt; <span class="el_source">UnsupportedFeatureInspector.java</span></div><h1>UnsupportedFeatureInspector.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2014 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.visitors;
+
+import org.dmg.pmml.Aggregate;
+import org.dmg.pmml.Apply;
+import org.dmg.pmml.Lag;
+import org.dmg.pmml.LocalTransformations;
+import org.dmg.pmml.Matrix;
+import org.dmg.pmml.NormDiscrete;
+import org.dmg.pmml.OutputField;
+import org.dmg.pmml.ResultFeature;
+import org.dmg.pmml.TableLocator;
+import org.dmg.pmml.TextIndex;
+import org.dmg.pmml.Visitable;
+import org.dmg.pmml.VisitorAction;
+import org.dmg.pmml.baseline.BaselineModel;
+import org.dmg.pmml.bayesian_network.BayesianNetworkModel;
+import org.dmg.pmml.clustering.CenterFields;
+import org.dmg.pmml.clustering.ClusteringModel;
+import org.dmg.pmml.gaussian_process.GaussianProcessModel;
+import org.dmg.pmml.general_regression.Categories;
+import org.dmg.pmml.general_regression.Predictor;
+import org.dmg.pmml.mining.Segmentation;
+import org.dmg.pmml.neural_network.NeuralLayer;
+import org.dmg.pmml.neural_network.NeuralNetwork;
+import org.dmg.pmml.regression.Regression;
+import org.dmg.pmml.sequence.SequenceModel;
+import org.dmg.pmml.support_vector_machine.SupportVectorMachineModel;
+import org.dmg.pmml.text.TextModel;
+import org.dmg.pmml.time_series.TimeSeriesModel;
+import org.dmg.pmml.tree.DecisionTree;
+import org.dmg.pmml.tree.TreeModel;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.model.ReflectionUtil;
+
+/**
+ * &lt;p&gt;
+ * A Visitor that inspects a class model object for unsupported features.
+ * &lt;/p&gt;
+ *
+ * @see FeatureInspector#applyTo(Visitable)
+ * @see UnsupportedFeatureException
+ */
+<span class="fc" id="L61">public class UnsupportedFeatureInspector extends FeatureInspector&lt;UnsupportedFeatureException&gt; {</span>
+
+	@Override
+	public VisitorAction visit(Aggregate aggregate){
+<span class="nc" id="L65">		Aggregate.Function function = aggregate.getFunction();</span>
+
+<span class="pc bnc" id="L67" title="All 2 branches missed.">		switch(function){</span>
+			case MULTISET:
+<span class="nc" id="L69">				report(new UnsupportedFeatureException(aggregate, function));</span>
+<span class="nc" id="L70">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L75">		return super.visit(aggregate);</span>
+	}
+
+	@Override
+	public VisitorAction visit(Apply apply){
+<span class="nc" id="L80">		String function = apply.getFunction();</span>
+
+<span class="nc bnc" id="L82" title="All 24 branches missed.">		switch(function){</span>
+			case &quot;erf&quot;:
+			case &quot;normalCDF&quot;:
+			case &quot;normalIDF&quot;:
+			case &quot;normalPDF&quot;:
+			case &quot;stdNormalCDF&quot;:
+			case &quot;stdNormalIDF&quot;:
+			case &quot;stdNormalPDF&quot;:
+<span class="nc" id="L90">				report(new UnsupportedFeatureException(apply, ReflectionUtil.getField(Apply.class, &quot;function&quot;), function));</span>
+<span class="nc" id="L91">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L96">		return super.visit(apply);</span>
+	}
+
+	@Override
+	public VisitorAction visit(BaselineModel baselineModel){
+<span class="nc" id="L101">		report(new UnsupportedFeatureException(baselineModel));</span>
+
+<span class="nc" id="L103">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(BayesianNetworkModel bayesianNetworkModel){
+<span class="nc" id="L108">		report(new UnsupportedFeatureException(bayesianNetworkModel));</span>
+
+<span class="nc" id="L110">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(CenterFields centerFields){
+<span class="nc" id="L115">		report(new UnsupportedFeatureException(centerFields));</span>
+
+<span class="nc" id="L117">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(ClusteringModel clusteringModel){
+<span class="fc" id="L122">		ClusteringModel.ModelClass modelClass = clusteringModel.getModelClass();</span>
+
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">		switch(modelClass){</span>
+			case DISTRIBUTION_BASED:
+<span class="fc" id="L126">				report(new UnsupportedFeatureException(clusteringModel, modelClass));</span>
+<span class="fc" id="L127">				break;</span>
+			default:
+				break;
+		}
+
+<span class="fc" id="L132">		return super.visit(clusteringModel);</span>
+	}
+
+	@Override
+	public VisitorAction visit(DecisionTree decisionTree){
+<span class="nc" id="L137">		report(new UnsupportedFeatureException(decisionTree));</span>
+
+<span class="nc" id="L139">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(GaussianProcessModel gaussianProcessModel){
+<span class="nc" id="L144">		report(new UnsupportedFeatureException(gaussianProcessModel));</span>
+
+<span class="nc" id="L146">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(Lag lag){
+<span class="nc" id="L151">		report(new UnsupportedFeatureException(lag));</span>
+
+<span class="nc" id="L153">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(NeuralNetwork neuralNetwork){
+<span class="nc" id="L158">		NeuralNetwork.ActivationFunction activationFunction = neuralNetwork.getActivationFunction();</span>
+
+<span class="pc bnc" id="L160" title="All 2 branches missed.">		switch(activationFunction){</span>
+			case RADIAL_BASIS:
+<span class="nc" id="L162">				report(new UnsupportedFeatureException(neuralNetwork, activationFunction));</span>
+<span class="nc" id="L163">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L168">		return super.visit(neuralNetwork);</span>
+	}
+
+	@Override
+	public VisitorAction visit(NeuralLayer neuralLayer){
+<span class="nc" id="L173">		NeuralNetwork.ActivationFunction activationFunction = neuralLayer.getActivationFunction();</span>
+
+<span class="nc bnc" id="L175" title="All 2 branches missed.">		if(activationFunction != null){</span>
+
+<span class="nc bnc" id="L177" title="All 2 branches missed.">			switch(activationFunction){</span>
+				case RADIAL_BASIS:
+<span class="nc" id="L179">					report(new UnsupportedFeatureException(neuralLayer, activationFunction));</span>
+<span class="nc" id="L180">					break;</span>
+				default:
+					break;
+			}
+		}
+
+<span class="nc" id="L186">		return super.visit(neuralLayer);</span>
+	}
+
+	@Override
+	public VisitorAction visit(NormDiscrete normDiscrete){
+<span class="nc" id="L191">		NormDiscrete.Method method = normDiscrete.getMethod();</span>
+
+<span class="pc bnc" id="L193" title="All 2 branches missed.">		switch(method){</span>
+			case THERMOMETER:
+<span class="nc" id="L195">				report(new UnsupportedFeatureException(normDiscrete, method));</span>
+<span class="nc" id="L196">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L201">		return super.visit(normDiscrete);</span>
+	}
+
+	@Override
+	public VisitorAction visit(OutputField outputField){
+<span class="nc" id="L206">		ResultFeature resultFeature = outputField.getResultFeature();</span>
+
+<span class="pc bnc" id="L208" title="All 2 branches missed.">		switch(resultFeature){</span>
+			case STANDARD_ERROR:
+<span class="nc" id="L210">				report(new UnsupportedFeatureException(outputField, resultFeature));</span>
+<span class="nc" id="L211">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L216">		return super.visit(outputField);</span>
+	}
+
+	@Override
+	public VisitorAction visit(Predictor predictor){
+<span class="nc" id="L221">		Matrix matrix = predictor.getMatrix();</span>
+
+<span class="nc bnc" id="L223" title="All 2 branches missed.">		if(matrix != null){</span>
+<span class="nc" id="L224">			Categories categories = predictor.getCategories();</span>
+
+<span class="nc bnc" id="L226" title="All 2 branches missed.">			if(categories == null){</span>
+<span class="nc" id="L227">				report(new UnsupportedFeatureException(predictor));</span>
+			}
+		}
+
+<span class="nc" id="L231">		return super.visit(predictor);</span>
+	}
+
+	@Override
+	public VisitorAction visit(Regression regression){
+<span class="nc" id="L236">		report(new UnsupportedFeatureException(regression));</span>
+
+<span class="nc" id="L238">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(Segmentation segmentation){
+<span class="nc" id="L243">		LocalTransformations localTransformations = segmentation.getLocalTransformations();</span>
+
+<span class="nc bnc" id="L245" title="All 2 branches missed.">		if(localTransformations != null){</span>
+<span class="nc" id="L246">			report(new UnsupportedFeatureException(localTransformations));</span>
+		}
+
+<span class="nc" id="L249">		return super.visit(segmentation);</span>
+	}
+
+	@Override
+	public VisitorAction visit(SequenceModel sequenceModel){
+<span class="nc" id="L254">		report(new UnsupportedFeatureException(sequenceModel));</span>
+
+<span class="nc" id="L256">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(SupportVectorMachineModel supportVectorMachineModel){
+<span class="nc" id="L261">		boolean maxWins = supportVectorMachineModel.isMaxWins();</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">		if(maxWins){</span>
+<span class="nc" id="L263">			report(new UnsupportedFeatureException(supportVectorMachineModel, ReflectionUtil.getField(SupportVectorMachineModel.class, &quot;maxWins&quot;), true));</span>
+		}
+
+<span class="nc" id="L266">		SupportVectorMachineModel.Representation representation = supportVectorMachineModel.getRepresentation();</span>
+<span class="pc bnc" id="L267" title="All 2 branches missed.">		switch(representation){</span>
+			case COEFFICIENTS:
+<span class="nc" id="L269">				report(new UnsupportedFeatureException(supportVectorMachineModel, representation));</span>
+<span class="nc" id="L270">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L275">		return super.visit(supportVectorMachineModel);</span>
+	}
+
+	@Override
+	public VisitorAction visit(TableLocator tableLocator){
+<span class="nc" id="L280">		report(new UnsupportedFeatureException(tableLocator));</span>
+
+<span class="nc" id="L282">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(TextIndex textIndex){
+<span class="nc" id="L287">		boolean tokenize = textIndex.isTokenize();</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">		if(!tokenize){</span>
+<span class="nc" id="L289">			report(new UnsupportedFeatureException(textIndex, ReflectionUtil.getField(TextIndex.class, &quot;tokenize&quot;), false));</span>
+		}
+
+<span class="nc" id="L292">		TextIndex.LocalTermWeights localTermWeights = textIndex.getLocalTermWeights();</span>
+<span class="pc bnc" id="L293" title="All 2 branches missed.">		switch(localTermWeights){</span>
+			case AUGMENTED_NORMALIZED_TERM_FREQUENCY:
+<span class="nc" id="L295">				report(new UnsupportedFeatureException(textIndex, localTermWeights));</span>
+<span class="nc" id="L296">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L301">		return super.visit(textIndex);</span>
+	}
+
+	@Override
+	public VisitorAction visit(TextModel textModel){
+<span class="nc" id="L306">		report(new UnsupportedFeatureException(textModel));</span>
+
+<span class="nc" id="L308">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(TimeSeriesModel timeSeriesModel){
+<span class="nc" id="L313">		report(new UnsupportedFeatureException(timeSeriesModel));</span>
+
+<span class="nc" id="L315">		return VisitorAction.SKIP;</span>
+	}
+
+	@Override
+	public VisitorAction visit(TreeModel treeModel){
+<span class="nc" id="L320">		TreeModel.MissingValueStrategy missingValueStrategy = treeModel.getMissingValueStrategy();</span>
+
+<span class="pc bnc" id="L322" title="All 2 branches missed.">		switch(missingValueStrategy){</span>
+			case AGGREGATE_NODES:
+			case WEIGHTED_CONFIDENCE:
+<span class="nc" id="L325">				report(new UnsupportedFeatureException(treeModel, missingValueStrategy));</span>
+<span class="nc" id="L326">				break;</span>
+			default:
+				break;
+		}
+
+<span class="nc" id="L331">		return super.visit(treeModel);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

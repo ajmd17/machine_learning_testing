@@ -1,0 +1,901 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TypeUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">TypeUtil.java</span></div><h1>TypeUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Collection;
+
+import com.google.common.math.DoubleMath;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.OpType;
+import org.joda.time.Days;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
+import org.joda.time.LocalTime;
+import org.joda.time.Seconds;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeParser;
+import org.joda.time.format.DateTimeParserBucket;
+
+public class TypeUtil {
+
+<span class="nc" id="L37">	private TypeUtil(){</span>
+<span class="nc" id="L38">	}</span>
+
+	static
+	public boolean equals(DataType dataType, Object left, Object right){
+<span class="fc" id="L42">		left = cast(dataType, left);</span>
+<span class="fc" id="L43">		right = cast(dataType, right);</span>
+
+<span class="fc" id="L45">		return (left).equals(right);</span>
+	}
+
+	@SuppressWarnings (
+		value = {&quot;rawtypes&quot;, &quot;unchecked&quot;}
+	)
+	static
+	public int compare(DataType dataType, Object left, Object right){
+<span class="fc" id="L53">		left = cast(dataType, left);</span>
+<span class="fc" id="L54">		right = cast(dataType, right);</span>
+
+<span class="fc" id="L56">		return ((Comparable)left).compareTo(right);</span>
+	}
+
+	/**
+	 * @throws IllegalArgumentException If the value is a String, and it cannot be parsed to the requested representation.
+	 * @throws TypeCheckException If the value is an Object other than String, and it cannot be cast to the requested representation.
+	 */
+	static
+	public Object parseOrCast(DataType dataType, Object value){
+
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if(value instanceof String){</span>
+<span class="fc" id="L67">			String string = (String)value;</span>
+
+<span class="fc" id="L69">			return parse(dataType, string);</span>
+		}
+
+<span class="fc" id="L72">		return cast(dataType, value);</span>
+	}
+
+	/**
+	 * @throws IllegalArgumentException If the String representation of the value cannot be parsed to the requested representation.
+	 */
+	static
+	public Object parse(DataType dataType, String value){
+
+<span class="pc bpc" id="L81" title="1 of 16 branches missed.">		switch(dataType){</span>
+			case STRING:
+<span class="fc" id="L83">				return value;</span>
+			case INTEGER:
+<span class="fc" id="L85">				return parseInteger(value);</span>
+			case FLOAT:
+<span class="fc" id="L87">				return parseFloat(value);</span>
+			case DOUBLE:
+<span class="fc" id="L89">				return parseDouble(value);</span>
+			case BOOLEAN:
+<span class="fc" id="L91">				return parseBoolean(value);</span>
+			case DATE:
+<span class="fc" id="L93">				return parseDate(value);</span>
+			case TIME:
+<span class="fc" id="L95">				return parseTime(value);</span>
+			case DATE_TIME:
+<span class="fc" id="L97">				return parseDateTime(value);</span>
+			case DATE_DAYS_SINCE_1960:
+<span class="fc" id="L99">				return new DaysSinceDate(YEAR_1960, parseDate(value));</span>
+			case DATE_DAYS_SINCE_1970:
+<span class="fc" id="L101">				return new DaysSinceDate(YEAR_1970, parseDate(value));</span>
+			case DATE_DAYS_SINCE_1980:
+<span class="fc" id="L103">				return new DaysSinceDate(YEAR_1980, parseDate(value));</span>
+			case TIME_SECONDS:
+<span class="fc" id="L105">				return new SecondsSinceMidnight(parseSeconds(value));</span>
+			case DATE_TIME_SECONDS_SINCE_1960:
+<span class="fc" id="L107">				return new SecondsSinceDate(YEAR_1960, parseDateTime(value));</span>
+			case DATE_TIME_SECONDS_SINCE_1970:
+<span class="fc" id="L109">				return new SecondsSinceDate(YEAR_1970, parseDateTime(value));</span>
+			case DATE_TIME_SECONDS_SINCE_1980:
+<span class="fc" id="L111">				return new SecondsSinceDate(YEAR_1980, parseDateTime(value));</span>
+			default:
+<span class="nc" id="L113">				throw new UnsupportedFeatureException();</span>
+		}
+	}
+
+	static
+	private Integer parseInteger(String value){
+
+		try {
+<span class="fc" id="L121">			long result = Long.parseLong(value);</span>
+
+<span class="fc" id="L123">			return toInteger(result);</span>
+<span class="fc" id="L124">		} catch(NumberFormatException nfeInteger){</span>
+
+			try {
+<span class="fc" id="L127">				double result = Double.parseDouble(value);</span>
+
+<span class="fc bfc" id="L129" title="All 2 branches covered.">				if(DoubleMath.isMathematicalInteger(result)){</span>
+<span class="fc" id="L130">					return toInteger((long)result);</span>
+				}
+<span class="fc" id="L132">			} catch(NumberFormatException nfeDouble){</span>
+				// Ignored
+<span class="fc" id="L134">			} // End try</span>
+
+			try {
+<span class="fc" id="L137">				return toInteger(parseFlag(value));</span>
+<span class="fc" id="L138">			} catch(IllegalArgumentException iae){</span>
+				// Ignored
+			}
+
+<span class="fc" id="L142">			throw nfeInteger;</span>
+		}
+	}
+
+	static
+	private Float parseFloat(String value){
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">		if(value.length() &lt;= 4){</span>
+
+<span class="pc bpc" id="L151" title="16 of 23 branches missed.">			switch(value){</span>
+				case &quot;-1&quot;:
+				case &quot;-1.0&quot;:
+<span class="nc" id="L154">					return Numbers.FLOAT_MINUS_ONE;</span>
+				case &quot;0&quot;:
+				case &quot;0.0&quot;:
+<span class="fc" id="L157">					return Numbers.FLOAT_ZERO;</span>
+				case &quot;1&quot;:
+				case &quot;1.0&quot;:
+<span class="nc" id="L160">					return Numbers.FLOAT_ONE;</span>
+				default:
+					break;
+			}
+		}
+
+		try {
+			// -0f + 0f = 0f
+<span class="fc" id="L168">			return (Float.parseFloat(value) + 0f);</span>
+<span class="fc" id="L169">		} catch(NumberFormatException nfe){</span>
+
+			try {
+<span class="fc" id="L172">				return toFloat(parseFlag(value));</span>
+<span class="nc" id="L173">			} catch(IllegalArgumentException iae){</span>
+				// Ignored
+			}
+
+<span class="nc" id="L177">			throw nfe;</span>
+		}
+	}
+
+	static
+	private Double parseDouble(String value){
+
+<span class="fc bfc" id="L184" title="All 2 branches covered.">		if(value.length() &lt;= 4){</span>
+
+<span class="pc bpc" id="L186" title="11 of 34 branches missed.">			switch(value){</span>
+				case &quot;-1&quot;:
+				case &quot;-1.0&quot;:
+<span class="fc" id="L189">					return Numbers.DOUBLE_MINUS_ONE;</span>
+				case &quot;0&quot;:
+				case &quot;0.0&quot;:
+<span class="fc" id="L192">					return Numbers.DOUBLE_ZERO;</span>
+				case &quot;0.5&quot;:
+<span class="fc" id="L194">					return Numbers.DOUBLE_ONE_HALF;</span>
+				case &quot;1&quot;:
+				case &quot;1.0&quot;:
+<span class="fc" id="L197">					return Numbers.DOUBLE_ONE;</span>
+				case &quot;2&quot;:
+				case &quot;2.0&quot;:
+<span class="fc" id="L200">					return Numbers.DOUBLE_TWO;</span>
+				default:
+					break;
+			}
+		}
+
+		try {
+			// -0d + 0d = 0d
+<span class="fc" id="L208">			return (Double.parseDouble(value) + 0d);</span>
+<span class="fc" id="L209">		} catch(NumberFormatException nfe){</span>
+
+			try {
+<span class="fc" id="L212">				return toDouble(parseFlag(value));</span>
+<span class="fc" id="L213">			} catch(IllegalArgumentException iae){</span>
+				// Ignored
+			}
+
+<span class="fc" id="L217">			throw nfe;</span>
+		}
+	}
+
+	static
+	private Boolean parseBoolean(String value){
+
+		try {
+<span class="fc" id="L225">			return parseFlag(value);</span>
+<span class="fc" id="L226">		} catch(IllegalArgumentException iae){</span>
+
+			try {
+<span class="fc" id="L229">				return toBoolean(parseDouble(value));</span>
+<span class="fc" id="L230">			} catch(NumberFormatException nfe){</span>
+				// Ignored
+<span class="fc" id="L232">			} catch(TypeCheckException tce){</span>
+				// Ignored
+<span class="fc" id="L234">			}</span>
+
+<span class="fc" id="L236">			throw iae;</span>
+		}
+	}
+
+	static
+	private boolean parseFlag(String value){
+
+<span class="fc bfc" id="L243" title="All 2 branches covered.">		if(&quot;true&quot;.equalsIgnoreCase(value)){</span>
+<span class="fc" id="L244">			return true;</span>
+		} else
+
+<span class="fc bfc" id="L247" title="All 2 branches covered.">		if(&quot;false&quot;.equalsIgnoreCase(value)){</span>
+<span class="fc" id="L248">			return false;</span>
+		}
+
+<span class="fc" id="L251">		throw new IllegalArgumentException(value);</span>
+	}
+
+	static
+	private LocalDate parseDate(String value){
+<span class="fc" id="L256">		return LocalDate.parse(value);</span>
+	}
+
+	static
+	private LocalTime parseTime(String value){
+<span class="fc" id="L261">		return LocalTime.parse(value);</span>
+	}
+
+	static
+	private LocalDateTime parseDateTime(String value){
+<span class="fc" id="L266">		return LocalDateTime.parse(value);</span>
+	}
+
+	@SuppressWarnings (
+		value = {&quot;deprecation&quot;}
+	)
+	static
+	private Seconds parseSeconds(String value){
+<span class="fc" id="L274">		DateTimeFormatter format = SecondsSinceMidnight.getFormat();</span>
+
+<span class="fc" id="L276">		DateTimeParser parser = format.getParser();</span>
+
+<span class="fc" id="L278">		DateTimeParserBucket bucket = new DateTimeParserBucket(0, null, null);</span>
+<span class="fc" id="L279">		bucket.setZone(null);</span>
+
+<span class="fc" id="L281">		int result = parser.parseInto(bucket, value, 0);</span>
+<span class="pc bpc" id="L282" title="2 of 4 branches missed.">		if(result &gt;= 0 &amp;&amp; result &gt;= value.length()){</span>
+<span class="fc" id="L283">			long millis = bucket.computeMillis(true);</span>
+
+<span class="fc" id="L285">			return Seconds.seconds((int)(millis / 1000L));</span>
+		}
+
+<span class="nc" id="L288">		throw new IllegalArgumentException(value);</span>
+	}
+
+	static
+	public String format(Object value){
+
+<span class="pc bpc" id="L294" title="1 of 2 branches missed.">		if(value instanceof String){</span>
+<span class="fc" id="L295">			return (String)value;</span>
+		} // End if
+
+<span class="nc bnc" id="L298" title="All 2 branches missed.">		if(value != null){</span>
+<span class="nc" id="L299">			return String.valueOf(value);</span>
+		}
+
+<span class="nc" id="L302">		throw new EvaluationException();</span>
+	}
+
+	/**
+	 * @return The data type of the value.
+	 */
+	static
+	public DataType getDataType(Object value){
+
+<span class="fc bfc" id="L311" title="All 2 branches covered.">		if(value instanceof String){</span>
+<span class="fc" id="L312">			return DataType.STRING;</span>
+		} else
+
+<span class="fc bfc" id="L315" title="All 2 branches covered.">		if(value instanceof Integer){</span>
+<span class="fc" id="L316">			return DataType.INTEGER;</span>
+		} else
+
+<span class="fc bfc" id="L319" title="All 2 branches covered.">		if(value instanceof Float){</span>
+<span class="fc" id="L320">			return DataType.FLOAT;</span>
+		} else
+
+<span class="fc bfc" id="L323" title="All 2 branches covered.">		if(value instanceof Double){</span>
+<span class="fc" id="L324">			return DataType.DOUBLE;</span>
+		} else
+
+<span class="fc bfc" id="L327" title="All 2 branches covered.">		if(value instanceof Boolean){</span>
+<span class="fc" id="L328">			return DataType.BOOLEAN;</span>
+		} else
+
+<span class="fc bfc" id="L331" title="All 2 branches covered.">		if(value instanceof LocalDate){</span>
+<span class="fc" id="L332">			return DataType.DATE;</span>
+		} else
+
+<span class="fc bfc" id="L335" title="All 2 branches covered.">		if(value instanceof LocalTime){</span>
+<span class="fc" id="L336">			return DataType.TIME;</span>
+		} else
+
+<span class="fc bfc" id="L339" title="All 2 branches covered.">		if(value instanceof LocalDateTime){</span>
+<span class="fc" id="L340">			return DataType.DATE_TIME;</span>
+		} else
+
+<span class="fc bfc" id="L343" title="All 2 branches covered.">		if(value instanceof DaysSinceDate){</span>
+<span class="fc" id="L344">			DaysSinceDate period = (DaysSinceDate)value;</span>
+
+<span class="fc" id="L346">			return getDaysDataType(period.getEpoch());</span>
+		} else
+
+<span class="fc bfc" id="L349" title="All 2 branches covered.">		if(value instanceof SecondsSinceMidnight){</span>
+<span class="fc" id="L350">			return DataType.TIME_SECONDS;</span>
+		} else
+
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">		if(value instanceof SecondsSinceDate){</span>
+<span class="fc" id="L354">			SecondsSinceDate period = (SecondsSinceDate)value;</span>
+
+<span class="fc" id="L356">			return getSecondsDataType(period.getEpoch());</span>
+		}
+
+<span class="nc" id="L359">		throw new EvaluationException();</span>
+	}
+
+	static
+	public DataType getDataType(Collection&lt;?&gt; values){
+<span class="fc" id="L364">		DataType result = null;</span>
+
+<span class="fc bfc" id="L366" title="All 2 branches covered.">		for(Object value : values){</span>
+<span class="fc" id="L367">			DataType dataType = getDataType(value);</span>
+
+<span class="fc bfc" id="L369" title="All 2 branches covered.">			if(result == null){</span>
+<span class="fc" id="L370">				result = dataType;</span>
+			} else
+
+			{
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">				if(!(result).equals(dataType)){</span>
+<span class="nc" id="L375">					throw new EvaluationException();</span>
+				}
+			}
+<span class="fc" id="L378">		}</span>
+
+<span class="pc bpc" id="L380" title="1 of 2 branches missed.">		if(result == null){</span>
+<span class="nc" id="L381">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L384">		return result;</span>
+	}
+
+	/**
+	 * @return The least restrictive data type of the data types of two values.
+	 */
+	static
+	public DataType getResultDataType(DataType left, DataType right){
+
+<span class="fc bfc" id="L393" title="All 2 branches covered.">		if((left).equals(right)){</span>
+<span class="fc" id="L394">			return left;</span>
+		}
+
+		// &quot;When the input parameters have multiple dataTypes, the least restrictive dataType will be inherited by default&quot;
+<span class="pc bpc" id="L398" title="1 of 2 branches missed.">		for(int i = 0; i &lt; inheritanceSequence.length; i++){</span>
+<span class="fc" id="L399">			DataType dataType = inheritanceSequence[i];</span>
+
+<span class="fc bfc" id="L401" title="All 4 branches covered.">			if((dataType).equals(left) || (dataType).equals(right)){</span>
+<span class="fc" id="L402">				return dataType;</span>
+			}
+		}
+
+<span class="nc" id="L406">		throw new EvaluationException();</span>
+	}
+
+	static
+	public OpType getOpType(DataType dataType){
+
+<span class="pc bpc" id="L412" title="1 of 5 branches missed.">		switch(dataType){</span>
+			case STRING:
+<span class="fc" id="L414">				return OpType.CATEGORICAL;</span>
+			case INTEGER:
+			case FLOAT:
+			case DOUBLE:
+<span class="fc" id="L418">				return OpType.CONTINUOUS;</span>
+			case BOOLEAN:
+<span class="fc" id="L420">				return OpType.CATEGORICAL;</span>
+			case DATE:
+			case TIME:
+			case DATE_TIME:
+			case DATE_DAYS_SINCE_0:
+			case DATE_DAYS_SINCE_1960:
+			case DATE_DAYS_SINCE_1970:
+			case DATE_DAYS_SINCE_1980:
+			case TIME_SECONDS:
+			case DATE_TIME_SECONDS_SINCE_0:
+			case DATE_TIME_SECONDS_SINCE_1960:
+			case DATE_TIME_SECONDS_SINCE_1970:
+			case DATE_TIME_SECONDS_SINCE_1980:
+<span class="fc" id="L433">				return OpType.ORDINAL;</span>
+			default:
+<span class="nc" id="L435">				throw new UnsupportedFeatureException();</span>
+		}
+	}
+
+	/**
+	 * @throws TypeCheckException If the value cannot be cast to the requested representation.
+	 */
+	static
+	public Object cast(DataType dataType, Object value){
+
+<span class="pc bpc" id="L445" title="2 of 16 branches missed.">		switch(dataType){</span>
+			case STRING:
+<span class="fc" id="L447">				return toString(value);</span>
+			case INTEGER:
+<span class="fc" id="L449">				return toInteger(value);</span>
+			case FLOAT:
+<span class="fc" id="L451">				return toFloat(value);</span>
+			case DOUBLE:
+<span class="fc" id="L453">				return toDouble(value);</span>
+			case BOOLEAN:
+<span class="fc" id="L455">				return toBoolean(value);</span>
+			case DATE:
+<span class="fc" id="L457">				return toDate(value);</span>
+			case TIME:
+<span class="fc" id="L459">				return toTime(value);</span>
+			case DATE_TIME:
+<span class="fc" id="L461">				return toDateTime(value);</span>
+			case DATE_DAYS_SINCE_1960:
+<span class="fc" id="L463">				return toDaysSinceDate(value, YEAR_1960);</span>
+			case DATE_DAYS_SINCE_1970:
+<span class="fc" id="L465">				return toDaysSinceDate(value, YEAR_1970);</span>
+			case DATE_DAYS_SINCE_1980:
+<span class="fc" id="L467">				return toDaysSinceDate(value, YEAR_1980);</span>
+			case TIME_SECONDS:
+<span class="nc" id="L469">				return toSecondsSinceMidnight(value);</span>
+			case DATE_TIME_SECONDS_SINCE_1960:
+<span class="fc" id="L471">				return toSecondsSinceDate(value, YEAR_1960);</span>
+			case DATE_TIME_SECONDS_SINCE_1970:
+<span class="fc" id="L473">				return toSecondsSinceDate(value, YEAR_1970);</span>
+			case DATE_TIME_SECONDS_SINCE_1980:
+<span class="fc" id="L475">				return toSecondsSinceDate(value, YEAR_1980);</span>
+			default:
+<span class="nc" id="L477">				throw new UnsupportedFeatureException();</span>
+		}
+	}
+
+	static
+	public &lt;V&gt; V cast(Class&lt;? extends V&gt; clazz, Object value){
+
+<span class="pc bpc" id="L484" title="1 of 2 branches missed.">		if(!clazz.isInstance(value)){</span>
+<span class="nc" id="L485">			throw new TypeCheckException(clazz, value);</span>
+		}
+
+<span class="fc" id="L488">		return clazz.cast(value);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Casts the specified value to String data type.
+	 * &lt;/p&gt;
+	 *
+	 * @see DataType#STRING
+	 */
+	static
+	private String toString(Object value){
+
+<span class="fc bfc" id="L501" title="All 2 branches covered.">		if(value instanceof String){</span>
+<span class="fc" id="L502">			return (String)value;</span>
+		} else
+
+<span class="fc bfc" id="L505" title="All 12 branches covered.">		if((value instanceof Double) || (value instanceof Float) || (value instanceof Long) || (value instanceof Integer) || (value instanceof Short) || (value instanceof Byte)){</span>
+<span class="fc" id="L506">			Number number = (Number)value;</span>
+
+<span class="fc" id="L508">			return number.toString();</span>
+		} else
+
+<span class="pc bpc" id="L511" title="1 of 2 branches missed.">		if(value instanceof Boolean){</span>
+<span class="fc" id="L512">			Boolean flag = (Boolean)value;</span>
+
+<span class="fc bfc" id="L514" title="All 2 branches covered.">			return (flag.booleanValue() ? &quot;true&quot; : &quot;false&quot;);</span>
+		}
+
+<span class="nc" id="L517">		throw new TypeCheckException(DataType.STRING, value);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Casts the specified value to Integer data type.
+	 * &lt;/p&gt;
+	 *
+	 * @see DataType#INTEGER
+	 */
+	static
+	private Integer toInteger(Object value){
+
+<span class="fc bfc" id="L530" title="All 2 branches covered.">		if(value instanceof Integer){</span>
+<span class="fc" id="L531">			return (Integer)value;</span>
+		} else
+
+<span class="fc bfc" id="L534" title="All 4 branches covered.">		if((value instanceof Double) || (value instanceof Float)){</span>
+<span class="fc" id="L535">			Number number = (Number)value;</span>
+
+<span class="fc bfc" id="L537" title="All 2 branches covered.">			if(DoubleMath.isMathematicalInteger(number.doubleValue())){</span>
+<span class="fc" id="L538">				return toInteger(number.longValue());</span>
+			}
+<span class="fc" id="L540">		} else</span>
+
+<span class="fc bfc" id="L542" title="All 2 branches covered.">		if(value instanceof Long){</span>
+<span class="fc" id="L543">			Long number = (Long)value;</span>
+
+<span class="fc" id="L545">			return toInteger(number.longValue());</span>
+		} else
+
+<span class="fc bfc" id="L548" title="All 4 branches covered.">		if((value instanceof Short) || (value instanceof Byte)){</span>
+<span class="fc" id="L549">			Number number = (Number)value;</span>
+
+<span class="fc" id="L551">			return Integer.valueOf(number.intValue());</span>
+		} else
+
+<span class="fc bfc" id="L554" title="All 2 branches covered.">		if(value instanceof Boolean){</span>
+<span class="fc" id="L555">			Boolean flag = (Boolean)value;</span>
+
+<span class="fc bfc" id="L557" title="All 2 branches covered.">			return (flag.booleanValue() ? Numbers.INTEGER_ONE : Numbers.INTEGER_ZERO);</span>
+		} else
+
+<span class="pc bpc" id="L560" title="1 of 6 branches missed.">		if((value instanceof DaysSinceDate) || (value instanceof SecondsSinceDate) || (value instanceof SecondsSinceMidnight)){</span>
+<span class="fc" id="L561">			Number number = (Number)value;</span>
+
+<span class="fc" id="L563">			return Integer.valueOf(number.intValue());</span>
+		}
+
+<span class="fc" id="L566">		throw new TypeCheckException(DataType.INTEGER, value);</span>
+	}
+
+	static
+	private Integer toInteger(long value){
+
+<span class="fc bfc" id="L572" title="All 4 branches covered.">		if(value &lt; Integer.MIN_VALUE || value &gt; Integer.MAX_VALUE){</span>
+<span class="fc" id="L573">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L576">		return Integer.valueOf((int)value);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Casts the specified value to Float data type.
+	 * &lt;/p&gt;
+	 *
+	 * @see DataType#FLOAT
+	 */
+	static
+	private Float toFloat(Object value){
+
+<span class="fc bfc" id="L589" title="All 2 branches covered.">		if(value instanceof Float){</span>
+<span class="fc" id="L590">			return (Float)value;</span>
+		} else
+
+<span class="fc bfc" id="L593" title="All 2 branches covered.">		if(value instanceof Double){</span>
+<span class="fc" id="L594">			Number number = (Number)value;</span>
+
+<span class="fc" id="L596">			return toFloat(number.floatValue());</span>
+		} else
+
+<span class="fc bfc" id="L599" title="All 8 branches covered.">		if((value instanceof Long) || (value instanceof Integer) || (value instanceof Short) || (value instanceof Byte)){</span>
+<span class="fc" id="L600">			Number number = (Number)value;</span>
+
+<span class="fc" id="L602">			return toFloat(number.floatValue());</span>
+		} else
+
+<span class="pc bpc" id="L605" title="1 of 2 branches missed.">		if(value instanceof Boolean){</span>
+<span class="fc" id="L606">			Boolean flag = (Boolean)value;</span>
+
+<span class="fc bfc" id="L608" title="All 2 branches covered.">			return (flag.booleanValue() ? Numbers.FLOAT_ONE : Numbers.FLOAT_ZERO);</span>
+		} else
+
+<span class="nc bnc" id="L611" title="All 6 branches missed.">		if((value instanceof DaysSinceDate) || (value instanceof SecondsSinceDate) || (value instanceof SecondsSinceMidnight)){</span>
+<span class="nc" id="L612">			Number number = (Number)value;</span>
+
+<span class="nc" id="L614">			return toFloat(number.floatValue());</span>
+		}
+
+<span class="nc" id="L617">		throw new TypeCheckException(DataType.FLOAT, value);</span>
+	}
+
+	static
+	private Float toFloat(float value){
+
+<span class="pc bpc" id="L623" title="1 of 2 branches missed.">		if(value == -1f){</span>
+<span class="nc" id="L624">			return Numbers.FLOAT_MINUS_ONE;</span>
+		} else
+
+<span class="fc bfc" id="L627" title="All 2 branches covered.">		if(value == 0f){</span>
+<span class="fc" id="L628">			return Numbers.FLOAT_ZERO;</span>
+		} else
+
+<span class="fc bfc" id="L631" title="All 2 branches covered.">		if(value == 1f){</span>
+<span class="fc" id="L632">			return Numbers.FLOAT_ONE;</span>
+		}
+
+<span class="fc" id="L635">		return value;</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Casts the specified value to Double data type.
+	 * &lt;/p&gt;
+	 *
+	 * @see DataType#DOUBLE
+	 */
+	static
+	private Double toDouble(Object value){
+
+<span class="fc bfc" id="L648" title="All 2 branches covered.">		if(value instanceof Double){</span>
+<span class="fc" id="L649">			return (Double)value;</span>
+		} else
+
+<span class="fc bfc" id="L652" title="All 10 branches covered.">		if((value instanceof Float) || (value instanceof Long) || (value instanceof Integer) || (value instanceof Short) || (value instanceof Byte)){</span>
+<span class="fc" id="L653">			Number number = (Number)value;</span>
+
+<span class="fc" id="L655">			return toDouble(number.doubleValue());</span>
+		} else
+
+<span class="pc bpc" id="L658" title="1 of 2 branches missed.">		if(value instanceof Boolean){</span>
+<span class="fc" id="L659">			Boolean flag = (Boolean)value;</span>
+
+<span class="fc bfc" id="L661" title="All 2 branches covered.">			return (flag.booleanValue() ? Numbers.DOUBLE_ONE : Numbers.DOUBLE_ZERO);</span>
+		} else
+
+<span class="nc bnc" id="L664" title="All 6 branches missed.">		if((value instanceof DaysSinceDate) || (value instanceof SecondsSinceDate) || (value instanceof SecondsSinceMidnight)){</span>
+<span class="nc" id="L665">			Number number = (Number)value;</span>
+
+<span class="nc" id="L667">			return toDouble(number.doubleValue());</span>
+		}
+
+<span class="nc" id="L670">		throw new TypeCheckException(DataType.DOUBLE, value);</span>
+	}
+
+	static
+	private Double toDouble(double value){
+
+<span class="pc bpc" id="L676" title="1 of 2 branches missed.">		if(value == -1d){</span>
+<span class="nc" id="L677">			return Numbers.DOUBLE_MINUS_ONE;</span>
+		} else
+
+<span class="fc bfc" id="L680" title="All 2 branches covered.">		if(value == 0d){</span>
+<span class="fc" id="L681">			return Numbers.DOUBLE_ZERO;</span>
+		} else
+
+<span class="pc bpc" id="L684" title="1 of 2 branches missed.">		if(value == 0.5d){</span>
+<span class="nc" id="L685">			return Numbers.DOUBLE_ONE_HALF;</span>
+		} else
+
+<span class="fc bfc" id="L688" title="All 2 branches covered.">		if(value == 1d){</span>
+<span class="fc" id="L689">			return Numbers.DOUBLE_ONE;</span>
+		} else
+
+<span class="fc bfc" id="L692" title="All 2 branches covered.">		if(value == 2d){</span>
+<span class="fc" id="L693">			return Numbers.DOUBLE_TWO;</span>
+		}
+
+<span class="fc" id="L696">		return value;</span>
+	}
+
+	/**
+	 * @see DataType#BOOLEAN
+	 */
+	static
+	private Boolean toBoolean(Object value){
+
+<span class="fc bfc" id="L705" title="All 2 branches covered.">		if(value instanceof Boolean){</span>
+<span class="fc" id="L706">			return (Boolean)value;</span>
+		} else
+
+<span class="fc bfc" id="L709" title="All 12 branches covered.">		if((value instanceof Double) || (value instanceof Float) || (value instanceof Long) || (value instanceof Integer) || (value instanceof Short) || (value instanceof Byte)){</span>
+<span class="fc" id="L710">			Number number = (Number)value;</span>
+
+<span class="fc bfc" id="L712" title="All 2 branches covered.">			if(number.doubleValue() == 1d){</span>
+<span class="fc" id="L713">				return Boolean.TRUE;</span>
+			} else
+
+<span class="fc bfc" id="L716" title="All 2 branches covered.">			if(number.doubleValue() == 0d){</span>
+<span class="fc" id="L717">				return Boolean.FALSE;</span>
+			}
+		}
+
+<span class="fc" id="L721">		throw new TypeCheckException(DataType.BOOLEAN, value);</span>
+	}
+
+	/**
+	 * @see DataType#DATE
+	 */
+	static
+	private LocalDate toDate(Object value){
+
+<span class="fc bfc" id="L730" title="All 2 branches covered.">		if(value instanceof LocalDate){</span>
+<span class="fc" id="L731">			return (LocalDate)value;</span>
+		} else
+
+<span class="pc bpc" id="L734" title="1 of 2 branches missed.">		if(value instanceof LocalDateTime){</span>
+<span class="fc" id="L735">			LocalDateTime instant = (LocalDateTime)value;</span>
+
+<span class="fc" id="L737">			return instant.toLocalDate();</span>
+		}
+
+<span class="nc" id="L740">		throw new TypeCheckException(DataType.DATE, value);</span>
+	}
+
+	/**
+	 * @see DataType#TIME
+	 */
+	static
+	private LocalTime toTime(Object value){
+
+<span class="fc bfc" id="L749" title="All 2 branches covered.">		if(value instanceof LocalTime){</span>
+<span class="fc" id="L750">			return (LocalTime)value;</span>
+		} else
+
+<span class="pc bpc" id="L753" title="1 of 2 branches missed.">		if(value instanceof LocalDateTime){</span>
+<span class="fc" id="L754">			LocalDateTime instant = (LocalDateTime)value;</span>
+
+<span class="fc" id="L756">			return instant.toLocalTime();</span>
+		}
+
+<span class="nc" id="L759">		throw new TypeCheckException(DataType.TIME, value);</span>
+	}
+
+	/**
+	 * @see DataType#DATE_TIME
+	 */
+	static
+	private LocalDateTime toDateTime(Object value){
+
+<span class="fc bfc" id="L768" title="All 2 branches covered.">		if(value instanceof LocalDateTime){</span>
+<span class="fc" id="L769">			return (LocalDateTime)value;</span>
+		}
+
+<span class="fc" id="L772">		throw new TypeCheckException(DataType.DATE_TIME, value);</span>
+	}
+
+	/**
+	 * @see DataType#DATE_DAYS_SINCE_1960
+	 * @see DataType#DATE_DAYS_SINCE_1970
+	 * @see DataType#DATE_DAYS_SINCE_1980
+	 */
+	static
+	private DaysSinceDate toDaysSinceDate(Object value, LocalDate epoch){
+
+<span class="pc bpc" id="L783" title="1 of 2 branches missed.">		if(value instanceof DaysSinceDate){</span>
+<span class="fc" id="L784">			DaysSinceDate period = (DaysSinceDate)value;</span>
+
+<span class="pc bpc" id="L786" title="1 of 2 branches missed.">			if((period.getEpoch()).equals(epoch)){</span>
+<span class="nc" id="L787">				return period;</span>
+			}
+
+<span class="fc" id="L790">			Days difference = Days.daysBetween(epoch, period.getEpoch()).plus(period.getDays());</span>
+
+<span class="fc" id="L792">			return new DaysSinceDate(epoch, difference);</span>
+		}
+
+<span class="nc" id="L795">		throw new TypeCheckException(getDaysDataType(epoch), value);</span>
+	}
+
+	/**
+	 * @see DataType#TIME_SECONDS
+	 */
+	static
+	private SecondsSinceMidnight toSecondsSinceMidnight(Object value){
+
+<span class="nc bnc" id="L804" title="All 2 branches missed.">		if(value instanceof SecondsSinceMidnight){</span>
+<span class="nc" id="L805">			return (SecondsSinceMidnight)value;</span>
+		}
+
+<span class="nc" id="L808">		throw new TypeCheckException(DataType.TIME_SECONDS, value);</span>
+	}
+
+	/**
+	 * @see DataType#DATE_TIME_SECONDS_SINCE_1960
+	 * @see DataType#DATE_TIME_SECONDS_SINCE_1970
+	 * @see DataType#DATE_TIME_SECONDS_SINCE_1980
+	 */
+	static
+	private SecondsSinceDate toSecondsSinceDate(Object value, LocalDate epoch){
+
+<span class="pc bpc" id="L819" title="1 of 2 branches missed.">		if(value instanceof SecondsSinceDate){</span>
+<span class="fc" id="L820">			SecondsSinceDate period = (SecondsSinceDate)value;</span>
+
+<span class="pc bpc" id="L822" title="1 of 2 branches missed.">			if((period.getEpoch()).equals(epoch)){</span>
+<span class="nc" id="L823">				return period;</span>
+			}
+
+<span class="fc" id="L826">			Seconds difference = Seconds.secondsBetween(toMidnight(epoch), toMidnight(period.getEpoch())).plus(period.getSeconds());</span>
+
+<span class="fc" id="L828">			return new SecondsSinceDate(epoch, difference);</span>
+		}
+
+<span class="nc" id="L831">		throw new TypeCheckException(getSecondsDataType(epoch), value);</span>
+	}
+
+	static
+	public DataType getConstantDataType(String string){
+
+		try {
+<span class="fc bfc" id="L838" title="All 2 branches covered.">			if(string.indexOf('.') &gt; -1){</span>
+<span class="fc" id="L839">				Double.parseDouble(string);</span>
+
+<span class="fc" id="L841">				return DataType.FLOAT;</span>
+			} else
+
+			{
+<span class="fc" id="L845">				Long.parseLong(string);</span>
+
+<span class="fc" id="L847">				return DataType.INTEGER;</span>
+			}
+<span class="fc" id="L849">		} catch(NumberFormatException nfe){</span>
+<span class="fc" id="L850">			return DataType.STRING;</span>
+		}
+	}
+
+	static
+	private DataType getDaysDataType(LocalDate epoch){
+
+<span class="fc bfc" id="L857" title="All 2 branches covered.">		if((YEAR_1960).equals(epoch)){</span>
+<span class="fc" id="L858">			return DataType.DATE_DAYS_SINCE_1960;</span>
+		} else
+
+<span class="fc bfc" id="L861" title="All 2 branches covered.">		if((YEAR_1970).equals(epoch)){</span>
+<span class="fc" id="L862">			return DataType.DATE_DAYS_SINCE_1970;</span>
+		} else
+
+<span class="pc bpc" id="L865" title="1 of 2 branches missed.">		if((YEAR_1980).equals(epoch)){</span>
+<span class="fc" id="L866">			return DataType.DATE_DAYS_SINCE_1980;</span>
+		}
+
+<span class="nc" id="L869">		throw new EvaluationException();</span>
+	}
+
+	static
+	private DataType getSecondsDataType(LocalDate epoch){
+
+<span class="fc bfc" id="L875" title="All 2 branches covered.">		if((YEAR_1960).equals(epoch)){</span>
+<span class="fc" id="L876">			return DataType.DATE_TIME_SECONDS_SINCE_1960;</span>
+		} else
+
+<span class="fc bfc" id="L879" title="All 2 branches covered.">		if((YEAR_1970).equals(epoch)){</span>
+<span class="fc" id="L880">			return DataType.DATE_TIME_SECONDS_SINCE_1970;</span>
+		} else
+
+<span class="pc bpc" id="L883" title="1 of 2 branches missed.">		if((YEAR_1980).equals(epoch)){</span>
+<span class="fc" id="L884">			return DataType.DATE_TIME_SECONDS_SINCE_1980;</span>
+		}
+
+<span class="nc" id="L887">		throw new EvaluationException();</span>
+	}
+
+	static
+	LocalDateTime toMidnight(LocalDate date){
+<span class="fc" id="L892">		return new LocalDateTime(date.getYear(), date.getMonthOfYear(), date.getDayOfMonth(), 0, 0, 0);</span>
+	}
+
+<span class="fc" id="L895">	private static final DataType[] inheritanceSequence = {DataType.STRING, DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER};</span>
+
+<span class="fc" id="L897">	private static final LocalDate YEAR_1960 = new LocalDate(1960, 1, 1);</span>
+<span class="fc" id="L898">	private static final LocalDate YEAR_1970 = new LocalDate(1970, 1, 1);</span>
+<span class="fc" id="L899">	private static final LocalDate YEAR_1980 = new LocalDate(1980, 1, 1);</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

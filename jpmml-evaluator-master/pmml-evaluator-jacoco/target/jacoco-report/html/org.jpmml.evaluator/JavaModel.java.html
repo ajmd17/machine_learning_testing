@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JavaModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">JavaModel.java</span></div><h1>JavaModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2017 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Map;
+
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.LocalTransformations;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.MiningSchema;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.ModelExplanation;
+import org.dmg.pmml.ModelStats;
+import org.dmg.pmml.ModelVerification;
+import org.dmg.pmml.Output;
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.Targets;
+import org.dmg.pmml.Visitor;
+import org.dmg.pmml.VisitorAction;
+import org.jpmml.model.Property;
+import org.jpmml.schema.Extension;
+
+@Extension
+abstract
+<span class="nc" id="L42">public class JavaModel extends Model {</span>
+
+<span class="nc" id="L44">	private String modelName = null;</span>
+
+<span class="nc" id="L46">	private MiningFunction miningFunction = null;</span>
+
+<span class="nc" id="L48">	private String algorithmName = null;</span>
+
+<span class="nc" id="L50">	private Boolean scorable = null;</span>
+
+<span class="nc" id="L52">	private MathContext mathContext = null;</span>
+
+<span class="nc" id="L54">	private MiningSchema miningSchema = null;</span>
+
+<span class="nc" id="L56">	private LocalTransformations localTransformations = null;</span>
+
+<span class="nc" id="L58">	private Targets targets = null;</span>
+
+<span class="nc" id="L60">	private Output output = null;</span>
+
+<span class="nc" id="L62">	private ModelStats modelStats = null;</span>
+
+<span class="nc" id="L64">	private ModelExplanation modelExplanation = null;</span>
+
+<span class="nc" id="L66">	private ModelVerification modelVerification = null;</span>
+
+
+	abstract
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context);
+
+	@Override
+	public String getModelName(){
+<span class="nc" id="L74">		return this.modelName;</span>
+	}
+
+	@Override
+	public JavaModel setModelName(@Property(&quot;modelName&quot;) String modelName){
+<span class="nc" id="L79">		this.modelName = modelName;</span>
+
+<span class="nc" id="L81">		return this;</span>
+	}
+
+	@Override
+	public MiningFunction getMiningFunction(){
+<span class="nc" id="L86">		return this.miningFunction;</span>
+	}
+
+	@Override
+	public JavaModel setMiningFunction(@Property(&quot;miningFunction&quot;) MiningFunction miningFunction){
+<span class="nc" id="L91">		this.miningFunction = miningFunction;</span>
+
+<span class="nc" id="L93">		return this;</span>
+	}
+
+	@Override
+	public String getAlgorithmName(){
+<span class="nc" id="L98">		return this.algorithmName;</span>
+	}
+
+	@Override
+	public JavaModel setAlgorithmName(@Property(&quot;algorithmName&quot;) String algorithmName){
+<span class="nc" id="L103">		this.algorithmName = algorithmName;</span>
+
+<span class="nc" id="L105">		return this;</span>
+	}
+
+	@Override
+	public boolean isScorable(){
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">		if(this.scorable == null){</span>
+<span class="nc" id="L112">			return true;</span>
+		}
+
+<span class="nc" id="L115">		return this.scorable;</span>
+	}
+
+	@Override
+	public JavaModel setScorable(@Property(&quot;scorable&quot;) Boolean scorable){
+<span class="nc" id="L120">		this.scorable = scorable;</span>
+
+<span class="nc" id="L122">		return this;</span>
+	}
+
+	@Override
+	public MathContext getMathContext(){
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">		if(this.mathContext == null){</span>
+<span class="nc" id="L129">			return MathContext.DOUBLE;</span>
+		}
+
+<span class="nc" id="L132">		return this.mathContext;</span>
+	}
+
+	@Override
+	public JavaModel setMathContext(MathContext mathContext){
+<span class="nc" id="L137">		this.mathContext = mathContext;</span>
+
+<span class="nc" id="L139">		return this;</span>
+	}
+
+	@Override
+	public MiningSchema getMiningSchema(){
+<span class="nc" id="L144">		return this.miningSchema;</span>
+	}
+
+	@Override
+	public JavaModel setMiningSchema(@Property(&quot;miningSchema&quot;) MiningSchema miningSchema){
+<span class="nc" id="L149">		this.miningSchema = miningSchema;</span>
+
+<span class="nc" id="L151">		return this;</span>
+	}
+
+	@Override
+	public LocalTransformations getLocalTransformations(){
+<span class="nc" id="L156">		return this.localTransformations;</span>
+	}
+
+	@Override
+	public JavaModel setLocalTransformations(@Property(&quot;localTransformations&quot;) LocalTransformations localTransformations){
+<span class="nc" id="L161">		this.localTransformations = localTransformations;</span>
+
+<span class="nc" id="L163">		return this;</span>
+	}
+
+	@Override
+	public Targets getTargets(){
+<span class="nc" id="L168">		return this.targets;</span>
+	}
+
+	@Override
+	public JavaModel setTargets(@Property(&quot;targets&quot;) Targets targets){
+<span class="nc" id="L173">		this.targets = targets;</span>
+
+<span class="nc" id="L175">		return this;</span>
+	}
+
+	@Override
+	public Output getOutput(){
+<span class="nc" id="L180">		return this.output;</span>
+	}
+
+	@Override
+	public JavaModel setOutput(@Property(&quot;output&quot;) Output output){
+<span class="nc" id="L185">		this.output = output;</span>
+
+<span class="nc" id="L187">		return this;</span>
+	}
+
+	@Override
+	public ModelStats getModelStats(){
+<span class="nc" id="L192">		return this.modelStats;</span>
+	}
+
+	@Override
+	public JavaModel setModelStats(@Property(&quot;modelStats&quot;) ModelStats modelStats){
+<span class="nc" id="L197">		this.modelStats = modelStats;</span>
+
+<span class="nc" id="L199">		return this;</span>
+	}
+
+	@Override
+	public ModelExplanation getModelExplanation(){
+<span class="nc" id="L204">		return this.modelExplanation;</span>
+	}
+
+	@Override
+	public JavaModel setModelExplanation(@Property(&quot;modelExplanation&quot;) ModelExplanation modelExplanation){
+<span class="nc" id="L209">		this.modelExplanation = modelExplanation;</span>
+
+<span class="nc" id="L211">		return this;</span>
+	}
+
+	@Override
+	public ModelVerification getModelVerification(){
+<span class="nc" id="L216">		return this.modelVerification;</span>
+	}
+
+	@Override
+	public JavaModel setModelVerification(@Property(&quot;modelVerification&quot;) ModelVerification modelVerification){
+<span class="nc" id="L221">		this.modelVerification = modelVerification;</span>
+
+<span class="nc" id="L223">		return this;</span>
+	}
+
+	@Override
+	public VisitorAction accept(Visitor visitor){
+<span class="nc" id="L228">		visitor.pushParent(this);</span>
+
+<span class="nc" id="L230">		VisitorAction status = PMMLObject.traverse(visitor, getMiningSchema(), getLocalTransformations(), getTargets(), getOutput(), getModelStats(), getModelExplanation(), getModelVerification());</span>
+
+<span class="nc" id="L232">		visitor.popParent();</span>
+
+<span class="nc bnc" id="L234" title="All 2 branches missed.">		if(status == VisitorAction.TERMINATE){</span>
+<span class="nc" id="L235">			return VisitorAction.TERMINATE;</span>
+		}
+
+<span class="nc" id="L238">		return VisitorAction.CONTINUE;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

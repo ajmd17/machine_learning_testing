@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnhancementExample.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator example applications</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">EnhancementExample.java</span></div><h1>EnhancementExample.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2014 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import com.beust.jcommander.Parameter;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.InlineTable;
+import org.dmg.pmml.MiningField;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.ModelVerification;
+import org.dmg.pmml.OutputField;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.Row;
+import org.dmg.pmml.VerificationField;
+import org.dmg.pmml.VerificationFields;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+<span class="nc" id="L42">public class EnhancementExample extends Example {</span>
+
+<span class="nc" id="L44">	@Parameter (</span>
+		names = {&quot;--model&quot;},
+		description = &quot;PMML file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 1
+	)
+	private File model = null;
+
+<span class="nc" id="L54">	@Parameter (</span>
+		names = {&quot;--verification&quot;},
+		description = &quot;Verification CSV file. Verification data is a combination of input and expected output data&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 2
+	)
+	private File verification = null;
+
+<span class="nc" id="L64">	@Parameter (</span>
+		names = {&quot;--data-xmlns&quot;},
+		description = &quot;XML namespace URI for data elements&quot;
+	)
+	@ParameterOrder (
+		value = 3
+	)
+	private String dataURI = null;
+
+
+	static
+	public void main(String... args) throws Exception {
+<span class="nc" id="L76">		execute(EnhancementExample.class, args);</span>
+<span class="nc" id="L77">	}</span>
+
+	@Override
+	public void execute() throws Exception {
+<span class="nc" id="L81">		PMML pmml = readPMML(this.model);</span>
+
+<span class="nc" id="L83">		CsvUtil.Table verificationTable = readTable(this.verification, null);</span>
+
+<span class="nc" id="L85">		ModelEvaluatorFactory modelEvaluatorFactory = ModelEvaluatorFactory.newInstance();</span>
+
+<span class="nc" id="L87">		ModelEvaluator&lt;?&gt; modelEvaluator = modelEvaluatorFactory.newModelEvaluator(pmml);</span>
+
+<span class="nc" id="L89">		Model model = modelEvaluator.getModel();</span>
+
+<span class="nc" id="L91">		ModelVerification modelVerification = model.getModelVerification();</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">		if(modelVerification != null){</span>
+<span class="nc" id="L93">			throw new InvalidFeatureException(modelVerification);</span>
+		}
+
+<span class="nc" id="L96">		modelVerification = new ModelVerification();</span>
+
+<span class="nc" id="L98">		List&lt;String&gt; tagNames = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L100">		VerificationFields verificationFields = new VerificationFields();</span>
+
+		header:
+		{
+<span class="nc" id="L104">			List&lt;String&gt; headerRow = verificationTable.get(0);</span>
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">			for(int column = 0; column &lt; headerRow.size(); column++){</span>
+<span class="nc" id="L107">				String field = headerRow.get(column);</span>
+
+<span class="nc" id="L109">				FieldName name = FieldName.create(field);</span>
+
+<span class="nc" id="L111">				MiningField miningField = modelEvaluator.getMiningField(name);</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">				if(miningField == null){</span>
+<span class="nc" id="L113">					OutputField outputField = modelEvaluator.getOutputField(name);</span>
+
+<span class="nc bnc" id="L115" title="All 2 branches missed.">					if(outputField == null){</span>
+<span class="nc" id="L116">						tagNames.add(null);</span>
+
+<span class="nc" id="L118">						continue;</span>
+					}
+				}
+
+<span class="nc" id="L122">				VerificationField verificationField = new VerificationField(name);</span>
+
+<span class="nc bnc" id="L124" title="All 2 branches missed.">				if(field.contains(&quot; &quot;)){</span>
+<span class="nc" id="L125">					verificationField.setColumn(field.replace(&quot; &quot;, &quot;_x0020_&quot;));</span>
+
+<span class="nc" id="L127">					tagNames.add(verificationField.getColumn());</span>
+				} else
+
+				{
+<span class="nc" id="L131">					tagNames.add(field);</span>
+				}
+
+<span class="nc" id="L134">				verificationFields.addVerificationFields(verificationField);</span>
+			}
+		}
+
+<span class="nc" id="L138">		modelVerification.setVerificationFields(verificationFields);</span>
+
+<span class="nc" id="L140">		DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();</span>
+<span class="nc" id="L141">		documentBuilderFactory.setNamespaceAware(true);</span>
+
+<span class="nc" id="L143">		DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();</span>
+
+<span class="nc" id="L145">		InlineTable inlineTable = new InlineTable();</span>
+
+		body:
+<span class="nc bnc" id="L148" title="All 2 branches missed.">		for(int i = 1; i &lt; verificationTable.size(); i++){</span>
+<span class="nc" id="L149">			List&lt;String&gt; bodyRow = verificationTable.get(i);</span>
+
+<span class="nc" id="L151">			Row row = new Row();</span>
+
+<span class="nc bnc" id="L153" title="All 2 branches missed.">			for(int column = 0; column &lt; bodyRow.size(); column++){</span>
+<span class="nc" id="L154">				String tagName = tagNames.get(column);</span>
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">				if(tagName == null){</span>
+<span class="nc" id="L157">					continue;</span>
+				}
+
+<span class="nc" id="L160">				String value = bodyRow.get(column);</span>
+
+<span class="nc bnc" id="L162" title="All 4 branches missed.">				if((&quot;N/A&quot;).equals(value) || (&quot;NA&quot;).equals(value)){</span>
+<span class="nc" id="L163">					continue;</span>
+				}
+
+<span class="nc" id="L166">				Document document = documentBuilder.newDocument();</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">				Element element = document.createElementNS(this.dataURI, this.dataURI != null ? (&quot;data:&quot; + tagName) : tagName);</span>
+<span class="nc" id="L169">				element.setTextContent(value);</span>
+
+<span class="nc" id="L171">				row.addContent(element);</span>
+
+<span class="nc" id="L173">				documentBuilder.reset();</span>
+			}
+
+<span class="nc" id="L176">			inlineTable.addRows(row);</span>
+		}
+
+<span class="nc" id="L179">		modelVerification.setInlineTable(inlineTable);</span>
+
+<span class="nc" id="L181">		model.setModelVerification(modelVerification);</span>
+
+<span class="nc" id="L183">		writePMML(pmml, this.model);</span>
+<span class="nc" id="L184">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

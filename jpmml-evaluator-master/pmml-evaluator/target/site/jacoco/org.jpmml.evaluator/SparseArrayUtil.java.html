@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SparseArrayUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">SparseArrayUtil.java</span></div><h1>SparseArrayUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 KNIME.com AG, Zurich, Switzerland
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.jpmml.evaluator;
+
+import java.util.AbstractList;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableSortedMap;
+import org.dmg.pmml.SparseArray;
+
+public class SparseArrayUtil {
+
+<span class="nc" id="L42">	private SparseArrayUtil(){</span>
+<span class="nc" id="L43">	}</span>
+
+	@SuppressWarnings (
+		value = {&quot;unchecked&quot;}
+	)
+	static
+	public &lt;E extends Number&gt; SortedMap&lt;Integer, E&gt; getContent(SparseArray&lt;E&gt; sparseArray){
+<span class="fc" id="L50">		return (SortedMap&lt;Integer, E&gt;)CacheUtil.getValue(sparseArray, SparseArrayUtil.contentCache);</span>
+	}
+
+	static
+	public &lt;E extends Number&gt; List&lt;E&gt; asNumberList(SparseArray&lt;E&gt; sparseArray){
+		final
+<span class="fc" id="L56">		SortedMap&lt;Integer, E&gt; content = getContent(sparseArray);</span>
+
+		final
+		int size;
+
+<span class="fc" id="L61">		Integer n = sparseArray.getN();</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">		if(n != null){</span>
+<span class="fc" id="L63">			size = n.intValue();</span>
+		} else
+
+		{
+<span class="nc" id="L67">			size = content.size();</span>
+		}
+
+		final
+<span class="fc" id="L71">		E defaultValue = sparseArray.getDefaultValue();</span>
+
+<span class="fc" id="L73">		List&lt;E&gt; result = new AbstractList&lt;E&gt;(){</span>
+
+			@Override
+			public int size(){
+<span class="fc" id="L77">				return size;</span>
+			}
+
+			@Override
+			public E get(int index){
+<span class="fc" id="L82">				E value = content.get(Integer.valueOf(index + 1));</span>
+
+<span class="fc bfc" id="L84" title="All 2 branches covered.">				if(value == null){</span>
+<span class="fc" id="L85">					value = defaultValue;</span>
+				}
+
+<span class="fc" id="L88">				return value;</span>
+			}
+		};
+
+<span class="fc" id="L92">		return result;</span>
+	}
+
+	static
+	public &lt;E extends Number&gt; SortedMap&lt;Integer, E&gt; parse(SparseArray&lt;E&gt; sparseArray){
+<span class="fc" id="L97">		SortedMap&lt;Integer, E&gt; result = new TreeMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L99" title="1 of 4 branches missed.">		if(!sparseArray.hasIndices() &amp;&amp; !sparseArray.hasEntries()){</span>
+<span class="fc" id="L100">			return result;</span>
+		}
+
+<span class="fc" id="L103">		List&lt;Integer&gt; indices = sparseArray.getIndices();</span>
+<span class="fc" id="L104">		List&lt;E&gt; entries = sparseArray.getEntries();</span>
+
+		// &quot;Both arrays must have the same length&quot;
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">		if(indices.size() != entries.size()){</span>
+<span class="nc" id="L108">			throw new InvalidFeatureException(sparseArray);</span>
+		}
+
+<span class="fc" id="L111">		Integer n = sparseArray.getN();</span>
+
+<span class="fc bfc" id="L113" title="All 2 branches covered.">		for(int i = 0; i &lt; indices.size(); i++){</span>
+<span class="fc" id="L114">			Integer index = indices.get(i);</span>
+<span class="fc" id="L115">			E entry = entries.get(i);</span>
+
+<span class="pc bpc" id="L117" title="3 of 6 branches missed.">			if((index &lt; 1) || (n != null &amp;&amp; index &gt; n.intValue())){</span>
+<span class="nc" id="L118">				throw new InvalidFeatureException(sparseArray);</span>
+			}
+
+<span class="fc" id="L121">			result.put(index, entry);</span>
+		}
+
+<span class="pc bpc" id="L124" title="2 of 4 branches missed.">		if(n != null &amp;&amp; n.intValue() &lt; result.size()){</span>
+<span class="nc" id="L125">			throw new InvalidFeatureException(sparseArray);</span>
+		}
+
+<span class="fc" id="L128">		return result;</span>
+	}
+
+<span class="fc" id="L131">	private static final LoadingCache&lt;SparseArray&lt;? extends Number&gt;, SortedMap&lt;Integer, ? extends Number&gt;&gt; contentCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;SparseArray&lt;? extends Number&gt;, SortedMap&lt;Integer, ? extends Number&gt;&gt;(){</span>
+
+		@Override
+		public SortedMap&lt;Integer, ? extends Number&gt; load(SparseArray&lt;?&gt; sparseArray){
+<span class="fc" id="L135">			return ImmutableSortedMap.copyOf(parse(sparseArray));</span>
+		}
+	});
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

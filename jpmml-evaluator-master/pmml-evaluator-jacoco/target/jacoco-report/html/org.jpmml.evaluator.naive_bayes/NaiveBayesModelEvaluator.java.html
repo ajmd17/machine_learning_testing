@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NaiveBayesModelEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.naive_bayes</a> &gt; <span class="el_source">NaiveBayesModelEvaluator.java</span></div><h1>NaiveBayesModelEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 KNIME.com AG, Zurich, Switzerland
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.jpmml.evaluator.naive_bayes;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import org.apache.commons.math3.util.Precision;
+import org.dmg.pmml.ContinuousDistribution;
+import org.dmg.pmml.DerivedField;
+import org.dmg.pmml.Discretize;
+import org.dmg.pmml.Expression;
+import org.dmg.pmml.Extension;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.GaussianDistribution;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.PoissonDistribution;
+import org.dmg.pmml.naive_bayes.BayesInput;
+import org.dmg.pmml.naive_bayes.BayesInputs;
+import org.dmg.pmml.naive_bayes.BayesOutput;
+import org.dmg.pmml.naive_bayes.NaiveBayesModel;
+import org.dmg.pmml.naive_bayes.PairCounts;
+import org.dmg.pmml.naive_bayes.TargetValueCount;
+import org.dmg.pmml.naive_bayes.TargetValueCounts;
+import org.dmg.pmml.naive_bayes.TargetValueStat;
+import org.dmg.pmml.naive_bayes.TargetValueStats;
+import org.jpmml.evaluator.CacheUtil;
+import org.jpmml.evaluator.Classification;
+import org.jpmml.evaluator.DiscretizationUtil;
+import org.jpmml.evaluator.DistributionUtil;
+import org.jpmml.evaluator.EvaluationContext;
+import org.jpmml.evaluator.EvaluationException;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.FieldValueUtil;
+import org.jpmml.evaluator.HasParsedValueMapping;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.InvalidResultException;
+import org.jpmml.evaluator.ModelEvaluationContext;
+import org.jpmml.evaluator.ModelEvaluator;
+import org.jpmml.evaluator.OutputUtil;
+import org.jpmml.evaluator.ProbabilityDistribution;
+import org.jpmml.evaluator.TargetField;
+import org.jpmml.evaluator.TargetUtil;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.evaluator.Value;
+import org.jpmml.evaluator.ValueFactory;
+import org.jpmml.evaluator.ValueUtil;
+import org.jpmml.evaluator.VerificationUtil;
+
+public class NaiveBayesModelEvaluator extends ModelEvaluator&lt;NaiveBayesModel&gt; {
+
+<span class="fc" id="L86">	transient</span>
+	private List&lt;BayesInput&gt; bayesInputs = null;
+
+<span class="fc" id="L89">	transient</span>
+	private Map&lt;FieldName, Map&lt;String, Double&gt;&gt; fieldCountSums = null;
+
+
+	public NaiveBayesModelEvaluator(PMML pmml){
+<span class="nc" id="L94">		this(pmml, selectModel(pmml, NaiveBayesModel.class));</span>
+<span class="nc" id="L95">	}</span>
+
+	public NaiveBayesModelEvaluator(PMML pmml, NaiveBayesModel naiveBayesModel){
+<span class="fc" id="L98">		super(pmml, naiveBayesModel);</span>
+
+<span class="fc" id="L100">		BayesInputs bayesInputs = naiveBayesModel.getBayesInputs();</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">		if(bayesInputs == null){</span>
+<span class="nc" id="L102">			throw new InvalidFeatureException(naiveBayesModel);</span>
+		} // End if
+
+<span class="pc bpc" id="L105" title="3 of 4 branches missed.">		if(!bayesInputs.hasBayesInputs() &amp;&amp; !bayesInputs.hasExtensions()){</span>
+<span class="nc" id="L106">			throw new InvalidFeatureException(bayesInputs);</span>
+		}
+
+<span class="fc" id="L109">		BayesOutput bayesOutput = naiveBayesModel.getBayesOutput();</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">		if(bayesOutput == null){</span>
+<span class="nc" id="L111">			throw new InvalidFeatureException(naiveBayesModel);</span>
+		}
+
+<span class="fc" id="L114">		TargetValueCounts targetValueCounts = bayesOutput.getTargetValueCounts();</span>
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">		if(targetValueCounts == null){</span>
+<span class="nc" id="L116">			throw new InvalidFeatureException(bayesOutput);</span>
+		} // End if
+
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">		if(!targetValueCounts.hasTargetValueCounts()){</span>
+<span class="nc" id="L120">			throw new InvalidFeatureException(targetValueCounts);</span>
+		}
+<span class="fc" id="L122">	}</span>
+
+	@Override
+	public String getSummary(){
+<span class="nc" id="L126">		return &quot;Naive Bayes model&quot;;</span>
+	}
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context){
+<span class="fc" id="L131">		NaiveBayesModel naiveBayesModel = getModel();</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">		if(!naiveBayesModel.isScorable()){</span>
+<span class="nc" id="L133">			throw new InvalidResultException(naiveBayesModel);</span>
+		}
+
+		ValueFactory&lt;Double&gt; valueFactory;
+
+<span class="fc" id="L138">		MathContext mathContext = naiveBayesModel.getMathContext();</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">		switch(mathContext){</span>
+			case DOUBLE:
+<span class="fc" id="L141">				valueFactory = (ValueFactory)getValueFactory();</span>
+<span class="fc" id="L142">				break;</span>
+			default:
+<span class="nc" id="L144">				throw new UnsupportedFeatureException(naiveBayesModel, mathContext);</span>
+		}
+
+		Map&lt;FieldName, ? extends Classification&gt; predictions;
+
+<span class="fc" id="L149">		MiningFunction miningFunction = naiveBayesModel.getMiningFunction();</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">		switch(miningFunction){</span>
+			case CLASSIFICATION:
+<span class="fc" id="L152">				predictions = evaluateClassification(valueFactory, context);</span>
+<span class="fc" id="L153">				break;</span>
+			default:
+<span class="nc" id="L155">				throw new UnsupportedFeatureException(naiveBayesModel, miningFunction);</span>
+		}
+
+<span class="fc" id="L158">		return OutputUtil.evaluate(predictions, context);</span>
+	}
+
+	private Map&lt;FieldName, ? extends Classification&gt; evaluateClassification(final ValueFactory&lt;Double&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L162">		NaiveBayesModel naiveBayesModel = getModel();</span>
+
+<span class="fc" id="L164">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L166">		double threshold = naiveBayesModel.getThreshold();</span>
+
+<span class="fc" id="L168">		Map&lt;FieldName, Map&lt;String, Double&gt;&gt; fieldCountSums = getFieldCountSums();</span>
+
+		// Probability calculations use logarithmic scale for greater numerical stability
+<span class="fc" id="L171">		ProbabilityMap&lt;String, Double&gt; probabilities = new ProbabilityMap&lt;String, Double&gt;(){</span>
+
+			@Override
+			public ValueFactory&lt;Double&gt; getValueFactory(){
+<span class="fc" id="L175">				return valueFactory;</span>
+			}
+
+			@Override
+			public void multiply(String key, double probability){
+<span class="fc" id="L180">				Value&lt;Double&gt; value = ensureValue(key);</span>
+
+<span class="fc" id="L182">				value.add(Math.log(probability));</span>
+<span class="fc" id="L183">			}</span>
+		};
+
+<span class="fc" id="L186">		List&lt;BayesInput&gt; bayesInputs = getBayesInputs();</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">		for(BayesInput bayesInput : bayesInputs){</span>
+<span class="fc" id="L188">			FieldName name = bayesInput.getFieldName();</span>
+
+<span class="fc" id="L190">			FieldValue value = context.evaluate(name);</span>
+
+			// &quot;Missing values are ignored&quot;
+<span class="fc bfc" id="L193" title="All 2 branches covered.">			if(value == null){</span>
+<span class="fc" id="L194">				continue;</span>
+			}
+
+<span class="fc" id="L197">			TargetValueStats targetValueStats = getTargetValueStats(bayesInput);</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">			if(targetValueStats != null){</span>
+<span class="fc" id="L199">				calculateContinuousProbabilities(probabilities, targetValueStats, threshold, value);</span>
+
+<span class="fc" id="L201">				continue;</span>
+			}
+
+<span class="fc" id="L204">			DerivedField derivedField = bayesInput.getDerivedField();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">			if(derivedField != null){</span>
+<span class="fc" id="L206">				Expression expression = derivedField.getExpression();</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">				if(expression == null){</span>
+<span class="nc" id="L208">					throw new InvalidFeatureException(derivedField);</span>
+				} // End if
+
+<span class="pc bpc" id="L211" title="1 of 2 branches missed.">				if(expression instanceof Discretize){</span>
+<span class="fc" id="L212">					Discretize discretize = (Discretize)expression;</span>
+
+<span class="fc" id="L214">					value = DiscretizationUtil.discretize(discretize, value);</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">					if(value == null){</span>
+<span class="nc" id="L216">						throw new EvaluationException();</span>
+					}
+
+<span class="fc" id="L219">					value = FieldValueUtil.refine(derivedField, value);</span>
+<span class="fc" id="L220">				} else</span>
+
+				{
+<span class="nc" id="L223">					throw new UnsupportedFeatureException(expression);</span>
+				}
+			}
+
+<span class="fc" id="L227">			Map&lt;String, Double&gt; countSums = fieldCountSums.get(name);</span>
+
+<span class="fc" id="L229">			TargetValueCounts targetValueCounts = getTargetValueCounts(bayesInput, value);</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">			if(targetValueCounts != null){</span>
+<span class="fc" id="L231">				calculateDiscreteProbabilities(probabilities, targetValueCounts, threshold, countSums);</span>
+			}
+<span class="fc" id="L233">		}</span>
+
+<span class="fc" id="L235">		BayesOutput bayesOutput = naiveBayesModel.getBayesOutput();</span>
+
+<span class="fc" id="L237">		calculatePriorProbabilities(probabilities, bayesOutput.getTargetValueCounts());</span>
+
+		// Convert from logarithmic scale to normal scale
+<span class="fc" id="L240">		ValueUtil.normalizeSoftMax(probabilities);</span>
+
+<span class="fc" id="L242">		ProbabilityDistribution result = new ProbabilityDistribution(probabilities.asDoubleMap());</span>
+
+<span class="fc" id="L244">		FieldName targetFieldName = bayesOutput.getFieldName();</span>
+<span class="pc bpc" id="L245" title="2 of 4 branches missed.">		if(targetFieldName == null || !Objects.equals(targetField.getName(), targetFieldName)){</span>
+<span class="nc" id="L246">			throw new InvalidFeatureException(bayesOutput);</span>
+		}
+
+<span class="fc" id="L249">		return TargetUtil.evaluateClassification(targetField, result);</span>
+	}
+
+	private void calculateContinuousProbabilities(ProbabilityMap&lt;String, Double&gt; probabilities, TargetValueStats targetValueStats, double threshold, FieldValue value){
+<span class="fc" id="L253">		Number x = value.asNumber();</span>
+
+<span class="fc bfc" id="L255" title="All 2 branches covered.">		for(TargetValueStat targetValueStat : targetValueStats){</span>
+<span class="fc" id="L256">			String targetCategory = targetValueStat.getValue();</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">			if(targetCategory == null){</span>
+<span class="nc" id="L258">				throw new InvalidFeatureException(targetValueStat);</span>
+			}
+
+<span class="fc" id="L261">			ContinuousDistribution distribution = targetValueStat.getContinuousDistribution();</span>
+
+			// &quot;For Naive Bayes models, continuous distribution types are restricted to Gaussian and Poisson distributions&quot;
+<span class="pc bpc" id="L264" title="3 of 4 branches missed.">			if(!((distribution instanceof GaussianDistribution) || (distribution instanceof PoissonDistribution))){</span>
+<span class="nc" id="L265">				throw new InvalidFeatureException(targetValueStat);</span>
+			} // End if
+
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">			if(DistributionUtil.isNoOp(distribution)){</span>
+<span class="nc" id="L269">				continue;</span>
+			}
+
+<span class="fc" id="L272">			double probability = DistributionUtil.probability(distribution, x);</span>
+
+			// The calculated probability cannot fall below the default probability
+<span class="fc" id="L275">			probability = Math.max(probability, threshold);</span>
+
+<span class="fc" id="L277">			probabilities.multiply(targetCategory, probability);</span>
+<span class="fc" id="L278">		}</span>
+<span class="fc" id="L279">	}</span>
+
+	private void calculateDiscreteProbabilities(ProbabilityMap&lt;String, Double&gt; probabilities, TargetValueCounts targetValueCounts, double threshold, Map&lt;String, Double&gt; countSums){
+
+<span class="fc bfc" id="L283" title="All 2 branches covered.">		for(TargetValueCount targetValueCount : targetValueCounts){</span>
+<span class="fc" id="L284">			String targetCategory = targetValueCount.getValue();</span>
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">			if(targetCategory == null){</span>
+<span class="nc" id="L286">				throw new InvalidFeatureException(targetCategory);</span>
+			}
+
+<span class="fc" id="L289">			double count = targetValueCount.getCount();</span>
+
+			double probability;
+
+			// The calculated probability can fall below the default probability
+			// However, a count of zero represents a special case, which needs adjustment
+<span class="fc bfc" id="L295" title="All 2 branches covered.">			if(VerificationUtil.isZero(count, Precision.EPSILON)){</span>
+<span class="fc" id="L296">				probability = threshold;</span>
+			} else
+
+			{
+<span class="fc" id="L300">				Double countSum = countSums.get(targetCategory);</span>
+
+<span class="fc" id="L302">				probability = count / countSum;</span>
+			}
+
+<span class="fc" id="L305">			probabilities.multiply(targetCategory, probability);</span>
+<span class="fc" id="L306">		}</span>
+<span class="fc" id="L307">	}</span>
+
+	private void calculatePriorProbabilities(ProbabilityMap&lt;String, Double&gt; probabilities, TargetValueCounts targetValueCounts){
+
+<span class="fc bfc" id="L311" title="All 2 branches covered.">		for(TargetValueCount targetValueCount : targetValueCounts){</span>
+<span class="fc" id="L312">			String targetCategory = targetValueCount.getValue();</span>
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">			if(targetCategory == null){</span>
+<span class="nc" id="L314">				throw new InvalidFeatureException(targetValueCount);</span>
+			}
+
+<span class="fc" id="L317">			double probability = targetValueCount.getCount();</span>
+
+<span class="fc" id="L319">			probabilities.multiply(targetCategory, probability);</span>
+<span class="fc" id="L320">		}</span>
+<span class="fc" id="L321">	}</span>
+
+	protected List&lt;BayesInput&gt; getBayesInputs(){
+
+<span class="fc bfc" id="L325" title="All 2 branches covered.">		if(this.bayesInputs == null){</span>
+<span class="fc" id="L326">			this.bayesInputs = getValue(NaiveBayesModelEvaluator.bayesInputCache);</span>
+		}
+
+<span class="fc" id="L329">		return this.bayesInputs;</span>
+	}
+
+	protected Map&lt;FieldName, Map&lt;String, Double&gt;&gt; getFieldCountSums(){
+
+<span class="fc bfc" id="L334" title="All 2 branches covered.">		if(this.fieldCountSums == null){</span>
+<span class="fc" id="L335">			this.fieldCountSums = getValue(NaiveBayesModelEvaluator.fieldCountSumCache);</span>
+		}
+
+<span class="fc" id="L338">		return this.fieldCountSums;</span>
+	}
+
+	static
+	private Map&lt;FieldName, Map&lt;String, Double&gt;&gt; calculateFieldCountSums(NaiveBayesModel naiveBayesModel){
+<span class="fc" id="L343">		Map&lt;FieldName, Map&lt;String, Double&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L345">		List&lt;BayesInput&gt; bayesInputs = CacheUtil.getValue(naiveBayesModel, NaiveBayesModelEvaluator.bayesInputCache);</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">		for(BayesInput bayesInput : bayesInputs){</span>
+<span class="fc" id="L347">			FieldName name = bayesInput.getFieldName();</span>
+
+<span class="fc" id="L349">			Map&lt;String, Double&gt; counts = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L351">			List&lt;PairCounts&gt; pairCounts = bayesInput.getPairCounts();</span>
+<span class="fc bfc" id="L352" title="All 2 branches covered.">			for(PairCounts pairCount : pairCounts){</span>
+<span class="fc" id="L353">				TargetValueCounts targetValueCounts = pairCount.getTargetValueCounts();</span>
+
+<span class="fc bfc" id="L355" title="All 2 branches covered.">				for(TargetValueCount targetValueCount : targetValueCounts){</span>
+<span class="fc" id="L356">					Double count = counts.get(targetValueCount.getValue());</span>
+
+<span class="fc bfc" id="L358" title="All 2 branches covered.">					if(count == null){</span>
+<span class="fc" id="L359">						count = 0d;</span>
+					}
+
+<span class="fc" id="L362">					counts.put(targetValueCount.getValue(), count + targetValueCount.getCount());</span>
+<span class="fc" id="L363">				}</span>
+<span class="fc" id="L364">			}</span>
+
+<span class="fc" id="L366">			result.put(name, counts);</span>
+<span class="fc" id="L367">		}</span>
+
+<span class="fc" id="L369">		return result;</span>
+	}
+
+	static
+	private List&lt;BayesInput&gt; parseBayesInputs(NaiveBayesModel naiveBayesModel){
+<span class="fc" id="L374">		BayesInputs bayesInputs = naiveBayesModel.getBayesInputs();</span>
+
+<span class="fc bfc" id="L376" title="All 2 branches covered.">		if(!bayesInputs.hasExtensions()){</span>
+<span class="fc" id="L377">			return bayesInputs.getBayesInputs();</span>
+		}
+
+<span class="fc" id="L380">		List&lt;BayesInput&gt; result = new ArrayList&lt;&gt;(bayesInputs.getBayesInputs());</span>
+
+		// The support for continuous fields using the TargetValueStats element was officially introduced in PMML schema version 4.2.
+		// However, it is possible to encounter this feature in older PMML schema version documents (most notably, produced by R's &quot;pmml&quot; package),
+		// where the offending BayesInput element is surrounded by an Extension element:
+		// &lt;BayesInputs&gt;
+		//   &lt;BayesInput&gt;
+		//     &lt;PairCounts/&gt;
+		//   &lt;/BayesInput&gt;
+		//   &lt;Extension&gt;
+		//     &lt;BayesInput&gt;
+		//       &lt;TargetValueStats/&gt;
+		//     &lt;/BayesInput&gt;
+		//   &lt;/Extension&gt;
+		// &lt;/BayesInputs&gt;
+<span class="fc" id="L395">		List&lt;Extension&gt; extensions = bayesInputs.getExtensions();</span>
+<span class="fc bfc" id="L396" title="All 2 branches covered.">		for(Extension extension : extensions){</span>
+<span class="fc" id="L397">			List&lt;?&gt; objects = extension.getContent();</span>
+
+<span class="fc bfc" id="L399" title="All 2 branches covered.">			for(Object object : objects){</span>
+
+<span class="fc bfc" id="L401" title="All 2 branches covered.">				if(object instanceof BayesInput){</span>
+<span class="fc" id="L402">					BayesInput bayesInput = (BayesInput)object;</span>
+
+<span class="fc" id="L404">					result.add(bayesInput);</span>
+				}
+<span class="fc" id="L406">			}</span>
+<span class="fc" id="L407">		}</span>
+
+<span class="fc" id="L409">		return result;</span>
+	}
+
+	static
+	private TargetValueStats getTargetValueStats(BayesInput bayesInput){
+<span class="fc" id="L414">		return bayesInput.getTargetValueStats();</span>
+	}
+
+	static
+	private TargetValueCounts getTargetValueCounts(BayesInput bayesInput, FieldValue value){
+
+<span class="pc bpc" id="L420" title="1 of 2 branches missed.">		if(bayesInput instanceof HasParsedValueMapping){</span>
+<span class="nc" id="L421">			HasParsedValueMapping&lt;?&gt; hasParsedValueMapping = (HasParsedValueMapping&lt;?&gt;)bayesInput;</span>
+
+<span class="nc" id="L423">			return (TargetValueCounts)value.getMapping(hasParsedValueMapping);</span>
+		}
+
+<span class="fc" id="L426">		List&lt;PairCounts&gt; pairCounts = bayesInput.getPairCounts();</span>
+<span class="pc bpc" id="L427" title="1 of 2 branches missed.">		for(PairCounts pairCount : pairCounts){</span>
+
+<span class="fc bfc" id="L429" title="All 2 branches covered.">			if(value.equalsString(pairCount.getValue())){</span>
+<span class="fc" id="L430">				TargetValueCounts targetValueCounts = pairCount.getTargetValueCounts();</span>
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">				if(targetValueCounts == null){</span>
+<span class="nc" id="L432">					throw new InvalidFeatureException(pairCount);</span>
+				}
+
+<span class="fc" id="L435">				return targetValueCounts;</span>
+			}
+<span class="fc" id="L437">		}</span>
+
+<span class="nc" id="L439">		return null;</span>
+	}
+
+<span class="fc" id="L442">	private static final LoadingCache&lt;NaiveBayesModel, List&lt;BayesInput&gt;&gt; bayesInputCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;NaiveBayesModel, List&lt;BayesInput&gt;&gt;(){</span>
+
+		@Override
+		public List&lt;BayesInput&gt; load(NaiveBayesModel naiveBayesModel){
+<span class="fc" id="L446">			return ImmutableList.copyOf(parseBayesInputs(naiveBayesModel));</span>
+		}
+	});
+
+<span class="fc" id="L450">	private static final LoadingCache&lt;NaiveBayesModel, Map&lt;FieldName, Map&lt;String, Double&gt;&gt;&gt; fieldCountSumCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;NaiveBayesModel, Map&lt;FieldName, Map&lt;String, Double&gt;&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, Map&lt;String, Double&gt;&gt; load(NaiveBayesModel naiveBayesModel){
+<span class="fc" id="L454">			return ImmutableMap.copyOf(calculateFieldCountSums(naiveBayesModel));</span>
+		}
+	});
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

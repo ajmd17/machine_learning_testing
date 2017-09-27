@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="maven-antrun-" default="main"  >
+<target name="main">
+  <taskdef classname="org.jacoco.ant.ReportTask" name="report">
+    <classpath>
+      <fileset dir="/home/andrew/machine_learning_testing/jpmml-evaluator-master/pmml-evaluator-jacoco/target/jacoco-libs">
+        <include name="**/*.jar"/>
+      </fileset>
+    </classpath>
+  </taskdef>
+  <mkdir dir="/home/andrew/machine_learning_testing/jpmml-evaluator-master/pmml-evaluator-jacoco/target/jacoco-report"/>
+  <property name="rootdir" value="/home/andrew/machine_learning_testing/jpmml-evaluator-master/pmml-evaluator-jacoco/.."/>
+  <report>
+    <executionData>
+      <fileset file="${rootdir}/pmml-evaluator/target/jacoco.exec"/>
+      <fileset file="${rootdir}/pmml-evaluator-extension/target/jacoco.exec"/>
+      <fileset file="${rootdir}/pmml-evaluator-test/target/jacoco.exec"/>
+      <fileset file="${rootdir}/pmml-knime/target/jacoco.exec"/>
+      <fileset file="${rootdir}/pmml-rapidminer/target/jacoco.exec"/>
+      <fileset file="${rootdir}/pmml-rattle/target/jacoco.exec"/>
+      <fileset file="${rootdir}/pmml-sas/target/jacoco.exec"/>
+    </executionData>
+    <structure name="PMML class model evaluator code coverage">
+      <classfiles>
+        <fileset dir="${rootdir}/pmml-evaluator/target/classes"/>
+        <fileset dir="${rootdir}/pmml-evaluator-extension/target/classes"/>
+        <fileset dir="${rootdir}/pmml-evaluator-test/target/classes"/>
+      </classfiles>
+      <sourcefiles>
+        <fileset dir="${rootdir}/pmml-evaluator/src/main/java"/>
+        <fileset dir="${rootdir}/pmml-evaluator/target/generated-sources/apt"/>
+        <fileset dir="${rootdir}/pmml-evaluator-extension/src/main/java"/>
+        <fileset dir="${rootdir}/pmml-evaluator-test/src/main/java"/>
+      </sourcefiles>
+    </structure>
+    <html destdir="/home/andrew/machine_learning_testing/jpmml-evaluator-master/pmml-evaluator-jacoco/target/jacoco-report/html"/>
+    <xml destfile="/home/andrew/machine_learning_testing/jpmml-evaluator-master/pmml-evaluator-jacoco/target/jacoco-report/coverage-report.xml"/>
+    <csv destfile="/home/andrew/machine_learning_testing/jpmml-evaluator-master/pmml-evaluator-jacoco/target/jacoco-report/coverage-report.csv"/>
+  </report>
+</target>
+</project>

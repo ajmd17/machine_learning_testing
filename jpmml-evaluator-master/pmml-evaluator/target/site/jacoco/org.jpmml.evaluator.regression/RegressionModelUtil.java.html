@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegressionModelUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.regression</a> &gt; <span class="el_source">RegressionModelUtil.java</span></div><h1>RegressionModelUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2017 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.regression;
+
+import java.util.Iterator;
+
+import org.dmg.pmml.regression.RegressionModel;
+import org.jpmml.evaluator.EvaluationException;
+import org.jpmml.evaluator.Value;
+import org.jpmml.evaluator.ValueMap;
+import org.jpmml.evaluator.ValueUtil;
+
+public class RegressionModelUtil {
+
+<span class="nc" id="L31">	private RegressionModelUtil(){</span>
+<span class="nc" id="L32">	}</span>
+
+	static
+	public &lt;K, V extends Number&gt; ValueMap&lt;K, V&gt; computeBinomialProbabilities(ValueMap&lt;K, V&gt; values, RegressionModel.NormalizationMethod normalizationMethod){
+
+<span class="pc bpc" id="L37" title="1 of 2 branches missed.">		if(values.size() != 2){</span>
+<span class="nc" id="L38">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L41">		Iterator&lt;Value&lt;V&gt;&gt; valueIt = values.iterator();</span>
+
+<span class="fc" id="L43">		Value&lt;V&gt; firstValue = valueIt.next();</span>
+
+		// The probability of the first category is calculated
+<span class="fc" id="L46">		normalizeBinaryLogisticClassificationResult(firstValue, normalizationMethod);</span>
+
+<span class="fc" id="L48">		Value&lt;V&gt; secondValue = valueIt.next();</span>
+
+		// The probability of the second category is obtained by subtracting the probability of the first category from 1.0
+<span class="fc" id="L51">		secondValue.residual(firstValue);</span>
+
+<span class="fc" id="L53">		return values;</span>
+	}
+
+	static
+	public &lt;K, V extends Number&gt; ValueMap&lt;K, V&gt; computeMultinomialProbabilities(ValueMap&lt;K, V&gt; values, RegressionModel.NormalizationMethod normalizationMethod){
+
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">		if(values.size() &lt; 2){</span>
+<span class="nc" id="L60">			throw new EvaluationException();</span>
+		}
+
+<span class="pc bpc" id="L63" title="4 of 5 branches missed.">		switch(normalizationMethod){</span>
+			case NONE:
+				{
+<span class="fc" id="L66">					Value&lt;V&gt; sum = null;</span>
+
+<span class="fc" id="L68">					Iterator&lt;Value&lt;V&gt;&gt; valueIt = values.iterator();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">					for(int i = 0, max = values.size() - 1; i &lt; max; i++){</span>
+<span class="fc" id="L70">						Value&lt;V&gt; value = valueIt.next();</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">						if(sum == null){</span>
+<span class="fc" id="L73">							sum = value.copy();</span>
+						} else
+
+						{
+<span class="fc" id="L77">							sum.add(value);</span>
+						}
+					}
+
+<span class="fc" id="L81">					Value&lt;V&gt; lastValue = valueIt.next();</span>
+
+<span class="fc" id="L83">					lastValue.residual(sum);</span>
+				}
+<span class="fc" id="L85">				break;</span>
+			// XXX: Non-standard behaviour
+			case LOGIT:
+				{
+<span class="nc bnc" id="L89" title="All 2 branches missed.">					for(Value&lt;V&gt; value : values){</span>
+<span class="nc" id="L90">						value.inverseLogit();</span>
+<span class="nc" id="L91">					}</span>
+				}
+				// Falls through
+			case SIMPLEMAX:
+				{
+<span class="nc" id="L96">					ValueUtil.normalizeSimpleMax(values);</span>
+				}
+<span class="nc" id="L98">				break;</span>
+			case SOFTMAX:
+				{
+<span class="nc" id="L101">					ValueUtil.normalizeSoftMax(values);</span>
+				}
+<span class="nc" id="L103">				break;</span>
+			default:
+<span class="nc" id="L105">				throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L108">		return values;</span>
+	}
+
+	static
+	public &lt;K, V extends Number&gt; ValueMap&lt;K, V&gt; computeOrdinalProbabilities(ValueMap&lt;K, V&gt; values, RegressionModel.NormalizationMethod normalizationMethod){
+
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">		if(values.size() &lt; 2){</span>
+<span class="nc" id="L115">			throw new EvaluationException();</span>
+		}
+
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">		switch(normalizationMethod){</span>
+			case NONE:
+			case LOGIT:
+			case PROBIT:
+			case CLOGLOG:
+			case LOGLOG:
+			case CAUCHIT:
+				{
+<span class="fc" id="L126">					Value&lt;V&gt; sum = null;</span>
+
+<span class="fc" id="L128">					Iterator&lt;Value&lt;V&gt;&gt; valueIt = values.iterator();</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">					for(int i = 0, max = values.size() - 1; i &lt; max; i++){</span>
+<span class="fc" id="L130">						Value&lt;V&gt; value = valueIt.next();</span>
+
+<span class="fc" id="L132">						normalizeBinaryLogisticClassificationResult(value, normalizationMethod);</span>
+
+<span class="fc bfc" id="L134" title="All 2 branches covered.">						if(sum == null){</span>
+<span class="fc" id="L135">							sum = value.copy();</span>
+						} else
+
+						{
+<span class="fc" id="L139">							value.subtract(sum);</span>
+
+<span class="fc" id="L141">							sum.add(value);</span>
+						}
+					}
+
+<span class="fc" id="L145">					Value&lt;V&gt; lastValue = valueIt.next();</span>
+
+<span class="fc" id="L147">					lastValue.residual(sum);</span>
+				}
+<span class="fc" id="L149">				break;</span>
+			default:
+<span class="nc" id="L151">				throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L154">		return values;</span>
+	}
+
+	static
+	public &lt;V extends Number&gt; Value&lt;V&gt; normalizeRegressionResult(Value&lt;V&gt; value, RegressionModel.NormalizationMethod normalizationMethod){
+
+<span class="pc bpc" id="L160" title="7 of 8 branches missed.">		switch(normalizationMethod){</span>
+			case NONE:
+<span class="fc" id="L162">				return value;</span>
+			case SOFTMAX:
+			case LOGIT:
+<span class="nc" id="L165">				return value.inverseLogit();</span>
+			case EXP:
+<span class="nc" id="L167">				return value.exp();</span>
+			case PROBIT:
+<span class="nc" id="L169">				return value.inverseProbit();</span>
+			case CLOGLOG:
+<span class="nc" id="L171">				return value.inverseCloglog();</span>
+			case LOGLOG:
+<span class="nc" id="L173">				return value.inverseLoglog();</span>
+			case CAUCHIT:
+<span class="nc" id="L175">				return value.inverseCauchit();</span>
+			default:
+<span class="nc" id="L177">				throw new EvaluationException();</span>
+		}
+	}
+
+	static
+	public &lt;V extends Number&gt; Value&lt;V&gt; normalizeBinaryLogisticClassificationResult(Value&lt;V&gt; value, RegressionModel.NormalizationMethod normalizationMethod){
+
+<span class="pc bpc" id="L184" title="5 of 7 branches missed.">		switch(normalizationMethod){</span>
+			case NONE:
+<span class="fc" id="L186">				return value.restrict(0d, 1d);</span>
+			case LOGIT:
+<span class="fc" id="L188">				return value.inverseLogit();</span>
+			case PROBIT:
+<span class="nc" id="L190">				return value.inverseProbit();</span>
+			case CLOGLOG:
+<span class="nc" id="L192">				return value.inverseCloglog();</span>
+			case LOGLOG:
+<span class="nc" id="L194">				return value.inverseLoglog();</span>
+			case CAUCHIT:
+<span class="nc" id="L196">				return value.inverseCauchit();</span>
+			default:
+<span class="nc" id="L198">				throw new EvaluationException();</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

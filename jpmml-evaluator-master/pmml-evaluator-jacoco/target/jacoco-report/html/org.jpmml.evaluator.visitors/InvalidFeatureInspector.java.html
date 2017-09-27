@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InvalidFeatureInspector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.visitors</a> &gt; <span class="el_source">InvalidFeatureInspector.java</span></div><h1>InvalidFeatureInspector.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.visitors;
+
+import java.lang.reflect.Field;
+import java.util.Collection;
+import java.util.List;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+
+import org.dmg.pmml.DataDictionary;
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.Visitable;
+import org.dmg.pmml.VisitorAction;
+import org.dmg.pmml.association.AssociationModel;
+import org.dmg.pmml.association.Itemset;
+import org.dmg.pmml.clustering.ClusteringModel;
+import org.dmg.pmml.neural_network.NeuralInputs;
+import org.dmg.pmml.neural_network.NeuralLayer;
+import org.dmg.pmml.neural_network.NeuralNetwork;
+import org.dmg.pmml.neural_network.NeuralOutputs;
+import org.dmg.pmml.support_vector_machine.Coefficients;
+import org.dmg.pmml.support_vector_machine.SupportVectors;
+import org.dmg.pmml.support_vector_machine.VectorDictionary;
+import org.dmg.pmml.support_vector_machine.VectorFields;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.model.ReflectionUtil;
+
+/**
+ * &lt;p&gt;
+ * A Visitor that inspects a class model object for invalid features.
+ * &lt;/p&gt;
+ *
+ * @see FeatureInspector#applyTo(Visitable)
+ * @see InvalidFeatureException
+ */
+<span class="fc" id="L54">public class InvalidFeatureInspector extends FeatureInspector&lt;InvalidFeatureException&gt; {</span>
+
+	@Override
+	public VisitorAction visit(PMMLObject object){
+<span class="fc" id="L58">		List&lt;Field&gt; fields = ReflectionUtil.getInstanceFields(object.getClass());</span>
+
+<span class="fc bfc" id="L60" title="All 2 branches covered.">		for(Field field : fields){</span>
+<span class="fc" id="L61">			Object value = ReflectionUtil.getFieldValue(field, object);</span>
+
+<span class="fc bfc" id="L63" title="All 2 branches covered.">			if(value instanceof List){</span>
+<span class="fc" id="L64">				List&lt;?&gt; collection = (List&lt;?&gt;)value;</span>
+
+				// The getter method may have initialized the field with an empty ArrayList instance
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">				if(collection.size() == 0){</span>
+<span class="fc" id="L68">					value = null;</span>
+				}
+			} // End if
+
+			// The field is set
+<span class="fc bfc" id="L73" title="All 2 branches covered.">			if(value != null){</span>
+<span class="fc" id="L74">				continue;</span>
+			}
+
+<span class="fc" id="L77">			XmlElement element = field.getAnnotation(XmlElement.class);</span>
+<span class="fc bfc" id="L78" title="All 4 branches covered.">			if(element != null &amp;&amp; element.required()){</span>
+<span class="fc" id="L79">				report(new InvalidFeatureException(object, field));</span>
+			}
+
+<span class="fc" id="L82">			XmlAttribute attribute = field.getAnnotation(XmlAttribute.class);</span>
+<span class="fc bfc" id="L83" title="All 4 branches covered.">			if(attribute != null &amp;&amp; attribute.required()){</span>
+<span class="fc" id="L84">				report(new InvalidFeatureException(object, field));</span>
+			}
+<span class="fc" id="L86">		}</span>
+
+<span class="fc" id="L88">		return super.visit(object);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final AssociationModel associationModel){
+<span class="nc" id="L93">		check(new CollectionSize(associationModel){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L97">				return associationModel.getNumberOfItems();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L102">				return associationModel.getItems();</span>
+			}
+
+			@Override
+			public boolean evaluate(int left, int right){
+				// &quot;The numberOfItems attribute may be greater than or equal to the number of items contained in the model&quot;
+<span class="nc bnc" id="L108" title="All 2 branches missed.">				return (left &gt;= right);</span>
+			}
+		});
+
+<span class="nc" id="L112">		check(new CollectionSize(associationModel){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L116">				return associationModel.getNumberOfItemsets();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L121">				return associationModel.getItemsets();</span>
+			}
+		});
+
+<span class="nc" id="L125">		check(new CollectionSize(associationModel){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L129">				return associationModel.getNumberOfRules();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L134">				return associationModel.getAssociationRules();</span>
+			}
+		});
+
+<span class="nc" id="L138">		return super.visit(associationModel);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final ClusteringModel clusteringModel){
+<span class="nc" id="L143">		check(new CollectionSize(clusteringModel){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L147">				return clusteringModel.getNumberOfClusters();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L152">				return clusteringModel.getClusters();</span>
+			}
+		});
+
+<span class="nc" id="L156">		return super.visit(clusteringModel);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final Coefficients coefficients){
+<span class="nc" id="L161">		check(new CollectionSize(coefficients){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L165">				return coefficients.getNumberOfCoefficients();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L170">				return coefficients.getCoefficients();</span>
+			}
+		});
+
+<span class="nc" id="L174">		return super.visit(coefficients);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final DataDictionary dataDictionary){
+<span class="fc" id="L179">		check(new CollectionSize(dataDictionary){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="fc" id="L183">				return dataDictionary.getNumberOfFields();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="fc" id="L188">				return dataDictionary.getDataFields();</span>
+			}
+		});
+
+<span class="fc" id="L192">		return super.visit(dataDictionary);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final Itemset itemset){
+<span class="nc" id="L197">		check(new CollectionSize(itemset){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L201">				return itemset.getNumberOfItems();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L206">				return itemset.getItemRefs();</span>
+			}
+		});
+
+<span class="nc" id="L210">		return super.visit(itemset);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final NeuralInputs neuralInputs){
+<span class="nc" id="L215">		check(new CollectionSize(neuralInputs){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L219">				return neuralInputs.getNumberOfInputs();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L224">				return neuralInputs.getNeuralInputs();</span>
+			}
+		});
+
+<span class="nc" id="L228">		return super.visit(neuralInputs);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final NeuralLayer neuralLayer){
+<span class="nc" id="L233">		check(new CollectionSize(neuralLayer){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L237">				return neuralLayer.getNumberOfNeurons();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L242">				return neuralLayer.getNeurons();</span>
+			}
+		});
+
+<span class="nc" id="L246">		return super.visit(neuralLayer);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final NeuralNetwork neuralNetwork){
+<span class="nc" id="L251">		check(new CollectionSize(neuralNetwork){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L255">				return neuralNetwork.getNumberOfLayers();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L260">				return neuralNetwork.getNeuralLayers();</span>
+			}
+		});
+
+<span class="nc" id="L264">		return super.visit(neuralNetwork);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final NeuralOutputs neuralOutputs){
+<span class="nc" id="L269">		check(new CollectionSize(neuralOutputs){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L273">				return neuralOutputs.getNumberOfOutputs();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L278">				return neuralOutputs.getNeuralOutputs();</span>
+			}
+		});
+
+<span class="nc" id="L282">		return super.visit(neuralOutputs);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final SupportVectors supportVectors){
+<span class="nc" id="L287">		check(new CollectionSize(supportVectors){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L291">				return supportVectors.getNumberOfSupportVectors();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L296">				return supportVectors.getSupportVectors();</span>
+			}
+		});
+
+<span class="nc" id="L300">		return super.visit(supportVectors);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final VectorDictionary vectorDictionary){
+<span class="nc" id="L305">		check(new CollectionSize(vectorDictionary){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L309">				return vectorDictionary.getNumberOfVectors();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L314">				return vectorDictionary.getVectorInstances();</span>
+			}
+		});
+
+<span class="nc" id="L318">		return super.visit(vectorDictionary);</span>
+	}
+
+	@Override
+	public VisitorAction visit(final VectorFields vectorFields){
+<span class="nc" id="L323">		check(new CollectionSize(vectorFields){</span>
+
+			@Override
+			public Integer getSize(){
+<span class="nc" id="L327">				return vectorFields.getNumberOfFields();</span>
+			}
+
+			@Override
+			public Collection&lt;?&gt; getCollection(){
+<span class="nc" id="L332">				return vectorFields.getContent();</span>
+			}
+		});
+
+<span class="nc" id="L336">		return super.visit(vectorFields);</span>
+	}
+
+	private void check(Condition condition){
+<span class="fc" id="L340">		boolean result = condition.evaluate();</span>
+
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">		if(!result){</span>
+<span class="fc" id="L343">			PMMLObject object = condition.getObject();</span>
+
+<span class="pc bpc" id="L345" title="1 of 2 branches missed.">			if(object != null){</span>
+<span class="fc" id="L346">				report(new InvalidFeatureException(object));</span>
+			} else
+
+			{
+<span class="nc" id="L350">				report(new InvalidFeatureException());</span>
+			}
+		}
+<span class="fc" id="L353">	}</span>
+
+	abstract
+	private class Condition {
+
+<span class="fc" id="L358">		private PMMLObject object = null;</span>
+
+
+<span class="fc" id="L361">		public Condition(PMMLObject object){</span>
+<span class="fc" id="L362">			setObject(object);</span>
+<span class="fc" id="L363">		}</span>
+
+		abstract
+		public boolean evaluate();
+
+		public PMMLObject getObject(){
+<span class="fc" id="L369">			return this.object;</span>
+		}
+
+		private void setObject(PMMLObject object){
+<span class="fc" id="L373">			this.object = object;</span>
+<span class="fc" id="L374">		}</span>
+	}
+
+	abstract
+	private class CollectionSize extends Condition {
+
+<span class="fc" id="L380">		public CollectionSize(PMMLObject object){</span>
+<span class="fc" id="L381">			super(object);</span>
+<span class="fc" id="L382">		}</span>
+
+		abstract
+		public Integer getSize();
+
+		abstract
+		public Collection&lt;?&gt; getCollection();
+
+		@Override
+		public boolean evaluate(){
+<span class="fc" id="L392">			Integer size = getSize();</span>
+
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">			if(size != null){</span>
+<span class="fc" id="L395">				Collection&lt;?&gt; collection = getCollection();</span>
+
+<span class="fc" id="L397">				return evaluate(size.intValue(), collection.size());</span>
+			}
+
+<span class="nc" id="L400">			return true;</span>
+		}
+
+		public boolean evaluate(int left, int right){
+<span class="pc bpc" id="L404" title="1 of 2 branches missed.">			return (left == right);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PredicateUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">PredicateUtil.java</span></div><h1>PredicateUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2011 University of Tartu
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.jpmml.evaluator;
+
+import java.util.List;
+
+import org.dmg.pmml.CompoundPredicate;
+import org.dmg.pmml.False;
+import org.dmg.pmml.Predicate;
+import org.dmg.pmml.SimplePredicate;
+import org.dmg.pmml.SimpleSetPredicate;
+import org.dmg.pmml.True;
+
+public class PredicateUtil {
+
+<span class="nc" id="L41">	private PredicateUtil(){</span>
+<span class="nc" id="L42">	}</span>
+
+	/**
+	 * @return The {@link Boolean} value of the predicate, or &lt;code&gt;null&lt;/code&gt; if the value is unknown.
+	 */
+	static
+	public Boolean evaluate(Predicate predicate, EvaluationContext context){
+
+		try {
+<span class="fc" id="L51">			return evaluatePredicate(predicate, context);</span>
+<span class="nc" id="L52">		} catch(PMMLException pe){</span>
+<span class="nc" id="L53">			pe.ensureContext(predicate);</span>
+
+<span class="nc" id="L55">			throw pe;</span>
+		}
+	}
+
+	static
+	Boolean evaluatePredicate(Predicate predicate, EvaluationContext context){
+
+<span class="fc bfc" id="L62" title="All 2 branches covered.">		if(predicate instanceof SimplePredicate){</span>
+<span class="fc" id="L63">			return evaluateSimplePredicate((SimplePredicate)predicate, context);</span>
+		} else
+
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if(predicate instanceof SimpleSetPredicate){</span>
+<span class="fc" id="L67">			return evaluateSimpleSetPredicate((SimpleSetPredicate)predicate, context);</span>
+		} else
+
+<span class="fc bfc" id="L70" title="All 2 branches covered.">		if(predicate instanceof CompoundPredicate){</span>
+<span class="fc" id="L71">			return evaluateCompoundPredicate((CompoundPredicate)predicate, context);</span>
+		} else
+
+<span class="fc bfc" id="L74" title="All 2 branches covered.">		if(predicate instanceof True){</span>
+<span class="fc" id="L75">			return evaluateTrue((True)predicate);</span>
+		} else
+
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">		if(predicate instanceof False){</span>
+<span class="fc" id="L79">			return evaluateFalse((False)predicate);</span>
+		} // End if
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">		if(predicate instanceof JavaPredicate){</span>
+<span class="nc" id="L83">			return evaluateJavaPredicate((JavaPredicate)predicate, context);</span>
+		}
+
+<span class="nc" id="L86">		throw new UnsupportedFeatureException(predicate);</span>
+	}
+
+	static
+	public Boolean evaluateSimplePredicate(SimplePredicate simplePredicate, EvaluationContext context){
+<span class="fc" id="L91">		SimplePredicate.Operator operator = simplePredicate.getOperator();</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">		if(operator == null){</span>
+<span class="nc" id="L93">			throw new InvalidFeatureException(simplePredicate);</span>
+		}
+
+<span class="fc" id="L96">		String stringValue = simplePredicate.getValue();</span>
+
+<span class="pc bfc" id="L98" title="All 2 branches covered.">		switch(operator){</span>
+			case IS_MISSING:
+			case IS_NOT_MISSING:
+				// &quot;If the operator is isMissing or isNotMissing, then the value attribute must not appear&quot;
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">				if(stringValue != null){</span>
+<span class="nc" id="L103">					throw new InvalidFeatureException(simplePredicate);</span>
+				}
+				break;
+			default:
+				// &quot;With all other operators, however, the value attribute is required&quot;
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">				if(stringValue == null){</span>
+<span class="nc" id="L109">					throw new InvalidFeatureException(simplePredicate);</span>
+				}
+				break;
+		}
+
+<span class="fc" id="L114">		FieldValue value = context.evaluate(simplePredicate.getField());</span>
+
+<span class="fc bfc" id="L116" title="All 3 branches covered.">		switch(operator){</span>
+			case IS_MISSING:
+<span class="fc bfc" id="L118" title="All 2 branches covered.">				return Boolean.valueOf(value == null);</span>
+			case IS_NOT_MISSING:
+<span class="fc bfc" id="L120" title="All 2 branches covered.">				return Boolean.valueOf(value != null);</span>
+			default:
+				break;
+		}
+
+		// &quot;A SimplePredicate evaluates to unknwon if the input value is missing&quot;
+<span class="fc bfc" id="L126" title="All 2 branches covered.">		if(value == null){</span>
+<span class="fc" id="L127">			return null;</span>
+		}
+
+<span class="fc bfc" id="L130" title="All 3 branches covered.">		switch(operator){</span>
+			case EQUAL:
+<span class="fc" id="L132">				return value.equals(simplePredicate);</span>
+			case NOT_EQUAL:
+<span class="fc bfc" id="L134" title="All 2 branches covered.">				return !value.equals(simplePredicate);</span>
+			default:
+				break;
+		}
+
+<span class="fc" id="L139">		int order = value.compareTo(simplePredicate);</span>
+
+<span class="pc bpc" id="L141" title="1 of 5 branches missed.">		switch(operator){</span>
+			case LESS_THAN:
+<span class="fc bfc" id="L143" title="All 2 branches covered.">				return Boolean.valueOf(order &lt; 0);</span>
+			case LESS_OR_EQUAL:
+<span class="fc bfc" id="L145" title="All 2 branches covered.">				return Boolean.valueOf(order &lt;= 0);</span>
+			case GREATER_OR_EQUAL:
+<span class="fc bfc" id="L147" title="All 2 branches covered.">				return Boolean.valueOf(order &gt;= 0);</span>
+			case GREATER_THAN:
+<span class="fc bfc" id="L149" title="All 2 branches covered.">				return Boolean.valueOf(order &gt; 0);</span>
+			default:
+<span class="nc" id="L151">				throw new UnsupportedFeatureException(simplePredicate, operator);</span>
+		}
+	}
+
+	static
+	public Boolean evaluateSimpleSetPredicate(SimpleSetPredicate simpleSetPredicate, EvaluationContext context){
+<span class="fc" id="L157">		SimpleSetPredicate.BooleanOperator booleanOperator = simpleSetPredicate.getBooleanOperator();</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">		if(booleanOperator == null){</span>
+<span class="nc" id="L159">			throw new InvalidFeatureException(simpleSetPredicate);</span>
+		}
+
+<span class="fc" id="L162">		FieldValue value = context.evaluate(simpleSetPredicate.getField());</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">		if(value == null){</span>
+<span class="fc" id="L164">			return null;</span>
+		}
+
+<span class="pc bpc" id="L167" title="1 of 3 branches missed.">		switch(booleanOperator){</span>
+			case IS_IN:
+<span class="fc" id="L169">				return value.isIn(simpleSetPredicate);</span>
+			case IS_NOT_IN:
+<span class="fc bfc" id="L171" title="All 2 branches covered.">				return !value.isIn(simpleSetPredicate);</span>
+			default:
+<span class="nc" id="L173">				throw new UnsupportedFeatureException(simpleSetPredicate, booleanOperator);</span>
+		}
+	}
+
+	static
+	public Boolean evaluateCompoundPredicate(CompoundPredicate compoundPredicate, EvaluationContext context){
+<span class="fc" id="L179">		CompoundPredicateResult result = evaluateCompoundPredicateInternal(compoundPredicate, context);</span>
+
+<span class="fc" id="L181">		return result.getResult();</span>
+	}
+
+	static
+	public CompoundPredicateResult evaluateCompoundPredicateInternal(CompoundPredicate compoundPredicate, EvaluationContext context){
+<span class="fc" id="L186">		CompoundPredicate.BooleanOperator booleanOperator = compoundPredicate.getBooleanOperator();</span>
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">		if(booleanOperator == null){</span>
+<span class="nc" id="L188">			throw new InvalidFeatureException(compoundPredicate);</span>
+		}
+
+<span class="fc" id="L191">		List&lt;Predicate&gt; predicates = compoundPredicate.getPredicates();</span>
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">		if(predicates.size() &lt; 2){</span>
+<span class="nc" id="L193">			throw new InvalidFeatureException(compoundPredicate);</span>
+		}
+
+<span class="fc" id="L196">		Predicate predicate = predicates.get(0);</span>
+
+<span class="fc" id="L198">		Boolean result = evaluate(predicate, context);</span>
+
+<span class="pc bpc" id="L200" title="1 of 3 branches missed.">		switch(booleanOperator){</span>
+			case AND:
+			case OR:
+			case XOR:
+<span class="fc" id="L204">				break;</span>
+			case SURROGATE:
+<span class="fc bfc" id="L206" title="All 2 branches covered.">				if(result != null){</span>
+<span class="fc" id="L207">					return new CompoundPredicateResult(result, false);</span>
+				}
+				break;
+			default:
+<span class="nc" id="L211">				throw new UnsupportedFeatureException(compoundPredicate, booleanOperator);</span>
+		}
+
+<span class="fc bfc" id="L214" title="All 2 branches covered.">		for(int i = 1, max = predicates.size(); i &lt; max; i++){</span>
+<span class="fc" id="L215">			predicate = predicates.get(i);</span>
+
+<span class="fc" id="L217">			Boolean value = evaluate(predicate, context);</span>
+
+<span class="pc bpc" id="L219" title="1 of 5 branches missed.">			switch(booleanOperator){</span>
+				case AND:
+<span class="fc" id="L221">					result = PredicateUtil.binaryAnd(result, value);</span>
+<span class="fc" id="L222">					break;</span>
+				case OR:
+<span class="fc" id="L224">					result = PredicateUtil.binaryOr(result, value);</span>
+<span class="fc" id="L225">					break;</span>
+				case XOR:
+<span class="fc" id="L227">					result = PredicateUtil.binaryXor(result, value);</span>
+<span class="fc" id="L228">					break;</span>
+				case SURROGATE:
+<span class="fc bfc" id="L230" title="All 2 branches covered.">					if(value != null){</span>
+<span class="fc" id="L231">						return new CompoundPredicateResult(value, true);</span>
+					}
+					break;
+				default:
+<span class="nc" id="L235">					throw new UnsupportedFeatureException(compoundPredicate, booleanOperator);</span>
+			}
+		}
+
+<span class="fc" id="L239">		return new CompoundPredicateResult(result, false);</span>
+	}
+
+	static
+	public Boolean evaluateTrue(True truePredicate){
+<span class="fc" id="L244">		return Boolean.TRUE;</span>
+	}
+
+	static
+	public Boolean evaluateFalse(False falsePredicate){
+<span class="fc" id="L249">		return Boolean.FALSE;</span>
+	}
+
+	static
+	public Boolean evaluateJavaPredicate(JavaPredicate javaPredicate, EvaluationContext context){
+<span class="nc" id="L254">		Boolean result = javaPredicate.evaluate(context);</span>
+
+<span class="nc" id="L256">		return result;</span>
+	}
+
+	static
+	public Boolean binaryAnd(Boolean left, Boolean right){
+
+<span class="fc bfc" id="L262" title="All 2 branches covered.">		if(left == null){</span>
+
+<span class="fc bfc" id="L264" title="All 4 branches covered.">			if(right == null || right.booleanValue()){</span>
+<span class="fc" id="L265">				return null;</span>
+			}
+
+<span class="fc" id="L268">			return Boolean.FALSE;</span>
+		} else
+
+<span class="fc bfc" id="L271" title="All 2 branches covered.">		if(right == null){</span>
+
+<span class="pc bpc" id="L273" title="1 of 4 branches missed.">			if(left == null || left.booleanValue()){</span>
+<span class="fc" id="L274">				return null;</span>
+			}
+
+<span class="fc" id="L277">			return Boolean.FALSE;</span>
+		} else
+
+		{
+<span class="fc" id="L281">			return Boolean.valueOf(left.booleanValue() &amp; right.booleanValue());</span>
+		}
+	}
+
+	static
+	public Boolean binaryOr(Boolean left, Boolean right){
+
+<span class="fc bfc" id="L288" title="All 4 branches covered.">		if(left != null &amp;&amp; left.booleanValue()){</span>
+<span class="fc" id="L289">			return Boolean.TRUE;</span>
+		} else
+
+<span class="fc bfc" id="L292" title="All 4 branches covered.">		if(right != null &amp;&amp; right.booleanValue()){</span>
+<span class="fc" id="L293">			return Boolean.TRUE;</span>
+		} else
+
+<span class="fc bfc" id="L296" title="All 4 branches covered.">		if(left == null || right == null){</span>
+<span class="fc" id="L297">			return null;</span>
+		} else
+
+		{
+<span class="fc" id="L301">			return Boolean.valueOf(left.booleanValue() | right.booleanValue());</span>
+		}
+	}
+
+	static
+	public Boolean binaryXor(Boolean left, Boolean right){
+
+<span class="fc bfc" id="L308" title="All 4 branches covered.">		if(left == null || right == null){</span>
+<span class="fc" id="L309">			return null;</span>
+		} else
+
+		{
+<span class="fc" id="L313">			return Boolean.valueOf(left.booleanValue() ^ right.booleanValue());</span>
+		}
+	}
+
+	static
+	public class CompoundPredicateResult {
+
+<span class="fc" id="L320">		private Boolean result = null;</span>
+
+<span class="fc" id="L322">		private boolean alternative = false;</span>
+
+
+<span class="fc" id="L325">		private CompoundPredicateResult(Boolean result, boolean alternative){</span>
+<span class="fc" id="L326">			setResult(result);</span>
+<span class="fc" id="L327">			setAlternative(alternative);</span>
+<span class="fc" id="L328">		}</span>
+
+		public Boolean getResult(){
+<span class="fc" id="L331">			return this.result;</span>
+		}
+
+		private void setResult(Boolean result){
+<span class="fc" id="L335">			this.result = result;</span>
+<span class="fc" id="L336">		}</span>
+
+		public boolean isAlternative(){
+<span class="fc" id="L339">			return this.alternative;</span>
+		}
+
+		private void setAlternative(boolean alternative){
+<span class="fc" id="L343">			this.alternative = alternative;</span>
+<span class="fc" id="L344">		}</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

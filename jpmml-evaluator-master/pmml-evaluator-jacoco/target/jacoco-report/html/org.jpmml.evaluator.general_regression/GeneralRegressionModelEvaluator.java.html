@@ -1,0 +1,1309 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GeneralRegressionModelEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.general_regression</a> &gt; <span class="el_source">GeneralRegressionModelEvaluator.java</span></div><h1>GeneralRegressionModelEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.general_regression;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.Matrix;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.general_regression.BaseCumHazardTables;
+import org.dmg.pmml.general_regression.BaselineCell;
+import org.dmg.pmml.general_regression.BaselineStratum;
+import org.dmg.pmml.general_regression.Categories;
+import org.dmg.pmml.general_regression.Category;
+import org.dmg.pmml.general_regression.GeneralRegressionModel;
+import org.dmg.pmml.general_regression.PCell;
+import org.dmg.pmml.general_regression.PPCell;
+import org.dmg.pmml.general_regression.PPMatrix;
+import org.dmg.pmml.general_regression.ParamMatrix;
+import org.dmg.pmml.general_regression.Parameter;
+import org.dmg.pmml.general_regression.ParameterCell;
+import org.dmg.pmml.general_regression.ParameterList;
+import org.dmg.pmml.general_regression.Predictor;
+import org.dmg.pmml.general_regression.PredictorList;
+import org.jpmml.evaluator.CacheUtil;
+import org.jpmml.evaluator.Classification;
+import org.jpmml.evaluator.EvaluationContext;
+import org.jpmml.evaluator.EvaluationException;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.FieldValueUtil;
+import org.jpmml.evaluator.HasParsedValueMapping;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.InvalidResultException;
+import org.jpmml.evaluator.MatrixUtil;
+import org.jpmml.evaluator.MissingValueException;
+import org.jpmml.evaluator.ModelEvaluationContext;
+import org.jpmml.evaluator.ModelEvaluator;
+import org.jpmml.evaluator.OutputUtil;
+import org.jpmml.evaluator.ProbabilityDistribution;
+import org.jpmml.evaluator.TargetField;
+import org.jpmml.evaluator.TargetUtil;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.evaluator.Value;
+import org.jpmml.evaluator.ValueFactory;
+import org.jpmml.evaluator.ValueMap;
+import org.jpmml.evaluator.ValueUtil;
+
+public class GeneralRegressionModelEvaluator extends ModelEvaluator&lt;GeneralRegressionModel&gt; {
+
+<span class="fc" id="L92">	transient</span>
+	private BiMap&lt;String, Parameter&gt; parameterRegistry = null;
+
+<span class="fc" id="L95">	transient</span>
+	private Map&lt;String, Map&lt;String, Row&gt;&gt; ppMatrixMap = null;
+
+<span class="fc" id="L98">	transient</span>
+	private Map&lt;String, List&lt;PCell&gt;&gt; paramMatrixMap = null;
+
+<span class="fc" id="L101">	transient</span>
+	private List&lt;String&gt; targetCategories = null;
+
+
+	public GeneralRegressionModelEvaluator(PMML pmml){
+<span class="nc" id="L106">		this(pmml, selectModel(pmml, GeneralRegressionModel.class));</span>
+<span class="nc" id="L107">	}</span>
+
+	public GeneralRegressionModelEvaluator(PMML pmml, GeneralRegressionModel generalRegressionModel){
+<span class="fc" id="L110">		super(pmml, generalRegressionModel);</span>
+
+<span class="fc" id="L112">		ParameterList parameterList = generalRegressionModel.getParameterList();</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">		if(parameterList == null){</span>
+<span class="nc" id="L114">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+
+<span class="fc" id="L117">		PPMatrix ppMatrix = generalRegressionModel.getPPMatrix();</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">		if(ppMatrix == null){</span>
+<span class="nc" id="L119">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+
+<span class="fc" id="L122">		ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">		if(paramMatrix == null){</span>
+<span class="nc" id="L124">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+<span class="fc" id="L126">	}</span>
+
+	@Override
+	public String getSummary(){
+<span class="nc" id="L130">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="nc" id="L132">		GeneralRegressionModel.ModelType modelType = generalRegressionModel.getModelType();</span>
+<span class="pc bnc" id="L133" title="All 2 branches missed.">		switch(modelType){</span>
+			case COX_REGRESSION:
+<span class="nc" id="L135">				return &quot;Cox regression&quot;;</span>
+			default:
+<span class="nc" id="L137">				return &quot;General regression&quot;;</span>
+		}
+	}
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context){
+<span class="fc" id="L143">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">		if(!generalRegressionModel.isScorable()){</span>
+<span class="nc" id="L145">			throw new InvalidResultException(generalRegressionModel);</span>
+		}
+
+		ValueFactory&lt;?&gt; valueFactory;
+
+<span class="fc" id="L150">		MathContext mathContext = generalRegressionModel.getMathContext();</span>
+<span class="pc bpc" id="L151" title="1 of 2 branches missed.">		switch(mathContext){</span>
+			case FLOAT:
+			case DOUBLE:
+<span class="fc" id="L154">				valueFactory = getValueFactory();</span>
+<span class="fc" id="L155">				break;</span>
+			default:
+<span class="nc" id="L157">				throw new UnsupportedFeatureException(generalRegressionModel, mathContext);</span>
+		}
+
+		Map&lt;FieldName, ?&gt; predictions;
+
+<span class="fc" id="L162">		MiningFunction miningFunction = generalRegressionModel.getMiningFunction();</span>
+<span class="pc bpc" id="L163" title="1 of 3 branches missed.">		switch(miningFunction){</span>
+			case REGRESSION:
+<span class="fc" id="L165">				predictions = evaluateRegression(valueFactory, context);</span>
+<span class="fc" id="L166">				break;</span>
+			case CLASSIFICATION:
+<span class="fc" id="L168">				predictions = evaluateClassification(valueFactory, context);</span>
+<span class="fc" id="L169">				break;</span>
+			default:
+<span class="nc" id="L171">				throw new UnsupportedFeatureException(generalRegressionModel, miningFunction);</span>
+		}
+
+<span class="fc" id="L174">		return OutputUtil.evaluate(predictions, context);</span>
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, ?&gt; evaluateRegression(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L178">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L180">		GeneralRegressionModel.ModelType modelType = generalRegressionModel.getModelType();</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		switch(modelType){</span>
+			case COX_REGRESSION:
+<span class="fc" id="L183">				return evaluateCoxRegression(valueFactory, context);</span>
+			default:
+<span class="fc" id="L185">				return evaluateGeneralRegression(valueFactory, context);</span>
+		}
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, V&gt; evaluateCoxRegression(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L190">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L192">		BaseCumHazardTables baseCumHazardTables = generalRegressionModel.getBaseCumHazardTables();</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">		if(baseCumHazardTables == null){</span>
+<span class="nc" id="L194">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+
+		List&lt;BaselineCell&gt; baselineCells;
+
+		Double maxTime;
+
+<span class="fc" id="L201">		FieldName baselineStrataVariable = generalRegressionModel.getBaselineStrataVariable();</span>
+
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">		if(baselineStrataVariable != null){</span>
+<span class="fc" id="L204">			FieldValue value = getVariable(baselineStrataVariable, context);</span>
+
+<span class="fc" id="L206">			BaselineStratum baselineStratum = getBaselineStratum(baseCumHazardTables, value);</span>
+
+			// &quot;If the value does not have a corresponding BaselineStratum element, then the result is a missing value&quot;
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">			if(baselineStratum == null){</span>
+<span class="nc" id="L210">				return null;</span>
+			}
+
+<span class="fc" id="L213">			baselineCells = baselineStratum.getBaselineCells();</span>
+
+<span class="fc" id="L215">			maxTime = baselineStratum.getMaxTime();</span>
+<span class="fc" id="L216">		} else</span>
+
+		{
+<span class="nc" id="L219">			baselineCells = baseCumHazardTables.getBaselineCells();</span>
+
+<span class="nc" id="L221">			maxTime = baseCumHazardTables.getMaxTime();</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">			if(maxTime == null){</span>
+<span class="nc" id="L223">				throw new InvalidFeatureException(baseCumHazardTables);</span>
+			}
+		}
+
+<span class="fc" id="L227">		Comparator&lt;BaselineCell&gt; comparator = new Comparator&lt;BaselineCell&gt;(){</span>
+
+			@Override
+			public int compare(BaselineCell left, BaselineCell right){
+<span class="fc" id="L231">				return Double.compare(left.getTime(), right.getTime());</span>
+			}
+		};
+
+<span class="fc" id="L235">		Ordering&lt;BaselineCell&gt; ordering = Ordering.from(comparator);</span>
+
+		double baselineCumHazard;
+
+<span class="fc" id="L239">		FieldName startTimeVariable = generalRegressionModel.getStartTimeVariable();</span>
+<span class="fc" id="L240">		FieldName endTimeVariable = generalRegressionModel.getEndTimeVariable();</span>
+
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">		if(endTimeVariable != null){</span>
+<span class="fc" id="L243">			BaselineCell minBaselineCell = ordering.min(baselineCells);</span>
+
+<span class="fc" id="L245">			Double minTime = minBaselineCell.getTime();</span>
+
+			final
+<span class="fc" id="L248">			FieldValue value = getVariable(endTimeVariable, context);</span>
+
+<span class="fc" id="L250">			FieldValue minTimeValue = FieldValueUtil.create(DataType.DOUBLE, OpType.CONTINUOUS, minTime);</span>
+
+			// &quot;If the value is less than the minimum time, then cumulative hazard is 0 and predicted survival is 1&quot;
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">			if(value.compareToValue(minTimeValue) &lt; 0){</span>
+<span class="nc" id="L254">				Value&lt;V&gt; cumHazard = valueFactory.newValue(0d);</span>
+
+<span class="nc" id="L256">				return Collections.singletonMap(getTargetFieldName(), cumHazard.getValue());</span>
+			}
+
+<span class="fc" id="L259">			FieldValue maxTimeValue = FieldValueUtil.create(DataType.DOUBLE, OpType.CONTINUOUS, maxTime);</span>
+
+			// &quot;If the value is greater than the maximum time, then the result is a missing value&quot;
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">			if(value.compareToValue(maxTimeValue) &gt; 0){</span>
+<span class="nc" id="L263">				return null;</span>
+			}
+
+<span class="fc" id="L266">			Predicate&lt;BaselineCell&gt; predicate = new Predicate&lt;BaselineCell&gt;(){</span>
+
+<span class="fc" id="L268">				private double time = (value.asNumber()).doubleValue();</span>
+
+
+				@Override
+				public boolean apply(BaselineCell baselineCell){
+<span class="fc bfc" id="L273" title="All 2 branches covered.">					return (baselineCell.getTime() &lt;= this.time);</span>
+				}
+			};
+
+			// &quot;Select the BaselineCell element that has the largest time attribute value that is not greater than the value&quot;
+<span class="fc" id="L278">			BaselineCell baselineCell = ordering.max(Iterables.filter(baselineCells, predicate));</span>
+
+<span class="fc" id="L280">			baselineCumHazard = baselineCell.getCumHazard();</span>
+<span class="fc" id="L281">		} else</span>
+
+		{
+<span class="nc" id="L284">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+
+<span class="fc" id="L287">		Value&lt;V&gt; r = computeDotProduct(valueFactory, context);</span>
+
+<span class="fc" id="L289">		Value&lt;V&gt; s = computeReferencePoint(valueFactory);</span>
+
+<span class="pc bpc" id="L291" title="2 of 4 branches missed.">		if(r == null || s == null){</span>
+<span class="nc" id="L292">			return null;</span>
+		}
+
+<span class="fc" id="L295">		Value&lt;V&gt; cumHazard = ((r.subtract(s)).exp()).multiply(baselineCumHazard);</span>
+
+<span class="fc" id="L297">		return Collections.singletonMap(getTargetFieldName(), cumHazard.getValue());</span>
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, ?&gt; evaluateGeneralRegression(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L301">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L303">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L305">		Value&lt;V&gt; result = computeDotProduct(valueFactory, context);</span>
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">		if(result == null){</span>
+<span class="nc" id="L307">			return TargetUtil.evaluateRegressionDefault(valueFactory, targetField);</span>
+		}
+
+<span class="fc" id="L310">		GeneralRegressionModel.ModelType modelType = generalRegressionModel.getModelType();</span>
+<span class="pc bpc" id="L311" title="1 of 3 branches missed.">		switch(modelType){</span>
+			case REGRESSION:
+			case GENERAL_LINEAR:
+<span class="fc" id="L314">				break;</span>
+			case GENERALIZED_LINEAR:
+<span class="fc" id="L316">				result = computeLink(result, context);</span>
+<span class="fc" id="L317">				break;</span>
+			default:
+<span class="nc" id="L319">				throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+		}
+
+<span class="fc" id="L322">		return TargetUtil.evaluateRegression(targetField, result);</span>
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, ? extends Classification&gt; evaluateClassification(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L326">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L328">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L330">		List&lt;String&gt; targetCategories = getTargetCategories();</span>
+
+<span class="fc" id="L332">		Map&lt;String, Map&lt;String, Row&gt;&gt; ppMatrixMap = getPPMatrixMap();</span>
+
+<span class="fc" id="L334">		Map&lt;String, List&lt;PCell&gt;&gt; paramMatrixMap = getParamMatrixMap();</span>
+
+<span class="fc" id="L336">		GeneralRegressionModel.ModelType modelType = generalRegressionModel.getModelType();</span>
+
+<span class="fc" id="L338">		ValueMap&lt;String, V&gt; values = new ValueMap&lt;&gt;(2 * targetCategories.size());</span>
+
+<span class="fc" id="L340">		Value&lt;V&gt; previousValue = null;</span>
+
+<span class="fc bfc" id="L342" title="All 2 branches covered.">		for(int i = 0; i &lt; targetCategories.size(); i++){</span>
+<span class="fc" id="L343">			String targetCategory = targetCategories.get(i);</span>
+
+			Value&lt;V&gt; value;
+
+			// Categories from the first category to the second-to-last category
+<span class="fc bfc" id="L348" title="All 2 branches covered.">			if(i &lt; (targetCategories.size() - 1)){</span>
+				Map&lt;String, Row&gt; parameterPredictorRows;
+
+<span class="fc bfc" id="L351" title="All 2 branches covered.">				if(ppMatrixMap.isEmpty()){</span>
+<span class="fc" id="L352">					parameterPredictorRows = Collections.emptyMap();</span>
+				} else
+
+				{
+<span class="fc" id="L356">					parameterPredictorRows = ppMatrixMap.get(targetCategory);</span>
+<span class="pc bpc" id="L357" title="1 of 2 branches missed.">					if(parameterPredictorRows == null){</span>
+<span class="fc" id="L358">						parameterPredictorRows = ppMatrixMap.get(null);</span>
+					} // End if
+
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">					if(parameterPredictorRows == null){</span>
+<span class="nc" id="L362">						PPMatrix ppMatrix = generalRegressionModel.getPPMatrix();</span>
+
+<span class="nc" id="L364">						throw new InvalidFeatureException(ppMatrix);</span>
+					}
+				}
+
+				Iterable&lt;PCell&gt; parameterCells;
+
+<span class="pc bpc" id="L370" title="2 of 3 branches missed.">				switch(modelType){</span>
+					case GENERALIZED_LINEAR:
+					case MULTINOMIAL_LOGISTIC:
+						// PCell elements must have non-null targetCategory attribute in case of multinomial categories, but can do without in case of binomial categories
+<span class="fc" id="L374">						parameterCells = paramMatrixMap.get(targetCategory);</span>
+<span class="pc bpc" id="L375" title="3 of 4 branches missed.">						if(parameterCells == null &amp;&amp; targetCategories.size() == 2){</span>
+<span class="nc" id="L376">							parameterCells = paramMatrixMap.get(null);</span>
+						} // End if
+
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">						if(parameterCells == null){</span>
+<span class="nc" id="L380">							ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="nc" id="L382">							throw new InvalidFeatureException(paramMatrix);</span>
+						}
+						break;
+					case ORDINAL_MULTINOMIAL:
+						// &quot;ParamMatrix specifies different values for the intercept parameter: one for each target category except one&quot;
+<span class="nc" id="L387">						List&lt;PCell&gt; interceptCells = paramMatrixMap.get(targetCategory);</span>
+<span class="nc bnc" id="L388" title="All 4 branches missed.">						if(interceptCells == null || interceptCells.size() != 1){</span>
+<span class="nc" id="L389">							ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="nc" id="L391">							throw new InvalidFeatureException(paramMatrix);</span>
+						}
+
+						// &quot;Values for all other parameters are constant across all target variable values&quot;
+<span class="nc" id="L395">						parameterCells = paramMatrixMap.get(null);</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">						if(parameterCells == null){</span>
+<span class="nc" id="L397">							ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="nc" id="L399">							throw new InvalidFeatureException(paramMatrix);</span>
+						}
+
+<span class="nc" id="L402">						parameterCells = Iterables.concat(interceptCells, parameterCells);</span>
+<span class="nc" id="L403">						break;</span>
+					default:
+<span class="nc" id="L405">						throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+				}
+
+<span class="fc" id="L408">				value = computeDotProduct(valueFactory, parameterCells, parameterPredictorRows, context);</span>
+<span class="pc bpc" id="L409" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L410">					return TargetUtil.evaluateClassificationDefault(valueFactory, targetField);</span>
+				}
+
+<span class="pc bpc" id="L413" title="2 of 4 branches missed.">				switch(modelType){</span>
+					case GENERALIZED_LINEAR:
+<span class="fc" id="L415">						value = computeLink(value, context);</span>
+<span class="fc" id="L416">						break;</span>
+					case MULTINOMIAL_LOGISTIC:
+<span class="fc" id="L418">						value.exp();</span>
+<span class="fc" id="L419">						break;</span>
+					case ORDINAL_MULTINOMIAL:
+<span class="nc" id="L421">						value = computeCumulativeLink(value, context);</span>
+<span class="nc" id="L422">						break;</span>
+					default:
+<span class="nc" id="L424">						throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+				}
+<span class="fc" id="L426">			} else</span>
+
+			// The last category
+			{
+<span class="pc bpc" id="L430" title="2 of 4 branches missed.">				switch(modelType){</span>
+					case GENERALIZED_LINEAR:
+<span class="fc" id="L432">						value = valueFactory.newValue(1d);</span>
+<span class="fc" id="L433">						value.subtract(previousValue);</span>
+<span class="fc" id="L434">						break;</span>
+					case MULTINOMIAL_LOGISTIC:
+						// &quot;By convention, the vector of Parameter estimates for the last category is 0&quot;
+<span class="fc" id="L437">						value = valueFactory.newValue(0d);</span>
+<span class="fc" id="L438">						value.exp();</span>
+<span class="fc" id="L439">						break;</span>
+					case ORDINAL_MULTINOMIAL:
+<span class="nc" id="L441">						value = valueFactory.newValue(1d);</span>
+<span class="nc" id="L442">						break;</span>
+					default:
+<span class="nc" id="L444">						throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+				}
+			}
+
+<span class="pc bpc" id="L448" title="2 of 3 branches missed.">			switch(modelType){</span>
+				case GENERALIZED_LINEAR:
+				case MULTINOMIAL_LOGISTIC:
+<span class="fc" id="L451">					break;</span>
+				case ORDINAL_MULTINOMIAL:
+<span class="nc" id="L453">					value.subtract(previousValue);</span>
+<span class="nc" id="L454">					break;</span>
+				default:
+<span class="nc" id="L456">					throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+			}
+
+<span class="fc" id="L459">			values.put(targetCategory, value);</span>
+
+<span class="fc" id="L461">			previousValue = value;</span>
+		}
+
+<span class="pc bpc" id="L464" title="2 of 4 branches missed.">		switch(modelType){</span>
+			case GENERALIZED_LINEAR:
+<span class="fc" id="L466">				break;</span>
+			case MULTINOMIAL_LOGISTIC:
+<span class="fc" id="L468">				ValueUtil.normalizeSimpleMax(values);</span>
+<span class="fc" id="L469">				break;</span>
+			case ORDINAL_MULTINOMIAL:
+<span class="nc" id="L471">				break;</span>
+			default:
+<span class="nc" id="L473">				throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+		}
+
+<span class="fc" id="L476">		ProbabilityDistribution result = new ProbabilityDistribution(values.asDoubleMap());</span>
+
+<span class="fc" id="L478">		return TargetUtil.evaluateClassification(targetField, result);</span>
+	}
+
+	private &lt;V extends Number&gt; Value&lt;V&gt; computeDotProduct(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L482">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L484">		Map&lt;String, Map&lt;String, Row&gt;&gt; ppMatrixMap = getPPMatrixMap();</span>
+
+		Map&lt;String, Row&gt; parameterPredictorRows;
+
+<span class="pc bpc" id="L488" title="1 of 2 branches missed.">		if(ppMatrixMap.isEmpty()){</span>
+<span class="nc" id="L489">			parameterPredictorRows = Collections.emptyMap();</span>
+		} else
+
+		{
+<span class="fc" id="L493">			parameterPredictorRows = ppMatrixMap.get(null);</span>
+<span class="pc bpc" id="L494" title="1 of 2 branches missed.">			if(parameterPredictorRows == null){</span>
+<span class="nc" id="L495">				PPMatrix ppMatrix = generalRegressionModel.getPPMatrix();</span>
+
+<span class="nc" id="L497">				throw new InvalidFeatureException(ppMatrix);</span>
+			}
+		}
+
+<span class="fc" id="L501">		Map&lt;String, List&lt;PCell&gt;&gt; paramMatrixMap = getParamMatrixMap();</span>
+
+<span class="fc" id="L503">		List&lt;PCell&gt; parameterCells = paramMatrixMap.get(null);</span>
+
+<span class="pc bpc" id="L505" title="2 of 4 branches missed.">		if(paramMatrixMap.size() != 1 || parameterCells == null){</span>
+<span class="nc" id="L506">			ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="nc" id="L508">			throw new InvalidFeatureException(paramMatrix);</span>
+		}
+
+<span class="fc" id="L511">		return computeDotProduct(valueFactory, parameterCells, parameterPredictorRows, context);</span>
+	}
+
+	private &lt;V extends Number&gt; Value&lt;V&gt; computeDotProduct(ValueFactory&lt;V&gt; valueFactory, Iterable&lt;PCell&gt; parameterCells, Map&lt;String, Row&gt; parameterPredictorRows, EvaluationContext context){
+<span class="fc" id="L515">		Value&lt;V&gt; result = null;</span>
+
+<span class="fc bfc" id="L517" title="All 2 branches covered.">		for(PCell parameterCell : parameterCells){</span>
+<span class="fc" id="L518">			Row parameterPredictorRow = parameterPredictorRows.get(parameterCell.getParameterName());</span>
+
+<span class="fc bfc" id="L520" title="All 2 branches covered.">			if(result == null){</span>
+<span class="fc" id="L521">				result = valueFactory.newValue();</span>
+			} // End if
+
+<span class="fc bfc" id="L524" title="All 2 branches covered.">			if(parameterPredictorRow != null){</span>
+<span class="fc" id="L525">				Value&lt;V&gt; x = parameterPredictorRow.evaluate(valueFactory, context);</span>
+
+<span class="pc bpc" id="L527" title="1 of 2 branches missed.">				if(x == null){</span>
+<span class="nc" id="L528">					return null;</span>
+				}
+
+<span class="fc" id="L531">				result.add(parameterCell.getBeta(), x.getValue());</span>
+<span class="fc" id="L532">			} else</span>
+
+			{
+<span class="fc" id="L535">				result.add(parameterCell.getBeta());</span>
+			}
+<span class="fc" id="L537">		}</span>
+
+<span class="fc" id="L539">		return result;</span>
+	}
+
+	private &lt;V extends Number&gt; Value&lt;V&gt; computeReferencePoint(ValueFactory&lt;V&gt; valueFactory){
+<span class="fc" id="L543">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L545">		BiMap&lt;String, Parameter&gt; parameters = getParameterRegistry();</span>
+
+<span class="fc" id="L547">		Map&lt;String, List&lt;PCell&gt;&gt; paramMatrixMap = getParamMatrixMap();</span>
+
+<span class="fc" id="L549">		Iterable&lt;PCell&gt; parameterCells = paramMatrixMap.get(null);</span>
+
+<span class="pc bpc" id="L551" title="2 of 4 branches missed.">		if(paramMatrixMap.size() != 1 || parameterCells == null){</span>
+<span class="nc" id="L552">			ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="nc" id="L554">			throw new InvalidFeatureException(paramMatrix);</span>
+		}
+
+<span class="fc" id="L557">		Value&lt;V&gt; result = null;</span>
+
+<span class="fc bfc" id="L559" title="All 2 branches covered.">		for(PCell parameterCell : parameterCells){</span>
+<span class="fc" id="L560">			Parameter parameter = parameters.get(parameterCell.getParameterName());</span>
+
+<span class="fc bfc" id="L562" title="All 2 branches covered.">			if(result == null){</span>
+<span class="fc" id="L563">				result = valueFactory.newValue();</span>
+			} // End if
+
+<span class="pc bpc" id="L566" title="1 of 2 branches missed.">			if(parameter != null){</span>
+<span class="fc" id="L567">				result.add(parameterCell.getBeta(), parameter.getReferencePoint());</span>
+			} else
+
+			{
+<span class="nc" id="L571">				return null;</span>
+			}
+<span class="fc" id="L573">		}</span>
+
+<span class="fc" id="L575">		return result;</span>
+	}
+
+	private &lt;V extends Number&gt; Value&lt;V&gt; computeLink(Value&lt;V&gt; value, EvaluationContext context){
+<span class="fc" id="L579">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L581">		GeneralRegressionModel.LinkFunction linkFunction = generalRegressionModel.getLinkFunction();</span>
+<span class="pc bpc" id="L582" title="1 of 2 branches missed.">		if(linkFunction == null){</span>
+<span class="nc" id="L583">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+
+<span class="fc" id="L586">		Double distParameter = generalRegressionModel.getDistParameter();</span>
+<span class="fc" id="L587">		Double linkParameter = generalRegressionModel.getLinkParameter();</span>
+
+<span class="pc bpc" id="L589" title="3 of 4 branches missed.">		switch(linkFunction){</span>
+			case CLOGLOG:
+			case IDENTITY:
+			case LOG:
+			case LOGC:
+			case LOGIT:
+			case LOGLOG:
+			case PROBIT:
+<span class="pc bpc" id="L597" title="2 of 4 branches missed.">				if(distParameter != null || linkParameter != null){</span>
+<span class="nc" id="L598">					throw new InvalidFeatureException(generalRegressionModel);</span>
+				}
+				break;
+			case NEGBIN:
+<span class="nc bnc" id="L602" title="All 4 branches missed.">				if(distParameter == null || linkParameter != null){</span>
+<span class="nc" id="L603">					throw new InvalidFeatureException(generalRegressionModel);</span>
+				}
+				break;
+			case ODDSPOWER:
+			case POWER:
+<span class="nc bnc" id="L608" title="All 4 branches missed.">				if(distParameter != null || linkParameter == null){</span>
+<span class="nc" id="L609">					throw new InvalidFeatureException(generalRegressionModel);</span>
+				}
+				break;
+			default:
+<span class="nc" id="L613">				throw new UnsupportedFeatureException(generalRegressionModel, linkFunction);</span>
+		}
+
+<span class="fc" id="L616">		Double offset = getOffset(generalRegressionModel, context);</span>
+<span class="pc bpc" id="L617" title="1 of 2 branches missed.">		if(offset != null){</span>
+<span class="nc" id="L618">			value.add(offset);</span>
+		}
+
+<span class="pc bpc" id="L621" title="1 of 2 branches missed.">		switch(linkFunction){</span>
+			case CLOGLOG:
+			case IDENTITY:
+			case LOG:
+			case LOGC:
+			case LOGIT:
+			case LOGLOG:
+			case NEGBIN:
+			case ODDSPOWER:
+			case POWER:
+			case PROBIT:
+<span class="fc" id="L632">				GeneralRegressionModelUtil.computeLink(value, distParameter, linkParameter, linkFunction);</span>
+<span class="fc" id="L633">				break;</span>
+			default:
+<span class="nc" id="L635">				throw new UnsupportedFeatureException(generalRegressionModel, linkFunction);</span>
+		}
+
+<span class="fc" id="L638">		Integer trials = getTrials(generalRegressionModel, context);</span>
+<span class="pc bpc" id="L639" title="1 of 2 branches missed.">		if(trials != null){</span>
+<span class="nc" id="L640">			value.multiply(trials.doubleValue());</span>
+		}
+
+<span class="fc" id="L643">		return value;</span>
+	}
+
+	private &lt;V extends Number&gt; Value&lt;V&gt; computeCumulativeLink(Value&lt;V&gt; value, EvaluationContext context){
+<span class="nc" id="L647">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="nc" id="L649">		GeneralRegressionModel.CumulativeLinkFunction cumulativeLinkFunction = generalRegressionModel.getCumulativeLinkFunction();</span>
+<span class="nc bnc" id="L650" title="All 2 branches missed.">		if(cumulativeLinkFunction == null){</span>
+<span class="nc" id="L651">			throw new InvalidFeatureException(generalRegressionModel);</span>
+		}
+
+<span class="nc" id="L654">		Double offset = getOffset(generalRegressionModel, context);</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">		if(offset != null){</span>
+<span class="nc" id="L656">			value.add(offset.doubleValue());</span>
+		}
+
+<span class="pc bnc" id="L659" title="All 2 branches missed.">		switch(cumulativeLinkFunction){</span>
+			case LOGIT:
+			case PROBIT:
+			case CLOGLOG:
+			case LOGLOG:
+			case CAUCHIT:
+<span class="nc" id="L665">				GeneralRegressionModelUtil.computeCumulativeLink(value, cumulativeLinkFunction);</span>
+<span class="nc" id="L666">				break;</span>
+			default:
+<span class="nc" id="L668">				throw new UnsupportedFeatureException(generalRegressionModel, cumulativeLinkFunction);</span>
+		}
+
+<span class="nc" id="L671">		return value;</span>
+	}
+
+	public BiMap&lt;String, Parameter&gt; getParameterRegistry(){
+
+<span class="fc bfc" id="L676" title="All 2 branches covered.">		if(this.parameterRegistry == null){</span>
+<span class="fc" id="L677">			this.parameterRegistry = getValue(GeneralRegressionModelEvaluator.parameterCache);</span>
+		}
+
+<span class="fc" id="L680">		return this.parameterRegistry;</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * A PPMatrix element may encode zero or more matrices.
+	 * Regression models return a singleton map, whereas classification models
+	 * may return a singleton map or a multi-valued map, which overrides the default
+	 * matrix for one or more target categories.
+	 * &lt;/p&gt;
+	 *
+	 * &lt;p&gt;
+	 * The default matrix is mapped to the &lt;code&gt;null&lt;/code&gt; key.
+	 * &lt;/p&gt;
+	 *
+	 * @return A map of predictor-to-parameter correlation matrices.
+	 */
+	private Map&lt;String, Map&lt;String, Row&gt;&gt; getPPMatrixMap(){
+
+<span class="fc bfc" id="L699" title="All 2 branches covered.">		if(this.ppMatrixMap == null){</span>
+<span class="fc" id="L700">			this.ppMatrixMap = getValue(GeneralRegressionModelEvaluator.ppMatrixCache);</span>
+		}
+
+<span class="fc" id="L703">		return this.ppMatrixMap;</span>
+	}
+
+	/**
+	 * @return A map of parameter matrices.
+	 */
+	private Map&lt;String, List&lt;PCell&gt;&gt; getParamMatrixMap(){
+
+<span class="fc bfc" id="L711" title="All 2 branches covered.">		if(this.paramMatrixMap == null){</span>
+<span class="fc" id="L712">			this.paramMatrixMap = getValue(GeneralRegressionModelEvaluator.paramMatrixCache);</span>
+		}
+
+<span class="fc" id="L715">		return this.paramMatrixMap;</span>
+	}
+
+	private List&lt;String&gt; getTargetCategories(){
+
+<span class="fc bfc" id="L720" title="All 2 branches covered.">		if(this.targetCategories == null){</span>
+<span class="fc" id="L721">			this.targetCategories = ImmutableList.copyOf(parseTargetCategories());</span>
+		}
+
+<span class="fc" id="L724">		return this.targetCategories;</span>
+	}
+
+	private List&lt;String&gt; parseTargetCategories(){
+<span class="fc" id="L728">		GeneralRegressionModel generalRegressionModel = getModel();</span>
+
+<span class="fc" id="L730">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L732">		DataField dataField = targetField.getDataField();</span>
+
+<span class="fc" id="L734">		OpType opType = dataField.getOpType();</span>
+<span class="pc bpc" id="L735" title="2 of 3 branches missed.">		switch(opType){</span>
+			case CONTINUOUS:
+<span class="nc" id="L737">				throw new InvalidFeatureException(dataField);</span>
+			case CATEGORICAL:
+			case ORDINAL:
+<span class="fc" id="L740">				break;</span>
+			default:
+<span class="nc" id="L742">				throw new UnsupportedFeatureException(dataField, opType);</span>
+		}
+
+<span class="fc" id="L745">		List&lt;String&gt; targetCategories = FieldValueUtil.getTargetCategories(dataField);</span>
+<span class="pc bpc" id="L746" title="2 of 4 branches missed.">		if(targetCategories.size() &gt; 0 &amp;&amp; targetCategories.size() &lt; 2){</span>
+<span class="nc" id="L747">			throw new InvalidFeatureException(dataField);</span>
+		}
+
+<span class="fc" id="L750">		String targetReferenceCategory = generalRegressionModel.getTargetReferenceCategory();</span>
+
+<span class="fc" id="L752">		GeneralRegressionModel.ModelType modelType = generalRegressionModel.getModelType();</span>
+<span class="pc bpc" id="L753" title="2 of 3 branches missed.">		switch(modelType){</span>
+			case GENERALIZED_LINEAR:
+			case MULTINOMIAL_LOGISTIC:
+<span class="fc bfc" id="L756" title="All 2 branches covered.">				if(targetReferenceCategory == null){</span>
+<span class="fc" id="L757">					Predicate&lt;String&gt; filter = new Predicate&lt;String&gt;(){</span>
+
+<span class="fc" id="L759">						private Map&lt;String, List&lt;PCell&gt;&gt; paramMatrixMap = getParamMatrixMap();</span>
+
+
+						@Override
+						public boolean apply(String string){
+<span class="fc bfc" id="L764" title="All 2 branches covered.">							return !this.paramMatrixMap.containsKey(string);</span>
+						}
+					};
+
+					// &quot;The reference category is the one from DataDictionary that does not appear in the ParamMatrix&quot;
+<span class="fc" id="L769">					Set&lt;String&gt; targetReferenceCategories = Sets.newLinkedHashSet(Iterables.filter(targetCategories, filter));</span>
+<span class="pc bpc" id="L770" title="1 of 2 branches missed.">					if(targetReferenceCategories.size() != 1){</span>
+<span class="nc" id="L771">						ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="nc" id="L773">						throw new InvalidFeatureException(paramMatrix);</span>
+					}
+
+<span class="fc" id="L776">					targetReferenceCategory = Iterables.getOnlyElement(targetReferenceCategories);</span>
+<span class="fc" id="L777">				}</span>
+				break;
+			case ORDINAL_MULTINOMIAL:
+<span class="nc" id="L780">				break;</span>
+			default:
+<span class="nc" id="L782">				throw new UnsupportedFeatureException(generalRegressionModel, modelType);</span>
+		}
+
+<span class="pc bpc" id="L785" title="1 of 2 branches missed.">		if(targetReferenceCategory != null){</span>
+<span class="fc" id="L786">			targetCategories = new ArrayList&lt;&gt;(targetCategories);</span>
+
+			// Move the element from any position to the last position
+<span class="pc bpc" id="L789" title="1 of 2 branches missed.">			if(targetCategories.remove(targetReferenceCategory)){</span>
+<span class="fc" id="L790">				targetCategories.add(targetReferenceCategory);</span>
+			}
+		}
+
+<span class="fc" id="L794">		return targetCategories;</span>
+	}
+
+	static
+	private Double getOffset(GeneralRegressionModel generalRegressionModel, EvaluationContext context){
+<span class="fc" id="L799">		FieldName offsetVariable = generalRegressionModel.getOffsetVariable();</span>
+
+<span class="pc bpc" id="L801" title="1 of 2 branches missed.">		if(offsetVariable != null){</span>
+<span class="nc" id="L802">			FieldValue value = getVariable(offsetVariable, context);</span>
+
+<span class="nc" id="L804">			return value.asDouble();</span>
+		}
+
+<span class="fc" id="L807">		return generalRegressionModel.getOffsetValue();</span>
+	}
+
+	static
+	private Integer getTrials(GeneralRegressionModel generalRegressionModel, EvaluationContext context){
+<span class="fc" id="L812">		FieldName trialsVariable = generalRegressionModel.getTrialsVariable();</span>
+
+<span class="pc bpc" id="L814" title="1 of 2 branches missed.">		if(trialsVariable != null){</span>
+<span class="nc" id="L815">			FieldValue value = getVariable(trialsVariable, context);</span>
+
+<span class="nc" id="L817">			return value.asInteger();</span>
+		}
+
+<span class="fc" id="L820">		return generalRegressionModel.getTrialsValue();</span>
+	}
+
+	static
+	private FieldValue getVariable(FieldName name, EvaluationContext context){
+<span class="fc" id="L825">		FieldValue value = context.evaluate(name);</span>
+
+<span class="pc bpc" id="L827" title="1 of 2 branches missed.">		if(value == null){</span>
+<span class="nc" id="L828">			throw new MissingValueException(name);</span>
+		}
+
+<span class="fc" id="L831">		return value;</span>
+	}
+
+	static
+	private BaselineStratum getBaselineStratum(BaseCumHazardTables baseCumHazardTables, FieldValue value){
+
+<span class="pc bpc" id="L837" title="1 of 2 branches missed.">		if(baseCumHazardTables instanceof HasParsedValueMapping){</span>
+<span class="nc" id="L838">			HasParsedValueMapping&lt;?&gt; hasParsedValueMapping = (HasParsedValueMapping&lt;?&gt;)baseCumHazardTables;</span>
+
+<span class="nc" id="L840">			return (BaselineStratum)value.getMapping(hasParsedValueMapping);</span>
+		}
+
+<span class="fc" id="L843">		List&lt;BaselineStratum&gt; baselineStrata = baseCumHazardTables.getBaselineStrata();</span>
+<span class="pc bpc" id="L844" title="1 of 2 branches missed.">		for(BaselineStratum baselineStratum : baselineStrata){</span>
+
+<span class="fc bfc" id="L846" title="All 2 branches covered.">			if(value.equalsString(baselineStratum.getValue())){</span>
+<span class="fc" id="L847">				return baselineStratum;</span>
+			}
+<span class="fc" id="L849">		}</span>
+
+<span class="nc" id="L851">		return null;</span>
+	}
+
+	static
+	private BiMap&lt;String, Parameter&gt; parseParameterRegistry(ParameterList parameterList){
+<span class="fc" id="L856">		BiMap&lt;String, Parameter&gt; result = HashBiMap.create();</span>
+
+<span class="pc bpc" id="L858" title="1 of 2 branches missed.">		if(!parameterList.hasParameters()){</span>
+<span class="nc" id="L859">			return result;</span>
+		}
+
+<span class="fc" id="L862">		List&lt;Parameter&gt; parameters = parameterList.getParameters();</span>
+<span class="fc bfc" id="L863" title="All 2 branches covered.">		for(Parameter parameter : parameters){</span>
+<span class="fc" id="L864">			result.put(parameter.getName(), parameter);</span>
+<span class="fc" id="L865">		}</span>
+
+<span class="fc" id="L867">		return result;</span>
+	}
+
+	static
+	private BiMap&lt;FieldName, Predictor&gt; parsePredictorRegistry(PredictorList predictorList){
+<span class="fc" id="L872">		BiMap&lt;FieldName, Predictor&gt; result = HashBiMap.create();</span>
+
+<span class="pc bpc" id="L874" title="1 of 4 branches missed.">		if(predictorList == null || !predictorList.hasPredictors()){</span>
+<span class="fc" id="L875">			return result;</span>
+		}
+
+<span class="fc" id="L878">		List&lt;Predictor&gt; predictors = predictorList.getPredictors();</span>
+<span class="fc bfc" id="L879" title="All 2 branches covered.">		for(Predictor predictor : predictors){</span>
+<span class="fc" id="L880">			result.put(predictor.getName(), predictor);</span>
+<span class="fc" id="L881">		}</span>
+
+<span class="fc" id="L883">		return result;</span>
+	}
+
+	static
+	private Map&lt;String, Map&lt;String, Row&gt;&gt; parsePPMatrix(final GeneralRegressionModel generalRegressionModel){
+<span class="fc" id="L888">		Function&lt;List&lt;PPCell&gt;, Row&gt; function = new Function&lt;List&lt;PPCell&gt;, Row&gt;(){</span>
+
+<span class="fc" id="L890">			private BiMap&lt;FieldName, Predictor&gt; factors = CacheUtil.getValue(generalRegressionModel, GeneralRegressionModelEvaluator.factorCache);</span>
+
+<span class="fc" id="L892">			private BiMap&lt;FieldName, Predictor&gt; covariates = CacheUtil.getValue(generalRegressionModel, GeneralRegressionModelEvaluator.covariateCache);</span>
+
+
+			@Override
+			public Row apply(List&lt;PPCell&gt; ppCells){
+<span class="fc" id="L897">				Row result = new Row();</span>
+
+				ppCells:
+<span class="fc bfc" id="L900" title="All 2 branches covered.">				for(PPCell ppCell : ppCells){</span>
+<span class="fc" id="L901">					FieldName name = ppCell.getPredictorName();</span>
+
+<span class="fc" id="L903">					Predictor factor = this.factors.get(name);</span>
+<span class="fc bfc" id="L904" title="All 2 branches covered.">					if(factor != null){</span>
+<span class="fc" id="L905">						result.addFactor(ppCell, factor);</span>
+
+<span class="fc" id="L907">						continue ppCells;</span>
+					}
+
+<span class="fc" id="L910">					Predictor covariate = this.covariates.get(name);</span>
+<span class="pc bpc" id="L911" title="1 of 2 branches missed.">					if(covariate != null){</span>
+<span class="fc" id="L912">						result.addCovariate(ppCell);</span>
+
+<span class="fc" id="L914">						continue ppCells;</span>
+					}
+
+<span class="nc" id="L917">					throw new InvalidFeatureException(ppCell);</span>
+				}
+
+<span class="fc" id="L920">				return result;</span>
+			}
+		};
+
+<span class="fc" id="L924">		PPMatrix ppMatrix = generalRegressionModel.getPPMatrix();</span>
+
+<span class="fc" id="L926">		ListMultimap&lt;String, PPCell&gt; targetCategoryMap = groupByTargetCategory(ppMatrix.getPPCells());</span>
+
+<span class="fc" id="L928">		Map&lt;String, Map&lt;String, Row&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L930">		Collection&lt;Map.Entry&lt;String, List&lt;PPCell&gt;&gt;&gt; targetCategoryEntries = (asMap(targetCategoryMap)).entrySet();</span>
+<span class="fc bfc" id="L931" title="All 2 branches covered.">		for(Map.Entry&lt;String, List&lt;PPCell&gt;&gt; targetCategoryEntry : targetCategoryEntries){</span>
+<span class="fc" id="L932">			Map&lt;String, Row&gt; predictorMap = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L934">			ListMultimap&lt;String, PPCell&gt; parameterNameMap = groupByParameterName(targetCategoryEntry.getValue());</span>
+
+<span class="fc" id="L936">			Collection&lt;Map.Entry&lt;String, List&lt;PPCell&gt;&gt;&gt; parameterNameEntries = (asMap(parameterNameMap)).entrySet();</span>
+<span class="fc bfc" id="L937" title="All 2 branches covered.">			for(Map.Entry&lt;String, List&lt;PPCell&gt;&gt; parameterNameEntry : parameterNameEntries){</span>
+<span class="fc" id="L938">				predictorMap.put(parameterNameEntry.getKey(), function.apply(parameterNameEntry.getValue()));</span>
+<span class="fc" id="L939">			}</span>
+
+<span class="fc" id="L941">			result.put(targetCategoryEntry.getKey(), predictorMap);</span>
+<span class="fc" id="L942">		}</span>
+
+<span class="fc" id="L944">		return result;</span>
+	}
+
+	static
+	private Map&lt;String, List&lt;PCell&gt;&gt; parseParamMatrix(GeneralRegressionModel generalRegressionModel){
+<span class="fc" id="L949">		ParamMatrix paramMatrix = generalRegressionModel.getParamMatrix();</span>
+
+<span class="fc" id="L951">		ListMultimap&lt;String, PCell&gt; targetCategoryCells = groupByTargetCategory(paramMatrix.getPCells());</span>
+
+<span class="fc" id="L953">		return asMap(targetCategoryCells);</span>
+	}
+
+	@SuppressWarnings (
+		value = {&quot;rawtypes&quot;, &quot;unchecked&quot;}
+	)
+	static
+	private &lt;C extends ParameterCell&gt; Map&lt;String, List&lt;C&gt;&gt; asMap(ListMultimap&lt;String, C&gt; multimap){
+<span class="fc" id="L961">		return (Map)multimap.asMap();</span>
+	}
+
+	static
+	private &lt;C extends ParameterCell&gt; ListMultimap&lt;String, C&gt; groupByParameterName(List&lt;C&gt; cells){
+<span class="fc" id="L966">		Function&lt;C, String&gt; function = new Function&lt;C, String&gt;(){</span>
+
+			@Override
+			public String apply(C cell){
+<span class="fc" id="L970">				return cell.getParameterName();</span>
+			}
+		};
+
+<span class="fc" id="L974">		return groupCells(cells, function);</span>
+	}
+
+	static
+	private &lt;C extends ParameterCell&gt; ListMultimap&lt;String, C&gt; groupByTargetCategory(List&lt;C&gt; cells){
+<span class="fc" id="L979">		Function&lt;C, String&gt; function = new Function&lt;C, String&gt;(){</span>
+
+			@Override
+			public String apply(C cell){
+<span class="fc" id="L983">				return cell.getTargetCategory();</span>
+			}
+		};
+
+<span class="fc" id="L987">		return groupCells(cells, function);</span>
+	}
+
+	static
+	private &lt;C extends ParameterCell&gt; ListMultimap&lt;String, C&gt; groupCells(List&lt;C&gt; cells, Function&lt;C, String&gt; function){
+<span class="fc" id="L992">		ListMultimap&lt;String, C&gt; result = ArrayListMultimap.create();</span>
+
+<span class="fc bfc" id="L994" title="All 2 branches covered.">		for(C cell : cells){</span>
+<span class="fc" id="L995">			result.put(function.apply(cell), cell);</span>
+<span class="fc" id="L996">		}</span>
+
+<span class="fc" id="L998">		return result;</span>
+	}
+
+	static
+<span class="fc" id="L1002">	private class Row {</span>
+
+<span class="fc" id="L1004">		private List&lt;FactorHandler&gt; factorHandlers = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L1006">		private List&lt;CovariateHandler&gt; covariateHandlers = new ArrayList&lt;&gt;();</span>
+
+
+		public &lt;V extends Number&gt; Value&lt;V&gt; evaluate(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L1010">			Value&lt;V&gt; result = valueFactory.newValue(1d);</span>
+
+<span class="fc" id="L1012">			List&lt;FactorHandler&gt; factorHandlers = getFactorHandlers();</span>
+<span class="fc bfc" id="L1013" title="All 2 branches covered.">			for(int i = 0, max = factorHandlers.size(); i &lt; max; i++){</span>
+<span class="fc" id="L1014">				FactorHandler factorHandler = factorHandlers.get(i);</span>
+
+<span class="fc" id="L1016">				FieldValue value = context.evaluate(factorHandler.getPredictorName());</span>
+<span class="pc bpc" id="L1017" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L1018">					return null;</span>
+				}
+
+<span class="fc" id="L1021">				factorHandler.updateProduct(result, value);</span>
+			}
+
+<span class="fc bfc" id="L1024" title="All 2 branches covered.">			if(result.doubleValue() == 0d){</span>
+<span class="fc" id="L1025">				return result;</span>
+			}
+
+<span class="fc" id="L1028">			List&lt;CovariateHandler&gt; covariateHandlers = getCovariateHandlers();</span>
+<span class="fc bfc" id="L1029" title="All 2 branches covered.">			for(int i = 0, max = covariateHandlers.size(); i &lt; max; i++){</span>
+<span class="fc" id="L1030">				CovariateHandler covariateHandler = covariateHandlers.get(i);</span>
+
+<span class="fc" id="L1032">				FieldValue value = context.evaluate(covariateHandler.getPredictorName());</span>
+<span class="pc bpc" id="L1033" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L1034">					return null;</span>
+				}
+
+<span class="fc" id="L1037">				covariateHandler.updateProduct(result, value);</span>
+			}
+
+<span class="fc" id="L1040">			return result;</span>
+		}
+
+		public void addFactor(PPCell ppCell, Predictor predictor){
+<span class="fc" id="L1044">			List&lt;FactorHandler&gt; factorHandlers = getFactorHandlers();</span>
+
+<span class="fc" id="L1046">			Matrix matrix = predictor.getMatrix();</span>
+<span class="fc bfc" id="L1047" title="All 2 branches covered.">			if(matrix != null){</span>
+<span class="fc" id="L1048">				Categories categories = predictor.getCategories();</span>
+<span class="pc bpc" id="L1049" title="1 of 2 branches missed.">				if(categories == null){</span>
+<span class="nc" id="L1050">					throw new UnsupportedFeatureException(predictor);</span>
+				}
+
+<span class="fc" id="L1053">				Function&lt;Category, String&gt; function = new Function&lt;Category, String&gt;(){</span>
+
+					@Override
+					public String apply(Category category){
+<span class="fc" id="L1057">						return category.getValue();</span>
+					}
+				};
+
+<span class="fc" id="L1061">				List&lt;String&gt; values = Lists.transform(categories.getCategories(), function);</span>
+
+<span class="fc" id="L1063">				factorHandlers.add(new ContrastMatrixHandler(ppCell, matrix, values));</span>
+<span class="fc" id="L1064">			} else</span>
+
+			{
+<span class="fc" id="L1067">				factorHandlers.add(new FactorHandler(ppCell));</span>
+			}
+<span class="fc" id="L1069">		}</span>
+
+		private void addCovariate(PPCell ppCell){
+<span class="fc" id="L1072">			List&lt;CovariateHandler&gt; covariateHandlers = getCovariateHandlers();</span>
+
+<span class="fc" id="L1074">			covariateHandlers.add(new CovariateHandler(ppCell));</span>
+<span class="fc" id="L1075">		}</span>
+
+		public List&lt;FactorHandler&gt; getFactorHandlers(){
+<span class="fc" id="L1078">			return this.factorHandlers;</span>
+		}
+
+		public List&lt;CovariateHandler&gt; getCovariateHandlers(){
+<span class="fc" id="L1082">			return this.covariateHandlers;</span>
+		}
+
+		abstract
+		private class PredictorHandler {
+
+<span class="fc" id="L1088">			private PPCell ppCell = null;</span>
+
+
+<span class="fc" id="L1091">			private PredictorHandler(PPCell ppCell){</span>
+<span class="fc" id="L1092">				setPPCell(ppCell);</span>
+<span class="fc" id="L1093">			}</span>
+
+			abstract
+			public &lt;V extends Number&gt; Value&lt;V&gt; updateProduct(Value&lt;V&gt; product, FieldValue value);
+
+			public FieldName getPredictorName(){
+<span class="fc" id="L1099">				PPCell ppCell = getPPCell();</span>
+
+<span class="fc" id="L1101">				return ppCell.getPredictorName();</span>
+			}
+
+			public PPCell getPPCell(){
+<span class="fc" id="L1105">				return this.ppCell;</span>
+			}
+
+			private void setPPCell(PPCell ppCell){
+<span class="fc" id="L1109">				this.ppCell = ppCell;</span>
+<span class="fc" id="L1110">			}</span>
+		}
+
+		private class FactorHandler extends PredictorHandler {
+
+<span class="fc" id="L1115">			private String category = null;</span>
+
+
+<span class="fc" id="L1118">			private FactorHandler(PPCell ppCell){</span>
+<span class="fc" id="L1119">				super(ppCell);</span>
+
+<span class="fc" id="L1121">				String value = ppCell.getValue();</span>
+<span class="pc bpc" id="L1122" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L1123">					throw new InvalidFeatureException(ppCell);</span>
+				}
+
+<span class="fc" id="L1126">				setCategory(value);</span>
+<span class="fc" id="L1127">			}</span>
+
+			@Override
+			public &lt;V extends Number&gt; Value&lt;V&gt; updateProduct(Value&lt;V&gt; product, FieldValue value){
+<span class="fc" id="L1131">				PPCell ppCell = getPPCell();</span>
+
+<span class="fc" id="L1133">				boolean equals = value.equals(ppCell);</span>
+
+<span class="fc bfc" id="L1135" title="All 2 branches covered.">				return product.multiply(equals ? 1d : 0d);</span>
+			}
+
+			public String getCategory(){
+<span class="fc" id="L1139">				return this.category;</span>
+			}
+
+			private void setCategory(String category){
+<span class="fc" id="L1143">				this.category = category;</span>
+<span class="fc" id="L1144">			}</span>
+		}
+
+		private class ContrastMatrixHandler extends FactorHandler {
+
+<span class="fc" id="L1149">			private Matrix matrix = null;</span>
+
+<span class="fc" id="L1151">			private List&lt;String&gt; categories = null;</span>
+
+<span class="fc" id="L1153">			private List&lt;FieldValue&gt; parsedValueList = null;</span>
+
+
+<span class="fc" id="L1156">			private ContrastMatrixHandler(PPCell ppCell, Matrix matrix, List&lt;String&gt; categories){</span>
+<span class="fc" id="L1157">				super(ppCell);</span>
+
+<span class="fc" id="L1159">				setMatrix(matrix);</span>
+<span class="fc" id="L1160">				setCategories(categories);</span>
+<span class="fc" id="L1161">			}</span>
+
+			@Override
+			public &lt;V extends Number&gt; Value&lt;V&gt; updateProduct(Value&lt;V&gt; product, FieldValue value){
+<span class="fc" id="L1165">				Matrix matrix = getMatrix();</span>
+
+<span class="fc" id="L1167">				int row = getIndex(value);</span>
+<span class="fc" id="L1168">				int column = getIndex(getCategory());</span>
+
+<span class="pc bpc" id="L1170" title="2 of 4 branches missed.">				if(row &lt; 0 || column &lt; 0){</span>
+<span class="nc" id="L1171">					throw new EvaluationException();</span>
+				}
+
+<span class="fc" id="L1174">				Number result = MatrixUtil.getElementAt(matrix, row + 1, column + 1);</span>
+<span class="pc bpc" id="L1175" title="1 of 2 branches missed.">				if(result == null){</span>
+<span class="nc" id="L1176">					throw new EvaluationException();</span>
+				}
+
+<span class="fc" id="L1179">				return product.multiply(result.doubleValue());</span>
+			}
+
+			public int getIndex(FieldValue value){
+
+<span class="pc bpc" id="L1184" title="1 of 2 branches missed.">				if(this.parsedValueList == null){</span>
+<span class="fc" id="L1185">					this.parsedValueList = ImmutableList.copyOf(parseCategories(value.getDataType(), value.getOpType()));</span>
+				}
+
+<span class="fc" id="L1188">				return this.parsedValueList.indexOf(value);</span>
+			}
+
+			public int getIndex(String category){
+<span class="fc" id="L1192">				List&lt;String&gt; categories = getCategories();</span>
+
+<span class="fc" id="L1194">				return categories.indexOf(category);</span>
+			}
+
+			private List&lt;FieldValue&gt; parseCategories(final DataType dataType, final OpType opType){
+<span class="fc" id="L1198">				List&lt;String&gt; categories = getCategories();</span>
+
+<span class="fc" id="L1200">				Function&lt;String, FieldValue&gt; function = new Function&lt;String, FieldValue&gt;(){</span>
+
+					@Override
+					public FieldValue apply(String value){
+<span class="fc" id="L1204">						return FieldValueUtil.create(dataType, opType, value);</span>
+					}
+				};
+
+<span class="fc" id="L1208">				return Lists.transform(categories, function);</span>
+			}
+
+			public Matrix getMatrix(){
+<span class="fc" id="L1212">				return this.matrix;</span>
+			}
+
+			private void setMatrix(Matrix matrix){
+<span class="fc" id="L1216">				this.matrix = matrix;</span>
+<span class="fc" id="L1217">			}</span>
+
+			public List&lt;String&gt; getCategories(){
+<span class="fc" id="L1220">				return this.categories;</span>
+			}
+
+			private void setCategories(List&lt;String&gt; categories){
+<span class="fc" id="L1224">				this.categories = categories;</span>
+<span class="fc" id="L1225">			}</span>
+		}
+
+		private class CovariateHandler extends PredictorHandler {
+
+<span class="fc" id="L1230">			private double exponent = 1d;</span>
+
+
+<span class="fc" id="L1233">			private CovariateHandler(PPCell ppCell){</span>
+<span class="fc" id="L1234">				super(ppCell);</span>
+
+<span class="fc" id="L1236">				String value = ppCell.getValue();</span>
+<span class="pc bpc" id="L1237" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L1238">					throw new InvalidFeatureException(ppCell);</span>
+				}
+
+<span class="fc" id="L1241">				setExponent(Double.parseDouble(value));</span>
+<span class="fc" id="L1242">			}</span>
+
+			@Override
+			public &lt;V extends Number&gt; Value&lt;V&gt; updateProduct(Value&lt;V&gt; product, FieldValue value){
+<span class="fc" id="L1246">				double exponent = getExponent();</span>
+
+<span class="pc bpc" id="L1248" title="1 of 2 branches missed.">				if(exponent != 1d){</span>
+<span class="nc" id="L1249">					return product.multiply(value.asNumber(), exponent);</span>
+				} else
+
+				{
+<span class="fc" id="L1253">					return product.multiply((value.asNumber()).doubleValue());</span>
+				}
+			}
+
+			public double getExponent(){
+<span class="fc" id="L1258">				return this.exponent;</span>
+			}
+
+			private void setExponent(double exponent){
+<span class="fc" id="L1262">				this.exponent = exponent;</span>
+<span class="fc" id="L1263">			}</span>
+		}
+	}
+
+<span class="fc" id="L1267">	private static final LoadingCache&lt;GeneralRegressionModel, BiMap&lt;String, Parameter&gt;&gt; parameterCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;GeneralRegressionModel, BiMap&lt;String, Parameter&gt;&gt;(){</span>
+
+		@Override
+		public BiMap&lt;String, Parameter&gt; load(GeneralRegressionModel generalRegressionModel){
+<span class="fc" id="L1271">			return ImmutableBiMap.copyOf(parseParameterRegistry(generalRegressionModel.getParameterList()));</span>
+		}
+	});
+
+<span class="fc" id="L1275">	private static final LoadingCache&lt;GeneralRegressionModel, BiMap&lt;FieldName, Predictor&gt;&gt; factorCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;GeneralRegressionModel, BiMap&lt;FieldName, Predictor&gt;&gt;(){</span>
+
+		@Override
+		public BiMap&lt;FieldName, Predictor&gt; load(GeneralRegressionModel generalRegressionModel){
+<span class="fc" id="L1279">			return ImmutableBiMap.copyOf(parsePredictorRegistry(generalRegressionModel.getFactorList()));</span>
+		}
+	});
+
+<span class="fc" id="L1283">	private static final LoadingCache&lt;GeneralRegressionModel, BiMap&lt;FieldName, Predictor&gt;&gt; covariateCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;GeneralRegressionModel, BiMap&lt;FieldName, Predictor&gt;&gt;(){</span>
+
+		@Override
+		public BiMap&lt;FieldName, Predictor&gt; load(GeneralRegressionModel generalRegressionModel){
+<span class="fc" id="L1287">			return ImmutableBiMap.copyOf(parsePredictorRegistry(generalRegressionModel.getCovariateList()));</span>
+		}
+	});
+
+<span class="fc" id="L1291">	private static final LoadingCache&lt;GeneralRegressionModel, Map&lt;String, Map&lt;String, Row&gt;&gt;&gt; ppMatrixCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;GeneralRegressionModel, Map&lt;String, Map&lt;String, Row&gt;&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;String, Map&lt;String, Row&gt;&gt; load(GeneralRegressionModel generalRegressionModel){
+			// Cannot use Guava's ImmutableMap, because it is null-hostile
+<span class="fc" id="L1296">			return Collections.unmodifiableMap(parsePPMatrix(generalRegressionModel));</span>
+		}
+	});
+
+<span class="fc" id="L1300">	private static final LoadingCache&lt;GeneralRegressionModel, Map&lt;String, List&lt;PCell&gt;&gt;&gt; paramMatrixCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;GeneralRegressionModel, Map&lt;String, List&lt;PCell&gt;&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;String, List&lt;PCell&gt;&gt; load(GeneralRegressionModel generalRegressionModel){
+			// Cannot use Guava's ImmutableMap, because it is null-hostile
+<span class="fc" id="L1305">			return Collections.unmodifiableMap(parseParamMatrix(generalRegressionModel));</span>
+		}
+	});
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

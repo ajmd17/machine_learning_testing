@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecondsSinceMidnight.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">SecondsSinceMidnight.java</span></div><h1>SecondsSinceMidnight.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import org.joda.time.Chronology;
+import org.joda.time.DateTimeField;
+import org.joda.time.DateTimeFieldType;
+import org.joda.time.DateTimeUtils;
+import org.joda.time.DurationField;
+import org.joda.time.DurationFieldType;
+import org.joda.time.Seconds;
+import org.joda.time.field.FieldUtils;
+import org.joda.time.field.PreciseDurationDateTimeField;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
+
+public class SecondsSinceMidnight extends SimplePeriod&lt;SecondsSinceMidnight&gt; {
+
+<span class="fc" id="L35">	private Seconds seconds = null;</span>
+
+
+<span class="fc" id="L38">	public SecondsSinceMidnight(Seconds seconds){</span>
+<span class="fc" id="L39">		setSeconds(seconds);</span>
+<span class="fc" id="L40">	}</span>
+
+	@Override
+	public int intValue(){
+<span class="fc" id="L44">		return getSeconds().getSeconds();</span>
+	}
+
+	@Override
+	public int compareTo(SecondsSinceMidnight that){
+<span class="nc" id="L49">		return (this.getSeconds()).compareTo(that.getSeconds());</span>
+	}
+
+	@Override
+	public int hashCode(){
+<span class="nc" id="L54">		return getSeconds().hashCode();</span>
+	}
+
+	@Override
+	public boolean equals(Object object){
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">		if(object instanceof SecondsSinceMidnight){</span>
+<span class="nc" id="L61">			SecondsSinceMidnight that = (SecondsSinceMidnight)object;</span>
+
+<span class="nc" id="L63">			return (this.getSeconds()).equals(that.getSeconds());</span>
+		}
+
+<span class="nc" id="L66">		return false;</span>
+	}
+
+	public Seconds getSeconds(){
+<span class="fc" id="L70">		return this.seconds;</span>
+	}
+
+	private void setSeconds(Seconds seconds){
+<span class="fc" id="L74">		this.seconds = seconds;</span>
+<span class="fc" id="L75">	}</span>
+
+	static
+	public DateTimeFormatter getFormat(){
+
+<span class="fc bfc" id="L80" title="All 2 branches covered.">		if(SecondsSinceMidnight.format == null){</span>
+<span class="fc" id="L81">			SecondsSinceMidnight.format = createFormat();</span>
+		}
+
+<span class="fc" id="L84">		return SecondsSinceMidnight.format;</span>
+	}
+
+	static
+	private DateTimeFormatter createFormat(){
+<span class="fc" id="L89">		DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder()</span>
+<span class="fc" id="L90">			.appendSignedDecimal(HoursOfEpochFieldType.getInstance(), 1, 4)</span>
+<span class="fc" id="L91">			.appendLiteral(':')</span>
+<span class="fc" id="L92">			.appendFixedDecimal(DateTimeFieldType.minuteOfHour(), 2)</span>
+<span class="fc" id="L93">			.appendLiteral(':')</span>
+<span class="fc" id="L94">			.appendFixedDecimal(DateTimeFieldType.secondOfMinute(), 2);</span>
+
+<span class="fc" id="L96">		return builder.toFormatter();</span>
+	}
+
+<span class="fc" id="L99">	private static DateTimeFormatter format = null;</span>
+
+	static
+	private class HoursOfEpochFieldType extends DateTimeFieldType {
+
+		private HoursOfEpochFieldType(){
+<span class="fc" id="L105">			super(&quot;hoursOfEpoch&quot;);</span>
+<span class="fc" id="L106">		}</span>
+
+		@Override
+		public DurationFieldType getDurationType(){
+<span class="nc" id="L110">			return DurationFieldType.hours();</span>
+		}
+
+		@Override
+		public DurationFieldType getRangeDurationType(){
+<span class="nc" id="L115">			return null;</span>
+		}
+
+		@Override
+		public DateTimeField getField(Chronology chronology){
+<span class="fc" id="L120">			chronology = DateTimeUtils.getChronology(chronology);</span>
+
+<span class="fc" id="L122">			return new PreciseDurationDateTimeField(this, chronology.hours()){</span>
+
+				@Override
+				public int get(long millis){
+<span class="fc" id="L126">					long hours = (millis / HoursOfEpochFieldType.millisInHour);</span>
+
+<span class="fc" id="L128">					return FieldUtils.safeToInt(hours);</span>
+				}
+
+				@Override
+				public DurationField getRangeDurationField(){
+<span class="fc" id="L133">					return null;</span>
+				}
+
+				@Override
+				public int getMinimumValue(){
+<span class="fc" id="L138">					return 0;</span>
+				}
+
+				@Override
+				public int getMaximumValue(){
+<span class="fc" id="L143">					return Integer.MAX_VALUE;</span>
+				}
+			};
+		}
+
+		@Override
+		public int hashCode(){
+<span class="nc" id="L150">			return getName().hashCode();</span>
+		}
+
+		@Override
+		public boolean equals(Object object){
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">			if(object instanceof HoursOfEpochFieldType){</span>
+<span class="nc" id="L157">				HoursOfEpochFieldType that = (HoursOfEpochFieldType)object;</span>
+
+<span class="nc" id="L159">				return (this.getName()).equals(that.getName());</span>
+			}
+
+<span class="nc" id="L162">			return false;</span>
+		}
+
+		static
+		public HoursOfEpochFieldType getInstance(){
+
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">			if(HoursOfEpochFieldType.instance == null){</span>
+<span class="fc" id="L169">				HoursOfEpochFieldType.instance = new HoursOfEpochFieldType();</span>
+			}
+
+<span class="fc" id="L172">			return HoursOfEpochFieldType.instance;</span>
+		}
+
+		private static HoursOfEpochFieldType instance;
+
+		private static final long millisInHour = (60L * 60L * 1000L);
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

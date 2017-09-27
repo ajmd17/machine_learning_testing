@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClusteringModelEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.clustering</a> &gt; <span class="el_source">ClusteringModelEvaluator.java</span></div><h1>ClusteringModelEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.clustering;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableList;
+import org.dmg.pmml.Array;
+import org.dmg.pmml.ComparisonMeasure;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.Measure;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.Target;
+import org.dmg.pmml.Targets;
+import org.dmg.pmml.clustering.CenterFields;
+import org.dmg.pmml.clustering.Cluster;
+import org.dmg.pmml.clustering.ClusteringField;
+import org.dmg.pmml.clustering.ClusteringModel;
+import org.dmg.pmml.clustering.MissingValueWeights;
+import org.jpmml.evaluator.ArrayUtil;
+import org.jpmml.evaluator.CacheUtil;
+import org.jpmml.evaluator.Classification;
+import org.jpmml.evaluator.EntityUtil;
+import org.jpmml.evaluator.EvaluationContext;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.FieldValueUtil;
+import org.jpmml.evaluator.HasEntityRegistry;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.InvalidResultException;
+import org.jpmml.evaluator.MeasureUtil;
+import org.jpmml.evaluator.ModelEvaluationContext;
+import org.jpmml.evaluator.ModelEvaluator;
+import org.jpmml.evaluator.OutputUtil;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+
+public class ClusteringModelEvaluator extends ModelEvaluator&lt;ClusteringModel&gt; implements HasEntityRegistry&lt;Cluster&gt; {
+
+<span class="fc" id="L65">	transient</span>
+	private BiMap&lt;String, Cluster&gt; entityRegistry = null;
+
+
+	public ClusteringModelEvaluator(PMML pmml){
+<span class="nc" id="L70">		this(pmml, selectModel(pmml, ClusteringModel.class));</span>
+<span class="nc" id="L71">	}</span>
+
+	public ClusteringModelEvaluator(PMML pmml, ClusteringModel clusteringModel){
+<span class="fc" id="L74">		super(pmml, clusteringModel);</span>
+
+<span class="fc" id="L76">		ComparisonMeasure comparisonMeasure = clusteringModel.getComparisonMeasure();</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">		if(comparisonMeasure == null){</span>
+<span class="nc" id="L78">			throw new InvalidFeatureException(clusteringModel);</span>
+		}
+
+<span class="fc" id="L81">		ClusteringModel.ModelClass modelClass = clusteringModel.getModelClass();</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">		switch(modelClass){</span>
+			case CENTER_BASED:
+<span class="fc" id="L84">				break;</span>
+			default:
+<span class="nc" id="L86">				throw new UnsupportedFeatureException(clusteringModel, modelClass);</span>
+		}
+
+<span class="fc" id="L89">		CenterFields centerFields = clusteringModel.getCenterFields();</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">		if(centerFields != null){</span>
+<span class="nc" id="L91">			throw new UnsupportedFeatureException(centerFields);</span>
+		}
+
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">		if(!clusteringModel.hasClusteringFields()){</span>
+<span class="nc" id="L95">			throw new InvalidFeatureException(clusteringModel);</span>
+		} // End if
+
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">		if(!clusteringModel.hasClusters()){</span>
+<span class="nc" id="L99">			throw new InvalidFeatureException(clusteringModel);</span>
+		}
+
+<span class="fc" id="L102">		Targets targets = clusteringModel.getTargets();</span>
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">		if(targets != null){</span>
+<span class="nc" id="L104">			throw new InvalidFeatureException(targets);</span>
+		}
+<span class="fc" id="L106">	}</span>
+
+	@Override
+	public String getSummary(){
+<span class="nc" id="L110">		return &quot;Clustering model&quot;;</span>
+	}
+
+	/**
+	 * @return &lt;code&gt;null&lt;/code&gt; Always.
+	 */
+	@Override
+	public Target getTarget(FieldName name){
+<span class="fc" id="L118">		return null;</span>
+	}
+
+	@Override
+	public BiMap&lt;String, Cluster&gt; getEntityRegistry(){
+
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">		if(this.entityRegistry == null){</span>
+<span class="fc" id="L125">			this.entityRegistry = getValue(ClusteringModelEvaluator.entityCache);</span>
+		}
+
+<span class="fc" id="L128">		return this.entityRegistry;</span>
+	}
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context){
+<span class="fc" id="L133">		ClusteringModel clusteringModel = getModel();</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">		if(!clusteringModel.isScorable()){</span>
+<span class="nc" id="L135">			throw new InvalidResultException(clusteringModel);</span>
+		}
+
+<span class="fc" id="L138">		MathContext mathContext = clusteringModel.getMathContext();</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">		switch(mathContext){</span>
+			case DOUBLE:
+<span class="fc" id="L141">				break;</span>
+			default:
+<span class="nc" id="L143">				throw new UnsupportedFeatureException(clusteringModel, mathContext);</span>
+		}
+
+		Map&lt;FieldName, ClusterAffinityDistribution&gt; predictions;
+
+<span class="fc" id="L148">		MiningFunction miningFunction = clusteringModel.getMiningFunction();</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">		switch(miningFunction){</span>
+			case CLUSTERING:
+<span class="fc" id="L151">				predictions = evaluateClustering(context);</span>
+<span class="fc" id="L152">				break;</span>
+			default:
+<span class="nc" id="L154">				throw new UnsupportedFeatureException(clusteringModel, miningFunction);</span>
+		}
+
+<span class="fc" id="L157">		return OutputUtil.evaluate(predictions, context);</span>
+	}
+
+	private Map&lt;FieldName, ClusterAffinityDistribution&gt; evaluateClustering(EvaluationContext context){
+<span class="fc" id="L161">		ClusteringModel clusteringModel = getModel();</span>
+
+<span class="fc" id="L163">		List&lt;ClusteringField&gt; clusteringFields = getCenterClusteringFields();</span>
+
+<span class="fc" id="L165">		List&lt;FieldValue&gt; values = new ArrayList&lt;&gt;(clusteringFields.size());</span>
+
+<span class="fc bfc" id="L167" title="All 2 branches covered.">		for(int i = 0, max = clusteringFields.size(); i &lt; max; i++){</span>
+<span class="fc" id="L168">			ClusteringField clusteringField = clusteringFields.get(i);</span>
+
+<span class="fc" id="L170">			FieldValue value = context.evaluate(clusteringField.getField());</span>
+
+<span class="fc" id="L172">			values.add(value);</span>
+		}
+
+		ClusterAffinityDistribution result;
+
+<span class="fc" id="L177">		ComparisonMeasure comparisonMeasure = clusteringModel.getComparisonMeasure();</span>
+
+<span class="fc" id="L179">		Measure measure = comparisonMeasure.getMeasure();</span>
+
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">		if(MeasureUtil.isSimilarity(measure)){</span>
+<span class="nc" id="L182">			result = evaluateSimilarity(comparisonMeasure, clusteringFields, values);</span>
+		} else
+
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">		if(MeasureUtil.isDistance(measure)){</span>
+<span class="fc" id="L186">			result = evaluateDistance(comparisonMeasure, clusteringFields, values);</span>
+		} else
+
+		{
+<span class="nc" id="L190">			throw new UnsupportedFeatureException(measure);</span>
+		}
+
+		// &quot;For clustering models, the identifier of the winning cluster is returned as the predictedValue&quot;
+<span class="fc" id="L194">		result.computeResult(DataType.STRING);</span>
+
+<span class="fc" id="L196">		return Collections.singletonMap(getTargetFieldName(), result);</span>
+	}
+
+	private ClusterAffinityDistribution evaluateSimilarity(ComparisonMeasure comparisonMeasure, List&lt;ClusteringField&gt; clusteringFields, List&lt;FieldValue&gt; values){
+<span class="nc" id="L200">		ClusteringModel clusteringModel = getModel();</span>
+
+<span class="nc" id="L202">		BiMap&lt;String, Cluster&gt; entityRegistry = getEntityRegistry();</span>
+
+<span class="nc" id="L204">		ClusterAffinityDistribution result = new ClusterAffinityDistribution(Classification.Type.SIMILARITY, entityRegistry);</span>
+
+<span class="nc" id="L206">		BitSet flags = MeasureUtil.toBitSet(values);</span>
+
+<span class="nc" id="L208">		List&lt;Cluster&gt; clusters = clusteringModel.getClusters();</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">		for(Cluster cluster : clusters){</span>
+<span class="nc" id="L210">			BitSet clusterFlags = CacheUtil.getValue(cluster, ClusteringModelEvaluator.clusterFlagCache);</span>
+
+<span class="nc bnc" id="L212" title="All 2 branches missed.">			if(flags.size() != clusterFlags.size()){</span>
+<span class="nc" id="L213">				throw new InvalidFeatureException(cluster);</span>
+			}
+
+<span class="nc" id="L216">			String id = EntityUtil.getId(cluster, entityRegistry);</span>
+
+<span class="nc" id="L218">			Double similarity = MeasureUtil.evaluateSimilarity(comparisonMeasure, clusteringFields, flags, clusterFlags);</span>
+
+<span class="nc" id="L220">			result.put(cluster, id, similarity);</span>
+<span class="nc" id="L221">		}</span>
+
+<span class="nc" id="L223">		return result;</span>
+	}
+
+	private ClusterAffinityDistribution evaluateDistance(ComparisonMeasure comparisonMeasure, List&lt;ClusteringField&gt; clusteringFields, List&lt;FieldValue&gt; values){
+<span class="fc" id="L227">		ClusteringModel clusteringModel = getModel();</span>
+
+<span class="fc" id="L229">		BiMap&lt;String, Cluster&gt; entityRegistry = getEntityRegistry();</span>
+
+<span class="fc" id="L231">		ClusterAffinityDistribution result = new ClusterAffinityDistribution(Classification.Type.DISTANCE, entityRegistry);</span>
+
+		double adjustment;
+
+<span class="fc" id="L235">		MissingValueWeights missingValueWeights = clusteringModel.getMissingValueWeights();</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">		if(missingValueWeights != null){</span>
+<span class="nc" id="L237">			Array array = missingValueWeights.getArray();</span>
+
+<span class="nc" id="L239">			List&lt;? extends Number&gt; adjustmentValues = ArrayUtil.asNumberList(array);</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">			if(values.size() != adjustmentValues.size()){</span>
+<span class="nc" id="L241">				throw new InvalidFeatureException(missingValueWeights);</span>
+			}
+
+<span class="nc" id="L244">			adjustment = MeasureUtil.calculateAdjustment(values, adjustmentValues);</span>
+<span class="nc" id="L245">		} else</span>
+
+		{
+<span class="fc" id="L248">			adjustment = MeasureUtil.calculateAdjustment(values);</span>
+		}
+
+<span class="fc" id="L251">		List&lt;Cluster&gt; clusters = clusteringModel.getClusters();</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">		for(Cluster cluster : clusters){</span>
+<span class="fc" id="L253">			List&lt;FieldValue&gt; clusterValues = CacheUtil.getValue(cluster, ClusteringModelEvaluator.clusterValueCache);</span>
+
+<span class="pc bpc" id="L255" title="1 of 2 branches missed.">			if(values.size() != clusterValues.size()){</span>
+<span class="nc" id="L256">				throw new InvalidFeatureException(cluster);</span>
+			}
+
+<span class="fc" id="L259">			String id = EntityUtil.getId(cluster, entityRegistry);</span>
+
+<span class="fc" id="L261">			Double distance = MeasureUtil.evaluateDistance(comparisonMeasure, clusteringFields, values, clusterValues, adjustment);</span>
+
+<span class="fc" id="L263">			result.put(cluster, id, distance);</span>
+<span class="fc" id="L264">		}</span>
+
+<span class="fc" id="L266">		return result;</span>
+	}
+
+	private List&lt;ClusteringField&gt; getCenterClusteringFields(){
+<span class="fc" id="L270">		ClusteringModel clusteringModel = getModel();</span>
+
+<span class="fc" id="L272">		List&lt;ClusteringField&gt; clusteringFields = clusteringModel.getClusteringFields();</span>
+
+<span class="fc" id="L274">		List&lt;ClusteringField&gt; result = new ArrayList&lt;&gt;(clusteringFields.size());</span>
+
+<span class="fc bfc" id="L276" title="All 2 branches covered.">		for(int i = 0, max = clusteringFields.size(); i &lt; max; i++){</span>
+<span class="fc" id="L277">			ClusteringField clusteringField = clusteringFields.get(i);</span>
+
+<span class="fc" id="L279">			ClusteringField.CenterField centerField = clusteringField.getCenterField();</span>
+<span class="pc bpc" id="L280" title="2 of 3 branches missed.">			switch(centerField){</span>
+				case TRUE:
+<span class="fc" id="L282">					result.add(clusteringField);</span>
+<span class="fc" id="L283">					break;</span>
+				case FALSE:
+<span class="nc" id="L285">					break;</span>
+				default:
+<span class="nc" id="L287">					throw new UnsupportedFeatureException(clusteringField, centerField);</span>
+			}
+		}
+
+<span class="fc" id="L291">		return result;</span>
+	}
+
+<span class="fc" id="L294">	private static final LoadingCache&lt;Cluster, List&lt;FieldValue&gt;&gt; clusterValueCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;Cluster, List&lt;FieldValue&gt;&gt;(){</span>
+
+		@Override
+		public List&lt;FieldValue&gt; load(Cluster cluster){
+<span class="fc" id="L298">			Array array = cluster.getArray();</span>
+
+<span class="fc" id="L300">			List&lt;? extends Number&gt; values = ArrayUtil.asNumberList(array);</span>
+
+<span class="fc" id="L302">			return ImmutableList.copyOf(FieldValueUtil.createAll(null, OpType.CONTINUOUS, values));</span>
+		}
+	});
+
+<span class="fc" id="L306">	private static final LoadingCache&lt;Cluster, BitSet&gt; clusterFlagCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;Cluster, BitSet&gt;(){</span>
+
+		@Override
+		public BitSet load(Cluster cluster){
+<span class="nc" id="L310">			List&lt;FieldValue&gt; values = CacheUtil.getValue(cluster, ClusteringModelEvaluator.clusterValueCache);</span>
+
+<span class="nc" id="L312">			return MeasureUtil.toBitSet(values);</span>
+		}
+	});
+
+<span class="fc" id="L316">	private static final LoadingCache&lt;ClusteringModel, BiMap&lt;String, Cluster&gt;&gt; entityCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;ClusteringModel, BiMap&lt;String, Cluster&gt;&gt;(){</span>
+
+		@Override
+		public BiMap&lt;String, Cluster&gt; load(ClusteringModel clusteringModel){
+<span class="fc" id="L320">			return EntityUtil.buildBiMap(clusteringModel.getClusters());</span>
+		}
+	});
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FunctionUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">FunctionUtil.java</span></div><h1>FunctionUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
+import org.dmg.pmml.Apply;
+import org.dmg.pmml.DefineFunction;
+import org.dmg.pmml.Expression;
+import org.dmg.pmml.ParameterField;
+import org.jpmml.model.ReflectionUtil;
+
+public class FunctionUtil {
+
+<span class="nc" id="L34">	private FunctionUtil(){</span>
+<span class="nc" id="L35">	}</span>
+
+	static
+	public FieldValue evaluate(Apply apply, List&lt;FieldValue&gt; values, EvaluationContext context){
+<span class="fc" id="L39">		String function = apply.getFunction();</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">		if(function == null){</span>
+<span class="nc" id="L41">			throw new InvalidFeatureException(apply);</span>
+		}
+
+<span class="fc" id="L44">		Function builtInFunction = getFunction(function);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">		if(builtInFunction != null){</span>
+<span class="fc" id="L46">			return builtInFunction.evaluate(values);</span>
+		}
+
+<span class="fc" id="L49">		Function userDefinedFunction = FunctionRegistry.getFunction(function);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">		if(userDefinedFunction != null){</span>
+<span class="fc" id="L51">			return userDefinedFunction.evaluate(values);</span>
+		}
+
+<span class="fc" id="L54">		DefineFunction defineFunction = context.getDefineFunction(function);</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">		if(defineFunction != null){</span>
+<span class="fc" id="L56">			return evaluate(defineFunction, values, context);</span>
+		}
+
+<span class="nc" id="L59">		throw new UnsupportedFeatureException(apply, ReflectionUtil.getField(Apply.class, &quot;function&quot;), function);</span>
+	}
+
+	static
+	public FieldValue evaluate(DefineFunction defineFunction, List&lt;FieldValue&gt; values, EvaluationContext context){
+<span class="fc" id="L64">		List&lt;ParameterField&gt; parameterFields = defineFunction.getParameterFields();</span>
+
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">		if(parameterFields.size() != values.size()){</span>
+<span class="nc" id="L67">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L70">		DefineFunctionEvaluationContext functionContext = new DefineFunctionEvaluationContext(context);</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">		for(int i = 0; i &lt; parameterFields.size(); i++){</span>
+<span class="fc" id="L73">			ParameterField parameterField = parameterFields.get(i);</span>
+
+<span class="fc" id="L75">			FieldValue value = FieldValueUtil.refine(parameterField, values.get(i));</span>
+
+<span class="fc" id="L77">			functionContext.declare(parameterField.getName(), value);</span>
+		}
+
+<span class="fc" id="L80">		Expression expression = defineFunction.getExpression();</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">		if(expression == null){</span>
+<span class="nc" id="L82">			throw new InvalidFeatureException(defineFunction);</span>
+		}
+
+<span class="fc" id="L85">		FieldValue result = ExpressionUtil.evaluate(expression, functionContext);</span>
+
+<span class="fc" id="L87">		return FieldValueUtil.refine(defineFunction.getDataType(), defineFunction.getOpType(), result);</span>
+	}
+
+	static
+	public Function getFunction(String name){
+<span class="fc" id="L92">		return FunctionUtil.builtInFunctions.get(name);</span>
+	}
+
+	private static final Map&lt;String, Function&gt; builtInFunctions;
+
+	static {
+<span class="fc" id="L98">		ImmutableMap.Builder&lt;String, Function&gt; builder = new ImmutableMap.Builder&lt;&gt;();</span>
+
+<span class="fc" id="L100">		List&lt;? extends Function&gt; functions = Arrays.asList(</span>
+			Functions.PLUS, Functions.MINUS, Functions.MULTIPLY, Functions.DIVIDE,
+			Functions.MIN, Functions.MAX, Functions.AVG, Functions.SUM, Functions.PRODUCT,
+			Functions.LOG10, Functions.LN, Functions.EXP, Functions.SQRT, Functions.ABS, Functions.POW, Functions.THRESHOLD, Functions.FLOOR, Functions.CEIL, Functions.ROUND,
+			Functions.IS_MISSING, Functions.IS_NOT_MISSING,
+			Functions.EQUAL, Functions.NOT_EQUAL,
+			Functions.LESS_THAN, Functions.LESS_OR_EQUAL, Functions.GREATER_THAN, Functions.GREATER_OR_EQUAL,
+			Functions.AND, Functions.OR,
+			Functions.NOT,
+			Functions.IS_IN, Functions.IS_NOT_IN,
+			Functions.IF,
+			Functions.UPPERCASE, Functions.LOWERCASE, Functions.SUBSTRING, Functions.TRIM_BLANKS,
+			Functions.CONCAT,
+			Functions.REPLACE, Functions.MATCHES,
+			Functions.FORMAT_NUMBER, Functions.FORMAT_DATETIME,
+			Functions.DATE_DAYS_SINCE_YEAR, Functions.DATE_SECONDS_SINCE_MIDNIGHT, Functions.DATE_SECONDS_SINCE_YEAR
+		);
+
+<span class="fc bfc" id="L118" title="All 2 branches covered.">		for(Function function : functions){</span>
+<span class="fc" id="L119">			builder.put(function.getName(), function);</span>
+<span class="fc" id="L120">		}</span>
+
+<span class="fc" id="L122">		List&lt;? extends Function&gt; extensionFunctions = Arrays.asList(</span>
+			Functions.LN1P, Functions.EXPM1,
+			Functions.RINT,
+			Functions.HYPOT,
+			Functions.SIN, Functions.COS, Functions.TAN,
+			Functions.ASIN, Functions.ACOS, Functions.ATAN,
+			Functions.ATAN2,
+			Functions.SINH, Functions.COSH, Functions.TANH
+		);
+
+<span class="fc bfc" id="L132" title="All 2 branches covered.">		for(Function extensionFunction : extensionFunctions){</span>
+<span class="fc" id="L133">			builder.put(extensionFunction.getName(), extensionFunction);</span>
+<span class="fc" id="L134">		}</span>
+
+<span class="fc" id="L136">		builtInFunctions = builder.build();</span>
+<span class="fc" id="L137">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FeatureInspector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.visitors</a> &gt; <span class="el_source">FeatureInspector.java</span></div><h1>FeatureInspector.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.visitors;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.Visitable;
+import org.dmg.pmml.VisitorAction;
+import org.jpmml.evaluator.PMMLException;
+import org.jpmml.model.visitors.AbstractSimpleVisitor;
+
+/**
+ * &lt;p&gt;
+ * This class provides a skeletal implementation of class model inspectors.
+ * &lt;/p&gt;
+ *
+ * &lt;p&gt;
+ * Unlike evaluation, which takes place in &quot;dynamic mode&quot;, the inspection takes place in &quot;static mode&quot;.
+ * The inspector performs the full traversal of the specified class model object.
+ * Every problematic feature is reported in the form of an appropriate {@link PMMLException} instance.
+ * The class model object can be considered safe and sound if the {@link #getExceptions() list of exceptions} stays empty.
+ * &lt;/p&gt;
+ *
+ * Typical usage:
+ * &lt;pre&gt;
+ * static
+ * public &amp;lt;E extends PMMLException&amp;gt; void inspect(FeatureInspector&amp;lt;E&amp;gt; inspector){
+ *   Visitable visitable = ...;
+ *
+ *   try {
+ *     inspector.applyTo(visitable);
+ *   } catch(PMMLException pe){
+ *     List&amp;lt;E&amp;gt; exceptions = inspector.getException();
+ *   }
+ * }
+ * &lt;/pre&gt;
+ */
+abstract
+<span class="fc" id="L57">public class FeatureInspector&lt;E extends PMMLException&gt; extends AbstractSimpleVisitor {</span>
+
+<span class="fc" id="L59">	private List&lt;E&gt; exceptions = new ArrayList&lt;&gt;();</span>
+
+
+	@Override
+	public VisitorAction visit(PMMLObject object){
+<span class="fc" id="L64">		return VisitorAction.CONTINUE;</span>
+	}
+
+	/**
+	 * @throws E The first element of the {@link #getExceptions() list of Exceptions} if this list is not empty.
+	 */
+	@Override
+	public void applyTo(Visitable visitable){
+<span class="fc" id="L72">		super.applyTo(visitable);</span>
+
+<span class="fc" id="L74">		List&lt;E&gt; exceptions = getExceptions();</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		if(exceptions.size() &gt; 0){</span>
+<span class="fc" id="L76">			throw exceptions.get(0);</span>
+		}
+<span class="nc" id="L78">	}</span>
+
+	void report(E exception){
+<span class="fc" id="L81">		this.exceptions.add(exception);</span>
+<span class="fc" id="L82">	}</span>
+
+	public List&lt;E&gt; getExceptions(){
+<span class="fc" id="L85">		return this.exceptions;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

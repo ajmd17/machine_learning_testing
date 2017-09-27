@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.jpmml.sklearn.RegressorTest
+-------------------------------------------------------------------------------
+Tests run: 23, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.925 sec - in org.jpmml.sklearn.RegressorTest

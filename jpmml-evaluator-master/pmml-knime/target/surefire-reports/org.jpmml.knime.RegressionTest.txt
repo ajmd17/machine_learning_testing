@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.jpmml.knime.RegressionTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.128 s - in org.jpmml.knime.RegressionTest

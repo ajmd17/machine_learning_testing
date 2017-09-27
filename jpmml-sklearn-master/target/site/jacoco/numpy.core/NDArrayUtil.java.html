@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NDArrayUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML-SkLearn</a> &gt; <a href="index.source.html" class="el_package">numpy.core</a> &gt; <span class="el_source">NDArrayUtil.java</span></div><h1>NDArrayUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-SkLearn
+ *
+ * JPMML-SkLearn is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-SkLearn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-SkLearn.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package numpy.core;
+
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.io.ByteStreams;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+import com.google.common.primitives.UnsignedInts;
+import net.razorvine.pickle.Unpickler;
+import net.razorvine.serpent.Parser;
+import net.razorvine.serpent.ast.Ast;
+import numpy.DType;
+import org.jpmml.converter.ValueUtil;
+import org.jpmml.sklearn.TupleUtil;
+
+public class NDArrayUtil {
+
+<span class="nc" id="L44">	private NDArrayUtil(){</span>
+<span class="nc" id="L45">	}</span>
+
+	static
+	public int[] getShape(NDArray array){
+<span class="fc" id="L49">		Object[] shape = array.getShape();</span>
+
+<span class="fc" id="L51">		List&lt;? extends Number&gt; values = (List)Arrays.asList(shape);</span>
+
+<span class="fc" id="L53">		return Ints.toArray(ValueUtil.asIntegers(values));</span>
+	}
+
+	/**
+	 * Gets the payload of a one-dimensional array.
+	 */
+	static
+	public List&lt;?&gt; getContent(NDArray array){
+<span class="fc" id="L61">		Object content = array.getContent();</span>
+
+<span class="fc" id="L63">		return asJavaList(array, (List&lt;?&gt;)content);</span>
+	}
+
+	/**
+	 * Gets the payload of the specified dimension of a multi-dimensional array.
+	 *
+	 * @param key The dimension.
+	 */
+	static
+	public List&lt;?&gt; getContent(NDArray array, String key){
+<span class="fc" id="L73">		Map&lt;String, ?&gt; content = (Map&lt;String, ?&gt;)array.getContent();</span>
+
+<span class="fc" id="L75">		return asJavaList(array, (List&lt;?&gt;)content.get(key));</span>
+	}
+
+	static
+	private &lt;E&gt; List&lt;E&gt; asJavaList(NDArray array, List&lt;E&gt; values){
+<span class="fc" id="L80">		boolean fortranOrder = array.getFortranOrder();</span>
+
+<span class="fc bfc" id="L82" title="All 2 branches covered.">		if(fortranOrder){</span>
+<span class="fc" id="L83">			int[] shape = getShape(array);</span>
+
+<span class="pc bpc" id="L85" title="2 of 3 branches missed.">			switch(shape.length){</span>
+				case 1:
+<span class="nc" id="L87">					return values;</span>
+				case 2:
+<span class="fc" id="L89">					return toJavaList(values, shape[0], shape[1]);</span>
+				default:
+<span class="nc" id="L91">					throw new IllegalArgumentException();</span>
+			}
+		}
+
+<span class="fc" id="L95">		return values;</span>
+	}
+
+	/**
+	 * Translates a column-major (ie. Fortran-type) array to a row-major (ie. C-type) array.
+	 */
+	static
+	private &lt;E&gt; List&lt;E&gt; toJavaList(List&lt;E&gt; values, int rows, int columns){
+<span class="fc" id="L103">		List&lt;E&gt; result = new ArrayList&lt;&gt;(values.size());</span>
+
+<span class="fc bfc" id="L105" title="All 2 branches covered.">		for(int i = 0; i &lt; values.size(); i++){</span>
+<span class="fc" id="L106">			int row = i / columns;</span>
+<span class="fc" id="L107">			int column = i % columns;</span>
+
+<span class="fc" id="L109">			E value = values.get((column * rows) + row);</span>
+
+<span class="fc" id="L111">			result.add(value);</span>
+		}
+
+<span class="fc" id="L114">		return result;</span>
+	}
+
+	/**
+	 * http://docs.scipy.org/doc/numpy-dev/neps/npy-format.html
+	 */
+	static
+	public NDArray parseNpy(InputStream is) throws IOException {
+<span class="nc" id="L122">		byte[] magicBytes = new byte[MAGIC_STRING.length];</span>
+
+<span class="nc" id="L124">		ByteStreams.readFully(is, magicBytes);</span>
+
+<span class="nc bnc" id="L126" title="All 2 branches missed.">		if(!Arrays.equals(magicBytes, MAGIC_STRING)){</span>
+<span class="nc" id="L127">			throw new IOException();</span>
+		}
+
+<span class="nc" id="L130">		int majorVersion = readUnsignedByte(is);</span>
+<span class="nc" id="L131">		int minorVersion = readUnsignedByte(is);</span>
+
+<span class="nc bnc" id="L133" title="All 4 branches missed.">		if(majorVersion != 1 || minorVersion != 0){</span>
+<span class="nc" id="L134">			throw new IOException();</span>
+		}
+
+<span class="nc" id="L137">		int headerLength = readUnsignedShort(is, ByteOrder.LITTLE_ENDIAN);</span>
+
+<span class="nc bnc" id="L139" title="All 2 branches missed.">		if(headerLength &lt; 0){</span>
+<span class="nc" id="L140">			throw new IOException();</span>
+		}
+
+<span class="nc" id="L143">		byte[] headerBytes = new byte[headerLength];</span>
+
+<span class="nc" id="L145">		ByteStreams.readFully(is, headerBytes);</span>
+
+<span class="nc" id="L147">		String header = new String(headerBytes);</span>
+
+		// Remove trailing whitespace
+<span class="nc" id="L150">		header = header.trim();</span>
+
+<span class="nc" id="L152">		Map&lt;String, ?&gt; headerDict = parseDict(header);</span>
+
+<span class="nc" id="L154">		Object descr = headerDict.get(&quot;descr&quot;);</span>
+<span class="nc" id="L155">		Boolean fortranOrder = (Boolean)headerDict.get(&quot;fortran_order&quot;);</span>
+<span class="nc" id="L156">		Object[] shape = (Object[])headerDict.get(&quot;shape&quot;);</span>
+
+<span class="nc" id="L158">		byte[] data = ByteStreams.toByteArray(is);</span>
+
+<span class="nc" id="L160">		NDArray array = new NDArray();</span>
+<span class="nc" id="L161">		array.__setstate__(new Object[]{Arrays.asList(majorVersion, minorVersion), shape, descr, fortranOrder, data});</span>
+
+<span class="nc" id="L163">		return array;</span>
+	}
+
+	static
+	public Object parseData(InputStream is, Object descr, Object[] shape) throws IOException {
+
+<span class="fc bfc" id="L169" title="All 2 branches covered.">		if(descr instanceof DType){</span>
+<span class="fc" id="L170">			DType dType = (DType)descr;</span>
+
+<span class="fc" id="L172">			descr = dType.toDescr();</span>
+		}
+
+<span class="fc" id="L175">		int length = 1;</span>
+
+<span class="fc bfc" id="L177" title="All 2 branches covered.">		for(int i = 0; i &lt; shape.length; i++){</span>
+<span class="fc" id="L178">			length *= ValueUtil.asInt((Number)shape[i]);</span>
+		} // End if
+
+<span class="fc bfc" id="L181" title="All 2 branches covered.">		if(descr instanceof String){</span>
+<span class="fc" id="L182">			return parseArray(is, (String)descr, length);</span>
+		}
+
+<span class="fc" id="L185">		List&lt;Object[]&gt; dims = (List&lt;Object[]&gt;)descr;</span>
+
+<span class="fc" id="L187">		Map&lt;String, List&lt;?&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L189">		List&lt;Object[]&gt; objects = parseMultiArray(is, (List)TupleUtil.extractElementList(dims, 1), length);</span>
+
+<span class="fc bfc" id="L191" title="All 2 branches covered.">		for(int i = 0; i &lt; dims.size(); i++){</span>
+<span class="fc" id="L192">			Object[] dim = dims.get(i);</span>
+
+<span class="fc" id="L194">			result.put((String)dim[0], TupleUtil.extractElementList(objects, i));</span>
+		}
+
+<span class="fc" id="L197">		return result;</span>
+	}
+
+	static
+	public List&lt;Object&gt; parseArray(InputStream is, String descr, int length) throws IOException {
+<span class="fc" id="L202">		List&lt;Object&gt; result = new ArrayList&lt;&gt;(length);</span>
+
+<span class="fc" id="L204">		TypeDescriptor descriptor = new TypeDescriptor(descr);</span>
+
+<span class="fc bfc" id="L206" title="All 2 branches covered.">		while(result.size() &lt; length){</span>
+<span class="fc" id="L207">			Object element = descriptor.read(is);</span>
+
+<span class="fc bfc" id="L209" title="All 2 branches covered.">			if(descriptor.isObject()){</span>
+<span class="fc" id="L210">				NDArray array = (NDArray)element;</span>
+
+<span class="fc" id="L212">				result.addAll(NDArrayUtil.getContent(array));</span>
+
+<span class="fc" id="L214">				continue;</span>
+			}
+
+<span class="fc" id="L217">			result.add(element);</span>
+<span class="fc" id="L218">		}</span>
+
+<span class="fc" id="L220">		return result;</span>
+	}
+
+	static
+	public List&lt;Object[]&gt; parseMultiArray(InputStream is, List&lt;String&gt; descrs, int length) throws IOException {
+<span class="fc" id="L225">		List&lt;Object[]&gt; result = new ArrayList&lt;&gt;(length);</span>
+
+<span class="fc" id="L227">		List&lt;TypeDescriptor&gt; descriptors = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L229" title="All 2 branches covered.">		for(String descr : descrs){</span>
+<span class="fc" id="L230">			TypeDescriptor descriptor = new TypeDescriptor(descr);</span>
+
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">			if(descriptor.isObject()){</span>
+<span class="nc" id="L233">				throw new IllegalArgumentException(descr);</span>
+			}
+
+<span class="fc" id="L236">			descriptors.add(descriptor);</span>
+<span class="fc" id="L237">		}</span>
+
+<span class="fc bfc" id="L239" title="All 2 branches covered.">		for(int i = 0; i &lt; length; i++){</span>
+<span class="fc" id="L240">			Object[] element = new Object[descriptors.size()];</span>
+
+<span class="fc bfc" id="L242" title="All 2 branches covered.">			for(int j = 0; j &lt; descriptors.size(); j++){</span>
+<span class="fc" id="L243">				TypeDescriptor descriptor = descriptors.get(j);</span>
+
+<span class="fc" id="L245">				element[j] = descriptor.read(is);</span>
+			}
+
+<span class="fc" id="L248">			result.add(element);</span>
+		}
+
+<span class="fc" id="L251">		return result;</span>
+	}
+
+	static
+	private Map&lt;String, ?&gt; parseDict(String string){
+<span class="nc" id="L256">		Parser parser = new Parser();</span>
+
+<span class="nc" id="L258">		Ast ast = parser.parse(string);</span>
+
+<span class="nc" id="L260">		return (Map&lt;String, ?&gt;)ast.getData();</span>
+	}
+
+	static
+	private byte readByte(InputStream is) throws IOException {
+<span class="fc" id="L265">		int b = is.read();</span>
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">		if(b &lt; 0){</span>
+<span class="nc" id="L267">			throw new EOFException();</span>
+		}
+
+<span class="fc" id="L270">		return (byte)b;</span>
+	}
+
+	static
+	private int readUnsignedByte(InputStream is) throws IOException {
+<span class="nc" id="L275">		int b = is.read();</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">		if(b &lt; 0){</span>
+<span class="nc" id="L277">			throw new EOFException();</span>
+		}
+
+<span class="nc" id="L280">		return b;</span>
+	}
+
+	static
+	private int readUnsignedShort(InputStream is, ByteOrder byteOrder) throws IOException {
+<span class="nc" id="L285">		byte b1 = readByte(is);</span>
+<span class="nc" id="L286">		byte b2 = readByte(is);</span>
+
+<span class="nc bnc" id="L288" title="All 2 branches missed.">		if((ByteOrder.BIG_ENDIAN).equals(byteOrder)){</span>
+<span class="nc" id="L289">			return Ints.fromBytes((byte)0, (byte)0, b1, b2);</span>
+		} else
+
+<span class="nc bnc" id="L292" title="All 2 branches missed.">		if((ByteOrder.LITTLE_ENDIAN).equals(byteOrder)){</span>
+<span class="nc" id="L293">			return Ints.fromBytes((byte)0, (byte)0, b2, b1);</span>
+		}
+
+<span class="nc" id="L296">		throw new IOException();</span>
+	}
+
+	static
+	private int readInt(InputStream is, ByteOrder byteOrder) throws IOException {
+<span class="fc" id="L301">		byte b1 = readByte(is);</span>
+<span class="fc" id="L302">		byte b2 = readByte(is);</span>
+<span class="fc" id="L303">		byte b3 = readByte(is);</span>
+<span class="fc" id="L304">		byte b4 = readByte(is);</span>
+
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">		if((ByteOrder.BIG_ENDIAN).equals(byteOrder)){</span>
+<span class="nc" id="L307">			return Ints.fromBytes(b1, b2, b3, b4);</span>
+		} else
+
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">		if((ByteOrder.LITTLE_ENDIAN).equals(byteOrder)){</span>
+<span class="fc" id="L311">			return Ints.fromBytes(b4, b3, b2, b1);</span>
+		}
+
+<span class="nc" id="L314">		throw new IOException();</span>
+	}
+
+	static
+	private long readLong(InputStream is, ByteOrder byteOrder) throws IOException {
+<span class="fc" id="L319">		byte b1 = readByte(is);</span>
+<span class="fc" id="L320">		byte b2 = readByte(is);</span>
+<span class="fc" id="L321">		byte b3 = readByte(is);</span>
+<span class="fc" id="L322">		byte b4 = readByte(is);</span>
+<span class="fc" id="L323">		byte b5 = readByte(is);</span>
+<span class="fc" id="L324">		byte b6 = readByte(is);</span>
+<span class="fc" id="L325">		byte b7 = readByte(is);</span>
+<span class="fc" id="L326">		byte b8 = readByte(is);</span>
+
+<span class="pc bpc" id="L328" title="1 of 2 branches missed.">		if((ByteOrder.BIG_ENDIAN).equals(byteOrder)){</span>
+<span class="nc" id="L329">			return Longs.fromBytes(b1, b2, b3, b4, b5, b6, b7, b8);</span>
+		} else
+
+<span class="pc bpc" id="L332" title="1 of 2 branches missed.">		if((ByteOrder.LITTLE_ENDIAN).equals(byteOrder)){</span>
+<span class="fc" id="L333">			return Longs.fromBytes(b8, b7, b6, b5, b4, b3, b2, b1);</span>
+		}
+
+<span class="nc" id="L336">		throw new IOException();</span>
+	}
+
+	static
+	private float readFloat(InputStream is, ByteOrder byteOrder) throws IOException {
+<span class="nc" id="L341">		return Float.intBitsToFloat(readInt(is, byteOrder));</span>
+	}
+
+	static
+	private double readDouble(InputStream is, ByteOrder byteOrder) throws IOException {
+<span class="fc" id="L346">		return Double.longBitsToDouble(readLong(is, byteOrder));</span>
+	}
+
+	static
+	private Object readObject(InputStream is) throws IOException {
+<span class="fc" id="L351">		Unpickler unpickler = new Unpickler();</span>
+
+<span class="fc" id="L353">		return unpickler.load(is);</span>
+	}
+
+	static
+	private String readString(InputStream is, int size) throws IOException {
+<span class="nc" id="L358">		byte[] buffer = new byte[size];</span>
+
+<span class="nc" id="L360">		ByteStreams.readFully(is, buffer);</span>
+
+<span class="nc" id="L362">		return toString(buffer, &quot;UTF-8&quot;);</span>
+	}
+
+	static
+	private String readUnicode(InputStream is, ByteOrder byteOrder, int size) throws IOException {
+<span class="fc" id="L367">		byte[] buffer = new byte[size * 4];</span>
+
+<span class="fc" id="L369">		ByteStreams.readFully(is, buffer);</span>
+
+<span class="pc bpc" id="L371" title="1 of 2 branches missed.">		if((ByteOrder.BIG_ENDIAN).equals(byteOrder)){</span>
+<span class="nc" id="L372">			return toString(buffer, &quot;UTF-32BE&quot;);</span>
+		} else
+
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">		if((ByteOrder.LITTLE_ENDIAN).equals(byteOrder)){</span>
+<span class="fc" id="L376">			return toString(buffer, &quot;UTF-32LE&quot;);</span>
+		}
+
+<span class="nc" id="L379">		throw new IOException();</span>
+	}
+
+	static
+	private String toString(byte[] buffer, String encoding) throws IOException {
+<span class="fc" id="L384">		String string = new String(buffer, encoding);</span>
+
+		// Trim trailing zero characters
+<span class="pc bpc" id="L387" title="1 of 4 branches missed.">		while(string.length() &gt; 0 &amp;&amp; string.charAt(string.length() - 1) == '\0'){</span>
+<span class="fc" id="L388">			string = string.substring(0, string.length() - 1);</span>
+		}
+
+<span class="fc" id="L391">		return string;</span>
+	}
+
+	/**
+	 * http://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html
+	 * http://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.byteorder.html
+	 */
+	static
+	private class TypeDescriptor {
+
+<span class="fc" id="L401">		private ByteOrder byteOrder = null;</span>
+
+<span class="fc" id="L403">		private Kind kind = null;</span>
+
+<span class="fc" id="L405">		private int size = 0;</span>
+
+
+<span class="fc" id="L408">		private TypeDescriptor(String descr){</span>
+<span class="fc" id="L409">			int i = 0;</span>
+
+<span class="fc" id="L411">			ByteOrder byteOrder = null;</span>
+
+<span class="pc bpc" id="L413" title="3 of 5 branches missed.">			switch(descr.charAt(i)){</span>
+				// Native
+				case '=':
+<span class="nc" id="L416">					byteOrder = ByteOrder.nativeOrder();</span>
+<span class="nc" id="L417">					i++;</span>
+<span class="nc" id="L418">					break;</span>
+				// Big-endian
+				case '&gt;':
+<span class="nc" id="L421">					byteOrder = ByteOrder.BIG_ENDIAN;</span>
+<span class="nc" id="L422">					i++;</span>
+<span class="nc" id="L423">					break;</span>
+				// Little-endian
+				case '&lt;':
+<span class="fc" id="L426">					byteOrder = ByteOrder.LITTLE_ENDIAN;</span>
+<span class="fc" id="L427">					i++;</span>
+<span class="fc" id="L428">					break;</span>
+				// Not applicable
+				case '|':
+<span class="fc" id="L431">					i++;</span>
+					break;
+			}
+
+<span class="fc" id="L435">			setByteOrder(byteOrder);</span>
+
+<span class="fc" id="L437">			Kind kind = Kind.forChar(descr.charAt(i));</span>
+
+<span class="fc" id="L439">			i++;</span>
+
+<span class="fc" id="L441">			setKind(kind);</span>
+
+<span class="pc bpc" id="L443" title="1 of 2 branches missed.">			if(i &lt; descr.length()){</span>
+<span class="fc" id="L444">				int size = Integer.parseInt(descr.substring(i));</span>
+
+<span class="fc" id="L446">				setSize(size);</span>
+			}
+<span class="fc" id="L448">		}</span>
+
+		public Object read(InputStream is) throws IOException {
+<span class="fc" id="L451">			Kind kind = getKind();</span>
+<span class="fc" id="L452">			ByteOrder byteOrder = getByteOrder();</span>
+<span class="fc" id="L453">			int size = getSize();</span>
+
+<span class="pc bpc" id="L455" title="3 of 9 branches missed.">			switch(kind){</span>
+				case BOOLEAN:
+					{
+<span class="pc bpc" id="L458" title="1 of 2 branches missed.">						switch(size){</span>
+							case 1:
+<span class="fc bfc" id="L460" title="All 2 branches covered.">								return (readByte(is) == 1);</span>
+							default:
+<span class="nc" id="L462">								break;</span>
+						}
+					}
+					break;
+				case INTEGER:
+					{
+<span class="pc bpc" id="L468" title="1 of 3 branches missed.">						switch(size){</span>
+							case 4:
+<span class="fc" id="L470">								return readInt(is, byteOrder);</span>
+							case 8:
+<span class="fc" id="L472">								return readLong(is, byteOrder);</span>
+							default:
+<span class="nc" id="L474">								break;</span>
+						}
+					}
+					break;
+				case UNSIGNED_INTEGER:
+					{
+<span class="pc bpc" id="L480" title="1 of 2 branches missed.">						switch(size){</span>
+							case 4:
+<span class="fc" id="L482">								return UnsignedInts.toLong(readInt(is, byteOrder));</span>
+							default:
+<span class="nc" id="L484">								break;</span>
+						}
+					}
+					break;
+				case FLOAT:
+					{
+<span class="pc bpc" id="L490" title="2 of 3 branches missed.">						switch(size){</span>
+							case 4:
+<span class="nc" id="L492">								return readFloat(is, byteOrder);</span>
+							case 8:
+<span class="fc" id="L494">								return readDouble(is, byteOrder);</span>
+							default:
+<span class="nc" id="L496">								break;</span>
+						}
+					}
+					break;
+				case OBJECT:
+					{
+<span class="fc" id="L502">						return readObject(is);</span>
+					}
+				case STRING:
+					{
+<span class="nc" id="L506">						return readString(is, size);</span>
+					}
+				case UNICODE:
+					{
+<span class="fc" id="L510">						return readUnicode(is, byteOrder, size);</span>
+					}
+				case VOID:
+					{
+<span class="nc" id="L514">						byte[] buffer = new byte[size];</span>
+
+<span class="nc" id="L516">						ByteStreams.readFully(is, buffer);</span>
+
+<span class="nc" id="L518">						return buffer;</span>
+					}
+				default:
+					break;
+			}
+
+<span class="nc" id="L524">			throw new IOException();</span>
+		}
+
+		public boolean isObject(){
+<span class="fc" id="L528">			Kind kind = getKind();</span>
+
+<span class="fc bfc" id="L530" title="All 2 branches covered.">			switch(kind){</span>
+				case OBJECT:
+<span class="fc" id="L532">					return true;</span>
+				default:
+<span class="fc" id="L534">					return false;</span>
+			}
+		}
+
+		public ByteOrder getByteOrder(){
+<span class="fc" id="L539">			return this.byteOrder;</span>
+		}
+
+		private void setByteOrder(ByteOrder byteOrder){
+<span class="fc" id="L543">			this.byteOrder = byteOrder;</span>
+<span class="fc" id="L544">		}</span>
+
+		public Kind getKind(){
+<span class="fc" id="L547">			return this.kind;</span>
+		}
+
+		private void setKind(Kind kind){
+<span class="fc" id="L551">			this.kind = kind;</span>
+<span class="fc" id="L552">		}</span>
+
+		public int getSize(){
+<span class="fc" id="L555">			return this.size;</span>
+		}
+
+		private void setSize(int size){
+<span class="fc" id="L559">			this.size = size;</span>
+<span class="fc" id="L560">		}</span>
+
+<span class="pc" id="L562">		static</span>
+<span class="fc" id="L563">		private enum Kind {</span>
+<span class="fc" id="L564">			BOOLEAN,</span>
+<span class="fc" id="L565">			INTEGER,</span>
+<span class="fc" id="L566">			UNSIGNED_INTEGER,</span>
+<span class="fc" id="L567">			FLOAT,</span>
+<span class="fc" id="L568">			COMPLEX_FLOAT,</span>
+<span class="fc" id="L569">			OBJECT,</span>
+<span class="fc" id="L570">			STRING,</span>
+<span class="fc" id="L571">			UNICODE,</span>
+<span class="fc" id="L572">			VOID,</span>
+			;
+
+			static
+			public Kind forChar(char c){
+
+<span class="pc bpc" id="L578" title="4 of 10 branches missed.">				switch(c){</span>
+					case 'b':
+<span class="fc" id="L580">						return BOOLEAN;</span>
+					case 'i':
+<span class="fc" id="L582">						return INTEGER;</span>
+					case 'u':
+<span class="fc" id="L584">						return UNSIGNED_INTEGER;</span>
+					case 'f':
+<span class="fc" id="L586">						return FLOAT;</span>
+					case 'c':
+<span class="nc" id="L588">						return COMPLEX_FLOAT;</span>
+					case 'O':
+<span class="fc" id="L590">						return OBJECT;</span>
+					case 'S':
+					case 'a':
+<span class="nc" id="L593">						return STRING;</span>
+					case 'U':
+<span class="fc" id="L595">						return UNICODE;</span>
+					case 'V':
+<span class="nc" id="L597">						return VOID;</span>
+					default:
+<span class="nc" id="L599">						throw new IllegalArgumentException();</span>
+				}
+			}
+		}
+	}
+
+<span class="fc" id="L605">	private static final byte[] MAGIC_STRING = {(byte)'\u0093', 'N', 'U', 'M', 'P', 'Y'};</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

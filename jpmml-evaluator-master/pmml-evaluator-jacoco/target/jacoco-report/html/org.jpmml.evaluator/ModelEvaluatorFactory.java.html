@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModelEvaluatorFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">ModelEvaluatorFactory.java</span></div><h1>ModelEvaluatorFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.Serializable;
+import java.util.List;
+
+import org.dmg.pmml.Model;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.association.AssociationModel;
+import org.dmg.pmml.clustering.ClusteringModel;
+import org.dmg.pmml.general_regression.GeneralRegressionModel;
+import org.dmg.pmml.mining.MiningModel;
+import org.dmg.pmml.naive_bayes.NaiveBayesModel;
+import org.dmg.pmml.nearest_neighbor.NearestNeighborModel;
+import org.dmg.pmml.neural_network.NeuralNetwork;
+import org.dmg.pmml.regression.RegressionModel;
+import org.dmg.pmml.rule_set.RuleSetModel;
+import org.dmg.pmml.scorecard.Scorecard;
+import org.dmg.pmml.support_vector_machine.SupportVectorMachineModel;
+import org.dmg.pmml.tree.TreeModel;
+import org.jpmml.evaluator.association.AssociationModelEvaluator;
+import org.jpmml.evaluator.clustering.ClusteringModelEvaluator;
+import org.jpmml.evaluator.general_regression.GeneralRegressionModelEvaluator;
+import org.jpmml.evaluator.mining.MiningModelEvaluator;
+import org.jpmml.evaluator.naive_bayes.NaiveBayesModelEvaluator;
+import org.jpmml.evaluator.nearest_neighbor.NearestNeighborModelEvaluator;
+import org.jpmml.evaluator.neural_network.NeuralNetworkEvaluator;
+import org.jpmml.evaluator.regression.RegressionModelEvaluator;
+import org.jpmml.evaluator.rule_set.RuleSetModelEvaluator;
+import org.jpmml.evaluator.scorecard.ScorecardEvaluator;
+import org.jpmml.evaluator.support_vector_machine.SupportVectorMachineModelEvaluator;
+import org.jpmml.evaluator.tree.TreeModelEvaluator;
+
+public class ModelEvaluatorFactory implements Serializable {
+
+<span class="fc" id="L53">	private ValueFactoryFactory valueFactoryFactory = null;</span>
+
+
+<span class="fc" id="L56">	protected ModelEvaluatorFactory(){</span>
+<span class="fc" id="L57">	}</span>
+
+	public ModelEvaluator&lt;? extends Model&gt; newModelEvaluator(PMML pmml){
+
+<span class="pc bpc" id="L61" title="1 of 2 branches missed.">		if(!pmml.hasModels()){</span>
+<span class="nc" id="L62">			throw new InvalidFeatureException(pmml);</span>
+		}
+
+<span class="fc" id="L65">		List&lt;Model&gt; models = pmml.getModels();</span>
+
+<span class="fc" id="L67">		Model model = models.get(0);</span>
+
+<span class="fc" id="L69">		return newModelEvaluator(pmml, model);</span>
+	}
+
+	public ModelEvaluator&lt;? extends Model&gt; newModelEvaluator(PMML pmml, Model model){
+<span class="fc" id="L73">		ModelEvaluator&lt;?&gt; modelEvaluator = createModelEvaluator(pmml, model);</span>
+<span class="fc" id="L74">		modelEvaluator.configure(this);</span>
+
+<span class="fc" id="L76">		return modelEvaluator;</span>
+	}
+
+	private ModelEvaluator&lt;? extends Model&gt; createModelEvaluator(PMML pmml, Model model){
+
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		if(model instanceof AssociationModel){</span>
+<span class="fc" id="L82">			return new AssociationModelEvaluator(pmml, (AssociationModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L85" title="All 2 branches covered.">		if(model instanceof ClusteringModel){</span>
+<span class="fc" id="L86">			 return new ClusteringModelEvaluator(pmml, (ClusteringModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L89" title="All 2 branches covered.">		if(model instanceof GeneralRegressionModel){</span>
+<span class="fc" id="L90">			return new GeneralRegressionModelEvaluator(pmml, (GeneralRegressionModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L93" title="All 2 branches covered.">		if(model instanceof MiningModel){</span>
+<span class="fc" id="L94">			return new MiningModelEvaluator(pmml, (MiningModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L97" title="All 2 branches covered.">		if(model instanceof NaiveBayesModel){</span>
+<span class="fc" id="L98">			return new NaiveBayesModelEvaluator(pmml, (NaiveBayesModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L101" title="All 2 branches covered.">		if(model instanceof NearestNeighborModel){</span>
+<span class="fc" id="L102">			return new NearestNeighborModelEvaluator(pmml, (NearestNeighborModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L105" title="All 2 branches covered.">		if(model instanceof NeuralNetwork){</span>
+<span class="fc" id="L106">			return new NeuralNetworkEvaluator(pmml, (NeuralNetwork)model);</span>
+		} else
+
+<span class="fc bfc" id="L109" title="All 2 branches covered.">		if(model instanceof RegressionModel){</span>
+<span class="fc" id="L110">			return new RegressionModelEvaluator(pmml, (RegressionModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L113" title="All 2 branches covered.">		if(model instanceof RuleSetModel){</span>
+<span class="fc" id="L114">			return new RuleSetModelEvaluator(pmml, (RuleSetModel)model);</span>
+		} else
+
+<span class="fc bfc" id="L117" title="All 2 branches covered.">		if(model instanceof Scorecard){</span>
+<span class="fc" id="L118">			return new ScorecardEvaluator(pmml, (Scorecard)model);</span>
+		} else
+
+<span class="fc bfc" id="L121" title="All 2 branches covered.">		if(model instanceof SupportVectorMachineModel){</span>
+<span class="fc" id="L122">			return new SupportVectorMachineModelEvaluator(pmml, (SupportVectorMachineModel)model);</span>
+		} else
+
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">		if(model instanceof TreeModel){</span>
+<span class="fc" id="L126">			return new TreeModelEvaluator(pmml, (TreeModel)model);</span>
+		} // End if
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">		if(model instanceof JavaModel){</span>
+<span class="nc" id="L130">			return new JavaModelEvaluator(pmml, (JavaModel)model);</span>
+		}
+
+<span class="nc" id="L133">		throw new UnsupportedFeatureException(model);</span>
+	}
+
+	public ValueFactoryFactory getValueFactoryFactory(){
+<span class="fc" id="L137">		return this.valueFactoryFactory;</span>
+	}
+
+	public void setValueFactoryFactory(ValueFactoryFactory valueFactoryFactory){
+<span class="nc" id="L141">		this.valueFactoryFactory = valueFactoryFactory;</span>
+<span class="nc" id="L142">	}</span>
+
+	static
+	public ModelEvaluatorFactory newInstance(){
+<span class="fc" id="L146">		return new ModelEvaluatorFactory();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

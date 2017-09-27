@@ -1,0 +1,907 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NearestNeighborModelEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.nearest_neighbor</a> &gt; <span class="el_source">NearestNeighborModelEvaluator.java</span></div><h1>NearestNeighborModelEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 KNIME.com AG, Zurich, Switzerland
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.jpmml.evaluator.nearest_neighbor;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
+import com.google.common.base.Function;
+import com.google.common.cache.Cache;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.Table;
+import org.dmg.pmml.ComparisonMeasure;
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.DerivedField;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.InlineTable;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.Measure;
+import org.dmg.pmml.MiningField;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.TypeDefinitionField;
+import org.dmg.pmml.nearest_neighbor.InstanceField;
+import org.dmg.pmml.nearest_neighbor.InstanceFields;
+import org.dmg.pmml.nearest_neighbor.KNNInput;
+import org.dmg.pmml.nearest_neighbor.KNNInputs;
+import org.dmg.pmml.nearest_neighbor.NearestNeighborModel;
+import org.dmg.pmml.nearest_neighbor.TrainingInstances;
+import org.jpmml.evaluator.AffinityDistribution;
+import org.jpmml.evaluator.CacheUtil;
+import org.jpmml.evaluator.Classification;
+import org.jpmml.evaluator.ComplexDoubleVector;
+import org.jpmml.evaluator.EvaluationContext;
+import org.jpmml.evaluator.EvaluationException;
+import org.jpmml.evaluator.ExpressionUtil;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.FieldValueUtil;
+import org.jpmml.evaluator.InlineTableUtil;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.InvalidResultException;
+import org.jpmml.evaluator.MeasureUtil;
+import org.jpmml.evaluator.MissingFieldException;
+import org.jpmml.evaluator.MissingValueException;
+import org.jpmml.evaluator.ModelEvaluationContext;
+import org.jpmml.evaluator.ModelEvaluator;
+import org.jpmml.evaluator.OutputUtil;
+import org.jpmml.evaluator.SimpleDoubleVector;
+import org.jpmml.evaluator.TargetField;
+import org.jpmml.evaluator.TypeUtil;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.evaluator.ValueAggregator;
+import org.jpmml.evaluator.ValueFactory;
+import org.jpmml.evaluator.VoteAggregator;
+
+public class NearestNeighborModelEvaluator extends ModelEvaluator&lt;NearestNeighborModel&gt; {
+
+<span class="fc" id="L98">	transient</span>
+	private Table&lt;Integer, FieldName, FieldValue&gt; trainingInstances = null;
+
+<span class="fc" id="L101">	transient</span>
+	private Map&lt;Integer, BitSet&gt; instanceFlags = null;
+
+<span class="fc" id="L104">	transient</span>
+	private Map&lt;Integer, List&lt;FieldValue&gt;&gt; instanceValues = null;
+
+
+	public NearestNeighborModelEvaluator(PMML pmml){
+<span class="nc" id="L109">		this(pmml, selectModel(pmml, NearestNeighborModel.class));</span>
+<span class="nc" id="L110">	}</span>
+
+	public NearestNeighborModelEvaluator(PMML pmml, NearestNeighborModel nearestNeighborModel){
+<span class="fc" id="L113">		super(pmml, nearestNeighborModel);</span>
+
+<span class="fc" id="L115">		ComparisonMeasure comparisoonMeasure = nearestNeighborModel.getComparisonMeasure();</span>
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">		if(comparisoonMeasure == null){</span>
+<span class="nc" id="L117">			throw new InvalidFeatureException(nearestNeighborModel);</span>
+		}
+
+<span class="fc" id="L120">		TrainingInstances trainingInstances = nearestNeighborModel.getTrainingInstances();</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">		if(trainingInstances == null){</span>
+<span class="nc" id="L122">			throw new InvalidFeatureException(nearestNeighborModel);</span>
+		}
+
+<span class="fc" id="L125">		InstanceFields instanceFields = trainingInstances.getInstanceFields();</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">		if(instanceFields == null){</span>
+<span class="nc" id="L127">			throw new InvalidFeatureException(trainingInstances);</span>
+		} // End if
+
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">		if(!instanceFields.hasInstanceFields()){</span>
+<span class="nc" id="L131">			throw new InvalidFeatureException(instanceFields);</span>
+		}
+
+<span class="fc" id="L134">		KNNInputs knnInputs = nearestNeighborModel.getKNNInputs();</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">		if(knnInputs == null){</span>
+<span class="nc" id="L136">			throw new InvalidFeatureException(nearestNeighborModel);</span>
+		} // End if
+
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">		if(!knnInputs.hasKNNInputs()){</span>
+<span class="nc" id="L140">			throw new InvalidFeatureException(knnInputs);</span>
+		}
+<span class="fc" id="L142">	}</span>
+
+	@Override
+	public String getSummary(){
+<span class="nc" id="L146">		return &quot;k-Nearest neighbors model&quot;;</span>
+	}
+
+	@Override
+	protected DataField getDataField(){
+<span class="fc" id="L151">		MiningFunction miningFunction = getMiningFunction();</span>
+
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">		switch(miningFunction){</span>
+			case REGRESSION:
+			case CLASSIFICATION:
+			case MIXED:
+<span class="nc" id="L157">				return null;</span>
+			default:
+<span class="fc" id="L159">				return super.getDataField();</span>
+		}
+	}
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context){
+<span class="fc" id="L165">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">		if(!nearestNeighborModel.isScorable()){</span>
+<span class="nc" id="L167">			throw new InvalidResultException(nearestNeighborModel);</span>
+		}
+
+<span class="fc" id="L170">		MathContext mathContext = nearestNeighborModel.getMathContext();</span>
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">		switch(mathContext){</span>
+			case DOUBLE:
+<span class="fc" id="L173">				break;</span>
+			default:
+<span class="nc" id="L175">				throw new UnsupportedFeatureException(nearestNeighborModel, mathContext);</span>
+		}
+
+		Map&lt;FieldName, AffinityDistribution&gt; predictions;
+
+<span class="fc" id="L180">		MiningFunction miningFunction = nearestNeighborModel.getMiningFunction();</span>
+<span class="pc bpc" id="L181" title="1 of 3 branches missed.">		switch(miningFunction){</span>
+			// The model contains one or more continuous and/or categorical target(s)
+			case REGRESSION:
+			case CLASSIFICATION:
+			case MIXED:
+<span class="fc" id="L186">				predictions = evaluateMixed(context);</span>
+<span class="fc" id="L187">				break;</span>
+			// The model does not contain targets
+			case CLUSTERING:
+<span class="fc" id="L190">				predictions = evaluateClustering(context);</span>
+<span class="fc" id="L191">				break;</span>
+			default:
+<span class="nc" id="L193">				throw new UnsupportedFeatureException(nearestNeighborModel, miningFunction);</span>
+		}
+
+<span class="fc" id="L196">		return OutputUtil.evaluate(predictions, context);</span>
+	}
+
+	private Map&lt;FieldName, AffinityDistribution&gt; evaluateMixed(EvaluationContext context){
+<span class="fc" id="L200">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+
+<span class="fc" id="L202">		Table&lt;Integer, FieldName, FieldValue&gt; table = getTrainingInstances();</span>
+
+<span class="fc" id="L204">		List&lt;InstanceResult&gt; instanceResults = evaluateInstanceRows(context);</span>
+
+<span class="fc" id="L206">		Ordering&lt;InstanceResult&gt; ordering = (Ordering.natural()).reverse();</span>
+
+<span class="fc" id="L208">		List&lt;InstanceResult&gt; nearestInstanceResults = ordering.sortedCopy(instanceResults);</span>
+
+<span class="fc" id="L210">		nearestInstanceResults = nearestInstanceResults.subList(0, nearestNeighborModel.getNumberOfNeighbors());</span>
+
+<span class="fc" id="L212">		Function&lt;Integer, String&gt; function = new Function&lt;Integer, String&gt;(){</span>
+
+			@Override
+			public String apply(Integer row){
+<span class="fc" id="L216">				return row.toString();</span>
+			}
+		};
+
+<span class="fc" id="L220">		FieldName instanceIdVariable = nearestNeighborModel.getInstanceIdVariable();</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">		if(instanceIdVariable != null){</span>
+<span class="nc" id="L222">			function = createIdentifierResolver(instanceIdVariable, table);</span>
+		}
+
+<span class="fc" id="L225">		Map&lt;FieldName, AffinityDistribution&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L227">		List&lt;TargetField&gt; targetFields = getTargetFields();</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">		for(TargetField targetField : targetFields){</span>
+<span class="fc" id="L229">			FieldName name = targetField.getName();</span>
+
+<span class="fc" id="L231">			DataField dataField = targetField.getDataField();</span>
+
+			Object value;
+
+<span class="fc" id="L235">			OpType opType = dataField.getOpType();</span>
+<span class="pc bpc" id="L236" title="1 of 3 branches missed.">			switch(opType){</span>
+				case CONTINUOUS:
+<span class="fc" id="L238">					value = calculateContinuousTarget(name, nearestInstanceResults, table);</span>
+<span class="fc" id="L239">					break;</span>
+				case CATEGORICAL:
+<span class="fc" id="L241">					value = calculateCategoricalTarget(name, nearestInstanceResults, table);</span>
+<span class="fc" id="L242">					break;</span>
+				default:
+<span class="nc" id="L244">					throw new UnsupportedFeatureException(dataField, opType);</span>
+			}
+
+<span class="fc" id="L247">			value = TypeUtil.parseOrCast(dataField.getDataType(), value);</span>
+
+<span class="fc" id="L249">			result.put(name, createAffinityDistribution(instanceResults, function, value));</span>
+<span class="fc" id="L250">		}</span>
+
+<span class="fc" id="L252">		return result;</span>
+	}
+
+	private Map&lt;FieldName, AffinityDistribution&gt; evaluateClustering(EvaluationContext context){
+<span class="fc" id="L256">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+
+<span class="fc" id="L258">		Table&lt;Integer, FieldName, FieldValue&gt; table = getTrainingInstances();</span>
+
+<span class="fc" id="L260">		List&lt;InstanceResult&gt; instanceResults = evaluateInstanceRows(context);</span>
+
+<span class="fc" id="L262">		FieldName instanceIdVariable = nearestNeighborModel.getInstanceIdVariable();</span>
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">		if(instanceIdVariable == null){</span>
+<span class="nc" id="L264">			throw new InvalidFeatureException(nearestNeighborModel);</span>
+		}
+
+<span class="fc" id="L267">		Function&lt;Integer, String&gt; function = createIdentifierResolver(instanceIdVariable, table);</span>
+
+<span class="fc" id="L269">		return Collections.singletonMap(getTargetFieldName(), createAffinityDistribution(instanceResults, function, null));</span>
+	}
+
+	private List&lt;InstanceResult&gt; evaluateInstanceRows(EvaluationContext context){
+<span class="fc" id="L273">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+
+<span class="fc" id="L275">		List&lt;FieldValue&gt; values = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L277">		KNNInputs knnInputs = nearestNeighborModel.getKNNInputs();</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">		for(KNNInput knnInput : knnInputs){</span>
+<span class="fc" id="L279">			FieldValue value = context.evaluate(knnInput.getField());</span>
+
+<span class="fc" id="L281">			values.add(value);</span>
+<span class="fc" id="L282">		}</span>
+
+<span class="fc" id="L284">		ComparisonMeasure comparisonMeasure = nearestNeighborModel.getComparisonMeasure();</span>
+
+<span class="fc" id="L286">		Measure measure = comparisonMeasure.getMeasure();</span>
+
+<span class="fc bfc" id="L288" title="All 2 branches covered.">		if(MeasureUtil.isSimilarity(measure)){</span>
+<span class="fc" id="L289">			return evaluateSimilarity(comparisonMeasure, knnInputs.getKNNInputs(), values);</span>
+		} else
+
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">		if(MeasureUtil.isDistance(measure)){</span>
+<span class="fc" id="L293">			return evaluateDistance(comparisonMeasure, knnInputs.getKNNInputs(), values);</span>
+		} else
+
+		{
+<span class="nc" id="L297">			throw new UnsupportedFeatureException(measure);</span>
+		}
+	}
+
+	private List&lt;InstanceResult&gt; evaluateSimilarity(ComparisonMeasure comparisonMeasure, List&lt;KNNInput&gt; knnInputs, List&lt;FieldValue&gt; values){
+<span class="fc" id="L302">		BitSet flags = MeasureUtil.toBitSet(values);</span>
+
+<span class="fc" id="L304">		Map&lt;Integer, BitSet&gt; flagMap = getInstanceFlags();</span>
+
+<span class="fc" id="L306">		List&lt;InstanceResult&gt; result = new ArrayList&lt;&gt;(flagMap.size());</span>
+
+<span class="fc" id="L308">		Set&lt;Integer&gt; rowKeys = flagMap.keySet();</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">		for(Integer rowKey : rowKeys){</span>
+<span class="fc" id="L310">			BitSet instanceFlags = flagMap.get(rowKey);</span>
+
+<span class="fc" id="L312">			Double similarity = MeasureUtil.evaluateSimilarity(comparisonMeasure, knnInputs, flags, instanceFlags);</span>
+
+<span class="fc" id="L314">			result.add(new InstanceResult.Similarity(rowKey, similarity));</span>
+<span class="fc" id="L315">		}</span>
+
+<span class="fc" id="L317">		return result;</span>
+	}
+
+	private List&lt;InstanceResult&gt; evaluateDistance(ComparisonMeasure comparisonMeasure, List&lt;KNNInput&gt; knnInputs, List&lt;FieldValue&gt; values){
+<span class="fc" id="L321">		Map&lt;Integer, List&lt;FieldValue&gt;&gt; valueMap = getInstanceValues();</span>
+
+<span class="fc" id="L323">		List&lt;InstanceResult&gt; result = new ArrayList&lt;&gt;(valueMap.size());</span>
+
+<span class="fc" id="L325">		double adjustment = MeasureUtil.calculateAdjustment(values);</span>
+
+<span class="fc" id="L327">		Set&lt;Integer&gt; rowKeys = valueMap.keySet();</span>
+<span class="fc bfc" id="L328" title="All 2 branches covered.">		for(Integer rowKey : rowKeys){</span>
+<span class="fc" id="L329">			List&lt;FieldValue&gt; instanceValues = valueMap.get(rowKey);</span>
+
+<span class="fc" id="L331">			Double distance = MeasureUtil.evaluateDistance(comparisonMeasure, knnInputs, values, instanceValues, adjustment);</span>
+
+<span class="fc" id="L333">			result.add(new InstanceResult.Distance(rowKey, distance));</span>
+<span class="fc" id="L334">		}</span>
+
+<span class="fc" id="L336">		return result;</span>
+	}
+
+	private Double calculateContinuousTarget(FieldName name, List&lt;InstanceResult&gt; instanceResults, Table&lt;Integer, FieldName, FieldValue&gt; table){
+<span class="fc" id="L340">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+
+<span class="fc" id="L342">		NearestNeighborModel.ContinuousScoringMethod continuousScoringMethod = nearestNeighborModel.getContinuousScoringMethod();</span>
+
+		ValueAggregator&lt;Double&gt; aggregator;
+
+<span class="pc bpc" id="L346" title="3 of 4 branches missed.">		switch(continuousScoringMethod){</span>
+			case AVERAGE:
+<span class="fc" id="L348">				aggregator = new ValueAggregator&lt;&gt;(new SimpleDoubleVector());</span>
+<span class="fc" id="L349">				break;</span>
+			case WEIGHTED_AVERAGE:
+<span class="nc" id="L351">				aggregator = new ValueAggregator&lt;&gt;(new SimpleDoubleVector(), new SimpleDoubleVector(), new SimpleDoubleVector());</span>
+<span class="nc" id="L352">				break;</span>
+			case MEDIAN:
+<span class="nc" id="L354">				aggregator = new ValueAggregator&lt;&gt;(new ComplexDoubleVector(instanceResults.size()));</span>
+<span class="nc" id="L355">				break;</span>
+			default:
+<span class="nc" id="L357">				throw new UnsupportedFeatureException(nearestNeighborModel, continuousScoringMethod);</span>
+		}
+
+<span class="fc bfc" id="L360" title="All 2 branches covered.">		for(InstanceResult instanceResult : instanceResults){</span>
+<span class="fc" id="L361">			FieldValue value = table.get(instanceResult.getId(), name);</span>
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">			if(value == null){</span>
+<span class="nc" id="L363">				throw new MissingValueException(name);</span>
+			}
+
+<span class="fc" id="L366">			Number number = value.asNumber();</span>
+
+<span class="pc bpc" id="L368" title="2 of 3 branches missed.">			switch(continuousScoringMethod){</span>
+				case AVERAGE:
+				case MEDIAN:
+<span class="fc" id="L371">					aggregator.add(number);</span>
+<span class="fc" id="L372">					break;</span>
+				case WEIGHTED_AVERAGE:
+<span class="nc" id="L374">					double weight = instanceResult.getWeight(nearestNeighborModel.getThreshold());</span>
+
+<span class="nc" id="L376">					aggregator.add(number, weight);</span>
+<span class="nc" id="L377">					break;</span>
+				default:
+<span class="nc" id="L379">					throw new UnsupportedFeatureException(nearestNeighborModel, continuousScoringMethod);</span>
+			}
+<span class="fc" id="L381">		}</span>
+
+<span class="pc bpc" id="L383" title="3 of 4 branches missed.">		switch(continuousScoringMethod){</span>
+			case AVERAGE:
+<span class="fc" id="L385">				return (aggregator.average()).getValue();</span>
+			case WEIGHTED_AVERAGE:
+<span class="nc" id="L387">				return (aggregator.weightedAverage()).getValue();</span>
+			case MEDIAN:
+<span class="nc" id="L389">				return (aggregator.median()).getValue();</span>
+			default:
+<span class="nc" id="L391">				throw new UnsupportedFeatureException(nearestNeighborModel, continuousScoringMethod);</span>
+		}
+	}
+
+	@SuppressWarnings (
+		value = {&quot;rawtypes&quot;, &quot;unchecked&quot;}
+	)
+	private Object calculateCategoricalTarget(FieldName name, List&lt;InstanceResult&gt; instanceResults, Table&lt;Integer, FieldName, FieldValue&gt; table){
+<span class="fc" id="L399">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+
+<span class="fc" id="L401">		VoteAggregator&lt;Object, Double&gt; aggregator = new VoteAggregator&lt;Object, Double&gt;(){</span>
+
+			@Override
+			public ValueFactory&lt;Double&gt; getValueFactory(){
+<span class="fc" id="L405">				return (ValueFactory)NearestNeighborModelEvaluator.this.getValueFactory();</span>
+			}
+		};
+
+<span class="fc" id="L409">		NearestNeighborModel.CategoricalScoringMethod categoricalScoringMethod = nearestNeighborModel.getCategoricalScoringMethod();</span>
+
+<span class="fc bfc" id="L411" title="All 2 branches covered.">		for(InstanceResult instanceResult : instanceResults){</span>
+<span class="fc" id="L412">			FieldValue value = table.get(instanceResult.getId(), name);</span>
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">			if(value == null){</span>
+<span class="nc" id="L414">				throw new MissingValueException(name);</span>
+			}
+
+<span class="fc" id="L417">			Object object = value.getValue();</span>
+
+<span class="pc bpc" id="L419" title="2 of 3 branches missed.">			switch(categoricalScoringMethod){</span>
+				case MAJORITY_VOTE:
+<span class="fc" id="L421">					aggregator.add(object);</span>
+<span class="fc" id="L422">					break;</span>
+				case WEIGHTED_MAJORITY_VOTE:
+<span class="nc" id="L424">					double weight = instanceResult.getWeight(nearestNeighborModel.getThreshold());</span>
+
+<span class="nc" id="L426">					aggregator.add(object, weight);</span>
+<span class="nc" id="L427">					break;</span>
+				default:
+<span class="nc" id="L429">					throw new UnsupportedFeatureException(nearestNeighborModel, categoricalScoringMethod);</span>
+			}
+<span class="fc" id="L431">		}</span>
+
+<span class="fc" id="L433">		Set&lt;Object&gt; winners = aggregator.getWinners();</span>
+
+		// &quot;In case of a tie, the category with the largest number of cases in the training data is the winner&quot;
+<span class="fc bfc" id="L436" title="All 2 branches covered.">		if(winners.size() &gt; 1){</span>
+<span class="fc" id="L437">			Multiset&lt;Object&gt; multiset = LinkedHashMultiset.create();</span>
+
+<span class="fc" id="L439">			Map&lt;Integer, FieldValue&gt; column = table.column(name);</span>
+
+<span class="fc" id="L441">			Function&lt;FieldValue, Object&gt; function = new Function&lt;FieldValue, Object&gt;(){</span>
+
+				@Override
+				public Object apply(FieldValue value){
+<span class="fc" id="L445">					return value.getValue();</span>
+				}
+			};
+<span class="fc" id="L448">			multiset.addAll(Collections2.transform(column.values(), function));</span>
+
+<span class="fc" id="L450">			aggregator.clear();</span>
+
+<span class="fc bfc" id="L452" title="All 2 branches covered.">			for(Object winner : winners){</span>
+<span class="fc" id="L453">				aggregator.add(winner, multiset.count(winner));</span>
+<span class="fc" id="L454">			}</span>
+
+<span class="fc" id="L456">			winners = aggregator.getWinners();</span>
+
+			// &quot;If multiple categories are tied on the largest number of cases in the training data, then the category with the smallest data value (in lexical order) among the tied categories is the winner&quot;
+<span class="fc bfc" id="L459" title="All 2 branches covered.">			if(winners.size() &gt; 1){</span>
+<span class="fc" id="L460">				return Collections.min((Collection)winners);</span>
+			}
+		}
+
+<span class="fc" id="L464">		return Iterables.getFirst(winners, null);</span>
+	}
+
+	private Function&lt;Integer, String&gt; createIdentifierResolver(final FieldName name, final Table&lt;Integer, FieldName, FieldValue&gt; table){
+<span class="fc" id="L468">		Function&lt;Integer, String&gt; function = new Function&lt;Integer, String&gt;(){</span>
+
+			@Override
+			public String apply(Integer row){
+<span class="fc" id="L472">				FieldValue value = table.get(row, name);</span>
+<span class="pc bpc" id="L473" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L474">					throw new MissingValueException(name);</span>
+				}
+
+<span class="fc" id="L477">				return value.asString();</span>
+			}
+		};
+
+<span class="fc" id="L481">		return function;</span>
+	}
+
+	private AffinityDistribution createAffinityDistribution(List&lt;InstanceResult&gt; instanceResults, Function&lt;Integer, String&gt; function, Object value){
+<span class="fc" id="L485">		NearestNeighborModel nearestNeighborModel = getModel();</span>
+
+		AffinityDistribution result;
+
+<span class="fc" id="L489">		ComparisonMeasure comparisonMeasure = nearestNeighborModel.getComparisonMeasure();</span>
+
+<span class="fc" id="L491">		Measure measure = comparisonMeasure.getMeasure();</span>
+
+<span class="fc bfc" id="L493" title="All 2 branches covered.">		if(MeasureUtil.isSimilarity(measure)){</span>
+<span class="fc" id="L494">			result = new AffinityDistribution(Classification.Type.SIMILARITY, value);</span>
+		} else
+
+<span class="pc bpc" id="L497" title="1 of 2 branches missed.">		if(MeasureUtil.isDistance(measure)){</span>
+<span class="fc" id="L498">			result = new AffinityDistribution(Classification.Type.DISTANCE, value);</span>
+		} else
+
+		{
+<span class="nc" id="L502">			throw new UnsupportedFeatureException(measure);</span>
+		}
+
+<span class="fc bfc" id="L505" title="All 2 branches covered.">		for(InstanceResult instanceResult : instanceResults){</span>
+<span class="fc" id="L506">			result.put(function.apply(instanceResult.getId()), instanceResult.getValue());</span>
+<span class="fc" id="L507">		}</span>
+
+<span class="fc" id="L509">		return result;</span>
+	}
+
+	private Table&lt;Integer, FieldName, FieldValue&gt; getTrainingInstances(){
+
+<span class="pc bpc" id="L514" title="1 of 2 branches missed.">		if(this.trainingInstances == null){</span>
+<span class="fc" id="L515">			this.trainingInstances = getValue(NearestNeighborModelEvaluator.trainingInstanceCache, createTrainingInstanceLoader(this));</span>
+		}
+
+<span class="fc" id="L518">		return this.trainingInstances;</span>
+	}
+
+	static
+	private Callable&lt;Table&lt;Integer, FieldName, FieldValue&gt;&gt; createTrainingInstanceLoader(final NearestNeighborModelEvaluator modelEvaluator){
+<span class="fc" id="L523">		return new Callable&lt;Table&lt;Integer, FieldName, FieldValue&gt;&gt;(){</span>
+
+			@Override
+			public Table&lt;Integer, FieldName, FieldValue&gt; call(){
+<span class="fc" id="L527">				return parseTrainingInstances(modelEvaluator);</span>
+			}
+		};
+	}
+
+	static
+	private Table&lt;Integer, FieldName, FieldValue&gt; parseTrainingInstances(NearestNeighborModelEvaluator modelEvaluator){
+<span class="fc" id="L534">		NearestNeighborModel nearestNeighborModel = modelEvaluator.getModel();</span>
+
+<span class="fc" id="L536">		FieldName instanceIdVariable = nearestNeighborModel.getInstanceIdVariable();</span>
+
+<span class="fc" id="L538">		TrainingInstances trainingInstances = nearestNeighborModel.getTrainingInstances();</span>
+
+<span class="fc" id="L540">		List&lt;FieldLoader&gt; fieldLoaders = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L542">		InstanceFields instanceFields = trainingInstances.getInstanceFields();</span>
+<span class="fc bfc" id="L543" title="All 2 branches covered.">		for(InstanceField instanceField : instanceFields){</span>
+<span class="fc" id="L544">			FieldName name = instanceField.getField();</span>
+<span class="fc" id="L545">			String column = instanceField.getColumn();</span>
+
+<span class="fc bfc" id="L547" title="All 4 branches covered.">			if(instanceIdVariable != null &amp;&amp; (instanceIdVariable).equals(name)){</span>
+<span class="fc" id="L548">				fieldLoaders.add(new IdentifierLoader(name, column));</span>
+
+<span class="fc" id="L550">				continue;</span>
+			}
+
+<span class="fc" id="L553">			TypeDefinitionField field = modelEvaluator.resolveField(name);</span>
+<span class="pc bpc" id="L554" title="1 of 2 branches missed.">			if(field == null){</span>
+<span class="nc" id="L555">				throw new MissingFieldException(name, instanceField);</span>
+			} // End if
+
+<span class="pc bpc" id="L558" title="1 of 2 branches missed.">			if(field instanceof DataField){</span>
+<span class="fc" id="L559">				DataField dataField = (DataField)field;</span>
+<span class="fc" id="L560">				MiningField miningField = modelEvaluator.getMiningField(name);</span>
+
+<span class="fc" id="L562">				fieldLoaders.add(new DataFieldLoader(name, column, dataField, miningField));</span>
+<span class="fc" id="L563">			} else</span>
+
+<span class="nc bnc" id="L565" title="All 2 branches missed.">			if(field instanceof DerivedField){</span>
+<span class="nc" id="L566">				DerivedField derivedField = (DerivedField)field;</span>
+
+<span class="nc" id="L568">				fieldLoaders.add(new DerivedFieldLoader(name, column, derivedField));</span>
+<span class="nc" id="L569">			} else</span>
+
+			{
+<span class="nc" id="L572">				throw new InvalidFeatureException(instanceField);</span>
+			}
+<span class="fc" id="L574">		}</span>
+
+<span class="fc" id="L576">		Table&lt;Integer, FieldName, FieldValue&gt; result = HashBasedTable.create();</span>
+
+<span class="fc" id="L578">		InlineTable inlineTable = InlineTableUtil.getInlineTable(trainingInstances);</span>
+<span class="pc bpc" id="L579" title="1 of 2 branches missed.">		if(inlineTable != null){</span>
+<span class="fc" id="L580">			Table&lt;Integer, String, String&gt; table = InlineTableUtil.getContent(inlineTable);</span>
+
+<span class="fc" id="L582">			Set&lt;Integer&gt; rowKeys = table.rowKeySet();</span>
+<span class="fc bfc" id="L583" title="All 2 branches covered.">			for(Integer rowKey : rowKeys){</span>
+<span class="fc" id="L584">				Map&lt;String, String&gt; rowValues = table.row(rowKey);</span>
+
+<span class="fc bfc" id="L586" title="All 2 branches covered.">				for(FieldLoader fieldLoader : fieldLoaders){</span>
+<span class="fc" id="L587">					result.put(rowKey, fieldLoader.getName(), fieldLoader.load(rowValues));</span>
+<span class="fc" id="L588">				}</span>
+<span class="fc" id="L589">			}</span>
+		}
+
+<span class="fc" id="L592">		KNNInputs knnInputs = nearestNeighborModel.getKNNInputs();</span>
+<span class="fc bfc" id="L593" title="All 2 branches covered.">		for(KNNInput knnInput : knnInputs){</span>
+<span class="fc" id="L594">			FieldName name = knnInput.getField();</span>
+
+<span class="fc" id="L596">			DerivedField derivedField = modelEvaluator.resolveDerivedField(name);</span>
+<span class="fc bfc" id="L597" title="All 2 branches covered.">			if(derivedField == null){</span>
+<span class="fc" id="L598">				continue;</span>
+			}
+
+<span class="fc" id="L601">			Set&lt;Integer&gt; rowKeys = result.rowKeySet();</span>
+<span class="fc bfc" id="L602" title="All 2 branches covered.">			for(Integer rowKey : rowKeys){</span>
+<span class="fc" id="L603">				Map&lt;FieldName, FieldValue&gt; rowValues = result.row(rowKey);</span>
+
+<span class="pc bpc" id="L605" title="1 of 2 branches missed.">				if(rowValues.containsKey(name)){</span>
+<span class="nc" id="L606">					continue;</span>
+				}
+
+<span class="fc" id="L609">				ModelEvaluationContext context = new ModelEvaluationContext(null, modelEvaluator);</span>
+<span class="fc" id="L610">				context.declareAll(rowValues);</span>
+
+<span class="fc" id="L612">				result.put(rowKey, name, ExpressionUtil.evaluate(derivedField, context));</span>
+<span class="fc" id="L613">			}</span>
+<span class="fc" id="L614">		}</span>
+
+<span class="fc" id="L616">		return result;</span>
+	}
+
+	private Map&lt;Integer, BitSet&gt; getInstanceFlags(){
+
+<span class="pc bpc" id="L621" title="1 of 2 branches missed.">		if(this.instanceFlags == null){</span>
+<span class="fc" id="L622">			this.instanceFlags = getValue(NearestNeighborModelEvaluator.instanceFlagCache, createInstanceFlagLoader(this));</span>
+		}
+
+<span class="fc" id="L625">		return this.instanceFlags;</span>
+	}
+
+	static
+	private Callable&lt;Map&lt;Integer, BitSet&gt;&gt; createInstanceFlagLoader(final NearestNeighborModelEvaluator modelEvaluator){
+<span class="fc" id="L630">		return new Callable&lt;Map&lt;Integer, BitSet&gt;&gt;(){</span>
+
+			@Override
+			public Map&lt;Integer, BitSet&gt; call(){
+<span class="fc" id="L634">				return loadInstanceFlags(modelEvaluator);</span>
+			}
+		};
+	}
+
+	static
+	private Map&lt;Integer, BitSet&gt; loadInstanceFlags(NearestNeighborModelEvaluator modelEvaluator){
+<span class="fc" id="L641">		Map&lt;Integer, BitSet&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L643">		Map&lt;Integer, List&lt;FieldValue&gt;&gt; valueMap = modelEvaluator.getValue(NearestNeighborModelEvaluator.instanceValueCache, createInstanceValueLoader(modelEvaluator));</span>
+
+<span class="fc" id="L645">		Maps.EntryTransformer&lt;Integer, List&lt;FieldValue&gt;, BitSet&gt; transformer = new Maps.EntryTransformer&lt;Integer, List&lt;FieldValue&gt;, BitSet&gt;(){</span>
+
+			@Override
+			public BitSet transformEntry(Integer key, List&lt;FieldValue&gt; value){
+<span class="fc" id="L649">				return MeasureUtil.toBitSet(value);</span>
+			}
+		};
+<span class="fc" id="L652">		result.putAll(Maps.transformEntries(valueMap, transformer));</span>
+
+<span class="fc" id="L654">		return result;</span>
+	}
+
+	private Map&lt;Integer, List&lt;FieldValue&gt;&gt; getInstanceValues(){
+
+<span class="pc bpc" id="L659" title="1 of 2 branches missed.">		if(this.instanceValues == null){</span>
+<span class="fc" id="L660">			this.instanceValues = getValue(NearestNeighborModelEvaluator.instanceValueCache, createInstanceValueLoader(this));</span>
+		}
+
+<span class="fc" id="L663">		return this.instanceValues;</span>
+	}
+
+	static
+	private Callable&lt;Map&lt;Integer, List&lt;FieldValue&gt;&gt;&gt; createInstanceValueLoader(final NearestNeighborModelEvaluator modelEvaluator){
+<span class="fc" id="L668">		return new Callable&lt;Map&lt;Integer, List&lt;FieldValue&gt;&gt;&gt;(){</span>
+
+			@Override
+			public Map&lt;Integer, List&lt;FieldValue&gt;&gt; call(){
+<span class="fc" id="L672">				return loadInstanceValues(modelEvaluator);</span>
+			}
+		};
+	}
+
+	static
+	private Map&lt;Integer, List&lt;FieldValue&gt;&gt; loadInstanceValues(NearestNeighborModelEvaluator modelEvaluator){
+<span class="fc" id="L679">		NearestNeighborModel nearestNeighborModel = modelEvaluator.getModel();</span>
+
+<span class="fc" id="L681">		Map&lt;Integer, List&lt;FieldValue&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L683">		Table&lt;Integer, FieldName, FieldValue&gt; table = modelEvaluator.getValue(NearestNeighborModelEvaluator.trainingInstanceCache, createTrainingInstanceLoader(modelEvaluator));</span>
+
+<span class="fc" id="L685">		KNNInputs knnInputs = nearestNeighborModel.getKNNInputs();</span>
+
+<span class="fc" id="L687">		Set&lt;Integer&gt; rowKeys = ImmutableSortedSet.copyOf(table.rowKeySet());</span>
+<span class="fc bfc" id="L688" title="All 2 branches covered.">		for(Integer rowKey : rowKeys){</span>
+<span class="fc" id="L689">			List&lt;FieldValue&gt; values = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L691">			Map&lt;FieldName, FieldValue&gt; rowValues = table.row(rowKey);</span>
+
+<span class="fc bfc" id="L693" title="All 2 branches covered.">			for(KNNInput knnInput : knnInputs){</span>
+<span class="fc" id="L694">				FieldValue value = rowValues.get(knnInput.getField());</span>
+
+<span class="fc" id="L696">				values.add(value);</span>
+<span class="fc" id="L697">			}</span>
+
+<span class="fc" id="L699">			result.put(rowKey, values);</span>
+<span class="fc" id="L700">		}</span>
+
+<span class="fc" id="L702">		return result;</span>
+	}
+
+	static
+	abstract
+	private class FieldLoader {
+
+<span class="fc" id="L709">		private FieldName name = null;</span>
+
+<span class="fc" id="L711">		private String column = null;</span>
+
+
+<span class="fc" id="L714">		private FieldLoader(FieldName name, String column){</span>
+<span class="fc" id="L715">			setName(name);</span>
+<span class="fc" id="L716">			setColumn(column);</span>
+<span class="fc" id="L717">		}</span>
+
+		abstract
+		public FieldValue prepare(String value);
+
+		public FieldValue load(Map&lt;String, String&gt; values){
+<span class="fc" id="L723">			String value = values.get(getColumn());</span>
+
+<span class="fc" id="L725">			return prepare(value);</span>
+		}
+
+		public FieldName getName(){
+<span class="fc" id="L729">			return this.name;</span>
+		}
+
+		private void setName(FieldName name){
+<span class="fc" id="L733">			this.name = name;</span>
+<span class="fc" id="L734">		}</span>
+
+		public String getColumn(){
+<span class="fc" id="L737">			return this.column;</span>
+		}
+
+		private void setColumn(String column){
+<span class="fc" id="L741">			this.column = column;</span>
+<span class="fc" id="L742">		}</span>
+	}
+
+	static
+	private class IdentifierLoader extends FieldLoader {
+
+		private IdentifierLoader(FieldName name, String column){
+<span class="fc" id="L749">			super(name, column);</span>
+<span class="fc" id="L750">		}</span>
+
+		@Override
+		public FieldValue prepare(String value){
+<span class="fc" id="L754">			return FieldValueUtil.create(DataType.STRING, OpType.CATEGORICAL, value);</span>
+		}
+	}
+
+	static
+	private class DataFieldLoader extends FieldLoader {
+
+<span class="fc" id="L761">		private DataField dataField = null;</span>
+
+<span class="fc" id="L763">		private MiningField miningField = null;</span>
+
+
+		private DataFieldLoader(FieldName name, String column, DataField dataField, MiningField miningField){
+<span class="fc" id="L767">			super(name, column);</span>
+
+<span class="fc" id="L769">			setDataField(dataField);</span>
+<span class="fc" id="L770">			setMiningField(miningField);</span>
+<span class="fc" id="L771">		}</span>
+
+		@Override
+		public FieldValue prepare(String value){
+<span class="fc" id="L775">			return FieldValueUtil.prepareInputValue(getDataField(), getMiningField(), value);</span>
+		}
+
+		public DataField getDataField(){
+<span class="fc" id="L779">			return this.dataField;</span>
+		}
+
+		private void setDataField(DataField dataField){
+<span class="fc" id="L783">			this.dataField = dataField;</span>
+<span class="fc" id="L784">		}</span>
+
+		public MiningField getMiningField(){
+<span class="fc" id="L787">			return this.miningField;</span>
+		}
+
+		private void setMiningField(MiningField miningField){
+<span class="fc" id="L791">			this.miningField = miningField;</span>
+<span class="fc" id="L792">		}</span>
+	}
+
+	static
+	private class DerivedFieldLoader extends FieldLoader {
+
+<span class="nc" id="L798">		private DerivedField derivedField = null;</span>
+
+
+		private DerivedFieldLoader(FieldName name, String column, DerivedField derivedField){
+<span class="nc" id="L802">			super(name, column);</span>
+
+<span class="nc" id="L804">			setDerivedField(derivedField);</span>
+<span class="nc" id="L805">		}</span>
+
+		@Override
+		public FieldValue prepare(String value){
+<span class="nc" id="L809">			return FieldValueUtil.create(getDerivedField(), value);</span>
+		}
+
+		public DerivedField getDerivedField(){
+<span class="nc" id="L813">			return this.derivedField;</span>
+		}
+
+		private void setDerivedField(DerivedField derivedField){
+<span class="nc" id="L817">			this.derivedField = derivedField;</span>
+<span class="nc" id="L818">		}</span>
+	}
+
+	static
+	abstract
+	private class InstanceResult implements Comparable&lt;InstanceResult&gt; {
+
+<span class="fc" id="L825">		private Integer id = null;</span>
+
+<span class="fc" id="L827">		private Double value = null;</span>
+
+
+<span class="fc" id="L830">		private InstanceResult(Integer id, Double value){</span>
+<span class="fc" id="L831">			setId(id);</span>
+<span class="fc" id="L832">			setValue(value);</span>
+<span class="fc" id="L833">		}</span>
+
+		abstract
+		public double getWeight(double threshold);
+
+		public Integer getId(){
+<span class="fc" id="L839">			return this.id;</span>
+		}
+
+		private void setId(Integer id){
+<span class="fc" id="L843">			this.id = id;</span>
+<span class="fc" id="L844">		}</span>
+
+		public Double getValue(){
+<span class="fc" id="L847">			return this.value;</span>
+		}
+
+		private void setValue(Double value){
+<span class="fc" id="L851">			this.value = value;</span>
+<span class="fc" id="L852">		}</span>
+
+		static
+		private class Similarity extends InstanceResult {
+
+			private Similarity(Integer id, Double value){
+<span class="fc" id="L858">				super(id, value);</span>
+<span class="fc" id="L859">			}</span>
+
+			@Override
+			public int compareTo(InstanceResult that){
+
+<span class="nc bnc" id="L864" title="All 2 branches missed.">				if(that instanceof Similarity){</span>
+<span class="nc" id="L865">					return Classification.Type.SIMILARITY.compare(this.getValue(), that.getValue());</span>
+				}
+
+<span class="nc" id="L868">				throw new ClassCastException();</span>
+			}
+
+			@Override
+			public double getWeight(double threshold){
+<span class="nc" id="L873">				throw new EvaluationException();</span>
+			}
+		}
+
+		static
+		private class Distance extends InstanceResult {
+
+			private Distance(Integer id, Double value){
+<span class="fc" id="L881">				super(id, value);</span>
+<span class="fc" id="L882">			}</span>
+
+			@Override
+			public int compareTo(InstanceResult that){
+
+<span class="pc bpc" id="L887" title="1 of 2 branches missed.">				if(that instanceof Distance){</span>
+<span class="fc" id="L888">					return Classification.Type.DISTANCE.compare(this.getValue(), that.getValue());</span>
+				}
+
+<span class="nc" id="L891">				throw new ClassCastException();</span>
+			}
+
+			@Override
+			public double getWeight(double threshold){
+<span class="nc" id="L896">				return 1d / (getValue() + threshold);</span>
+			}
+		}
+	}
+
+<span class="fc" id="L901">	private static final Cache&lt;NearestNeighborModel, Table&lt;Integer, FieldName, FieldValue&gt;&gt; trainingInstanceCache = CacheUtil.buildCache();</span>
+
+<span class="fc" id="L903">	private static final Cache&lt;NearestNeighborModel, Map&lt;Integer, BitSet&gt;&gt; instanceFlagCache = CacheUtil.buildCache();</span>
+
+<span class="fc" id="L905">	private static final Cache&lt;NearestNeighborModel, Map&lt;Integer, List&lt;FieldValue&gt;&gt;&gt; instanceValueCache = CacheUtil.buildCache();</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ScorecardEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.scorecard</a> &gt; <span class="el_source">ScorecardEvaluator.java</span></div><h1>ScorecardEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.scorecard;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.dmg.pmml.Expression;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.Predicate;
+import org.dmg.pmml.scorecard.Attribute;
+import org.dmg.pmml.scorecard.Characteristic;
+import org.dmg.pmml.scorecard.Characteristics;
+import org.dmg.pmml.scorecard.ComplexPartialScore;
+import org.dmg.pmml.scorecard.Scorecard;
+import org.jpmml.evaluator.EvaluationContext;
+import org.jpmml.evaluator.ExpressionUtil;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.InvalidResultException;
+import org.jpmml.evaluator.ModelEvaluationContext;
+import org.jpmml.evaluator.ModelEvaluator;
+import org.jpmml.evaluator.OutputUtil;
+import org.jpmml.evaluator.PredicateUtil;
+import org.jpmml.evaluator.TargetField;
+import org.jpmml.evaluator.TargetUtil;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.evaluator.Value;
+import org.jpmml.evaluator.ValueFactory;
+import org.jpmml.evaluator.VoteAggregator;
+
+public class ScorecardEvaluator extends ModelEvaluator&lt;Scorecard&gt; {
+
+	public ScorecardEvaluator(PMML pmml){
+<span class="nc" id="L57">		this(pmml, selectModel(pmml, Scorecard.class));</span>
+<span class="nc" id="L58">	}</span>
+
+	public ScorecardEvaluator(PMML pmml, Scorecard scorecard){
+<span class="fc" id="L61">		super(pmml, scorecard);</span>
+
+<span class="fc" id="L63">		Characteristics characteristics = scorecard.getCharacteristics();</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">		if(characteristics == null){</span>
+<span class="nc" id="L65">			throw new InvalidFeatureException(scorecard);</span>
+		} // End if
+
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">		if(!characteristics.hasCharacteristics()){</span>
+<span class="nc" id="L69">			throw new InvalidFeatureException(characteristics);</span>
+		}
+<span class="fc" id="L71">	}</span>
+
+	@Override
+	public String getSummary(){
+<span class="nc" id="L75">		return &quot;Scorecard&quot;;</span>
+	}
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context){
+<span class="fc" id="L80">		Scorecard scorecard = getModel();</span>
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">		if(!scorecard.isScorable()){</span>
+<span class="nc" id="L82">			throw new InvalidResultException(scorecard);</span>
+		}
+
+		ValueFactory&lt;?&gt; valueFactory;
+
+<span class="fc" id="L87">		MathContext mathContext = scorecard.getMathContext();</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">		switch(mathContext){</span>
+			case FLOAT:
+			case DOUBLE:
+<span class="fc" id="L91">				valueFactory = getValueFactory();</span>
+<span class="fc" id="L92">				break;</span>
+			default:
+<span class="nc" id="L94">				throw new UnsupportedFeatureException(scorecard, mathContext);</span>
+		}
+
+		Map&lt;FieldName, ?&gt; predictions;
+
+<span class="fc" id="L99">		MiningFunction miningFunction = scorecard.getMiningFunction();</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">		switch(miningFunction){</span>
+			case REGRESSION:
+<span class="fc" id="L102">				predictions = evaluateRegression(valueFactory, context);</span>
+<span class="fc" id="L103">				break;</span>
+			default:
+<span class="nc" id="L105">				throw new UnsupportedFeatureException(scorecard, miningFunction);</span>
+		}
+
+<span class="fc" id="L108">		return OutputUtil.evaluate(predictions, context);</span>
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, ?&gt; evaluateRegression(final ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L112">		Scorecard scorecard = getModel();</span>
+
+<span class="fc" id="L114">		boolean useReasonCodes = scorecard.isUseReasonCodes();</span>
+
+<span class="fc" id="L116">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L118">		Value&lt;V&gt; score = valueFactory.newValue(scorecard.getInitialScore());</span>
+
+<span class="fc" id="L120">		VoteAggregator&lt;String, V&gt; reasonCodePoints = null;</span>
+
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">		if(useReasonCodes){</span>
+<span class="fc" id="L123">			reasonCodePoints = new VoteAggregator&lt;String, V&gt;(){</span>
+
+				@Override
+				public ValueFactory&lt;V&gt; getValueFactory(){
+<span class="fc" id="L127">					return valueFactory;</span>
+				}
+			};
+		}
+
+<span class="fc" id="L132">		Characteristics characteristics = scorecard.getCharacteristics();</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">		for(Characteristic characteristic : characteristics){</span>
+<span class="fc" id="L134">			Double baselineScore = null;</span>
+
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">			if(useReasonCodes){</span>
+<span class="fc" id="L137">				baselineScore = characteristic.getBaselineScore();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">				if(baselineScore == null){</span>
+<span class="nc" id="L139">					baselineScore = scorecard.getBaselineScore();</span>
+				} // End if
+
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">				if(baselineScore == null){</span>
+<span class="nc" id="L143">					throw new InvalidFeatureException(characteristic);</span>
+				}
+			}
+
+<span class="fc" id="L147">			Double partialScore = null;</span>
+
+<span class="fc" id="L149">			List&lt;Attribute&gt; attributes = characteristic.getAttributes();</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">			for(Attribute attribute : attributes){</span>
+<span class="fc" id="L151">				Predicate predicate = attribute.getPredicate();</span>
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">				if(predicate == null){</span>
+<span class="nc" id="L153">					throw new InvalidFeatureException(attribute);</span>
+				}
+
+<span class="fc" id="L156">				Boolean status = PredicateUtil.evaluate(predicate, context);</span>
+<span class="pc bpc" id="L157" title="1 of 4 branches missed.">				if(status == null || !status.booleanValue()){</span>
+<span class="fc" id="L158">					continue;</span>
+				}
+
+<span class="fc" id="L161">				ComplexPartialScore complexPartialScore = attribute.getComplexPartialScore();</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">				if(complexPartialScore != null){</span>
+<span class="fc" id="L163">					Expression expression = complexPartialScore.getExpression();</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">					if(expression == null){</span>
+<span class="nc" id="L165">						throw new InvalidFeatureException(complexPartialScore);</span>
+					}
+
+<span class="fc" id="L168">					FieldValue computedValue = ExpressionUtil.evaluate(expression, context);</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">					if(computedValue == null){</span>
+<span class="nc" id="L170">						return TargetUtil.evaluateRegressionDefault(valueFactory, targetField);</span>
+					}
+
+<span class="fc" id="L173">					partialScore = computedValue.asDouble();</span>
+<span class="fc" id="L174">				} else</span>
+
+				{
+<span class="fc" id="L177">					partialScore = attribute.getPartialScore();</span>
+
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">					if(partialScore == null){</span>
+<span class="nc" id="L180">						throw new InvalidFeatureException(attribute);</span>
+					}
+				}
+
+<span class="fc" id="L184">				score.add(partialScore);</span>
+
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">				if(useReasonCodes){</span>
+<span class="fc" id="L187">					String reasonCode = attribute.getReasonCode();</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">					if(reasonCode == null){</span>
+<span class="fc" id="L189">						reasonCode = characteristic.getReasonCode();</span>
+					} // End if
+
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">					if(reasonCode == null){</span>
+<span class="nc" id="L193">						throw new InvalidFeatureException(attribute);</span>
+					}
+
+					double difference;
+
+<span class="fc" id="L198">					Scorecard.ReasonCodeAlgorithm reasonCodeAlgorithm = scorecard.getReasonCodeAlgorithm();</span>
+<span class="pc bpc" id="L199" title="2 of 3 branches missed.">					switch(reasonCodeAlgorithm){</span>
+						case POINTS_ABOVE:
+<span class="nc" id="L201">							difference = (partialScore - baselineScore);</span>
+<span class="nc" id="L202">							break;</span>
+						case POINTS_BELOW:
+<span class="fc" id="L204">							difference = (baselineScore - partialScore);</span>
+<span class="fc" id="L205">							break;</span>
+						default:
+<span class="nc" id="L207">							throw new UnsupportedFeatureException(scorecard, reasonCodeAlgorithm);</span>
+					}
+
+<span class="fc" id="L210">					reasonCodePoints.add(reasonCode, difference);</span>
+<span class="fc" id="L211">				}</span>
+
+				break;
+			}
+
+			// &quot;If not even a single Attribute evaluates to &quot;true&quot; for a given Characteristic, then the scorecard as a whole returns an invalid value&quot;
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">			if(partialScore == null){</span>
+<span class="nc" id="L218">				throw new InvalidResultException(characteristic);</span>
+			}
+<span class="fc" id="L220">		}</span>
+
+<span class="fc" id="L222">		Object result = TargetUtil.evaluateRegressionInternal(targetField, score);</span>
+
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">		if(useReasonCodes){</span>
+<span class="fc" id="L225">			result = createReasonCodeList(reasonCodePoints.sumMap(), result);</span>
+		}
+
+<span class="fc" id="L228">		return Collections.singletonMap(targetField.getName(), result);</span>
+	}
+
+	static
+	private &lt;V extends Number&gt; ReasonCodeRanking createReasonCodeList(Map&lt;String, Value&lt;V&gt;&gt; reasonCodes, Object value){
+<span class="fc" id="L233">		Map&lt;String, Double&gt; meaningfulReasonCodes = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L235">		Collection&lt;Map.Entry&lt;String, Value&lt;V&gt;&gt;&gt; entrySet = reasonCodes.entrySet();</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">		for(Map.Entry&lt;String, Value&lt;V&gt;&gt; entry : entrySet){</span>
+<span class="fc" id="L237">			String reasonCode = entry.getKey();</span>
+<span class="fc" id="L238">			Value&lt;V&gt; points = entry.getValue();</span>
+
+<span class="fc bfc" id="L240" title="All 2 branches covered.">			if(points.doubleValue() &gt;= 0d){</span>
+<span class="fc" id="L241">				meaningfulReasonCodes.put(reasonCode, points.doubleValue());</span>
+			}
+<span class="fc" id="L243">		}</span>
+
+<span class="fc" id="L245">		ReasonCodeRanking result = new ReasonCodeRanking(value, meaningfulReasonCodes);</span>
+
+<span class="fc" id="L247">		return result;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

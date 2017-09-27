@@ -1,0 +1,11 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+JPMML evaluator example applications,org.jpmml.evaluator,EvaluationExample,517,0,48,0,111,0,28,0,4,0
+JPMML evaluator example applications,org.jpmml.evaluator,TestingExample.new Batch() {...},28,0,0,0,6,0,6,0,6,0
+JPMML evaluator example applications,org.jpmml.evaluator,TestingExample,164,0,14,0,32,0,11,0,4,0
+JPMML evaluator example applications,org.jpmml.evaluator,Example,284,0,34,0,40,0,25,0,8,0
+JPMML evaluator example applications,org.jpmml.evaluator,SeparatorConverter,26,71,5,14,10,22,7,9,2,2
+JPMML evaluator example applications,org.jpmml.evaluator,ParameterOrderComparator,73,0,10,0,22,0,8,0,3,0
+JPMML evaluator example applications,org.jpmml.evaluator,Example.new Function() {...},73,0,14,0,15,0,10,0,3,0
+JPMML evaluator example applications,org.jpmml.evaluator,Example.new Function() {...},13,0,2,0,5,0,3,0,2,0
+JPMML evaluator example applications,org.jpmml.evaluator,FieldNameConverter,8,0,0,0,3,0,2,0,2,0
+JPMML evaluator example applications,org.jpmml.evaluator,EnhancementExample,249,0,22,0,58,0,14,0,3,0

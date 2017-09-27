@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OutputField.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">OutputField.java</span></div><h1>OutputField.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Objects;
+
+import com.google.common.base.Objects.ToStringHelper;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.OpType;
+
+public class OutputField extends ResultField {
+
+<span class="fc" id="L30">	private org.dmg.pmml.OutputField outputField = null;</span>
+
+<span class="fc" id="L32">	private int depth = 0;</span>
+
+
+	public OutputField(OutputField outputField){
+<span class="fc" id="L36">		this(outputField.getOutputField(), outputField.getDepth() + 1);</span>
+<span class="fc" id="L37">	}</span>
+
+	public OutputField(org.dmg.pmml.OutputField outputField){
+<span class="fc" id="L40">		this(outputField, 0);</span>
+<span class="fc" id="L41">	}</span>
+
+<span class="fc" id="L43">	public OutputField(org.dmg.pmml.OutputField outputField, int depth){</span>
+<span class="fc" id="L44">		setOutputField(Objects.requireNonNull(outputField));</span>
+
+<span class="pc bpc" id="L46" title="1 of 2 branches missed.">		if(depth &lt; 0){</span>
+<span class="nc" id="L47">			throw new IllegalArgumentException();</span>
+		}
+
+<span class="fc" id="L50">		setDepth(depth);</span>
+<span class="fc" id="L51">	}</span>
+
+	@Override
+	public FieldName getName(){
+<span class="fc" id="L55">		org.dmg.pmml.OutputField outputField = getOutputField();</span>
+
+<span class="fc" id="L57">		return outputField.getName();</span>
+	}
+
+	/**
+	 * @return the data type, or &lt;code&gt;null&lt;/code&gt;.
+	 *
+	 * @see OutputUtil#getDataType(org.dmg.pmml.OutputField, ModelEvaluator)
+	 */
+	@Override
+	public DataType getDataType(){
+<span class="nc" id="L67">		org.dmg.pmml.OutputField outputField = getOutputField();</span>
+
+<span class="nc" id="L69">		return outputField.getDataType();</span>
+	}
+
+	/**
+	 * @return the operational type, or &lt;code&gt;null&lt;/code&gt;.
+	 */
+	@Override
+	public OpType getOpType(){
+<span class="nc" id="L77">		org.dmg.pmml.OutputField outputField = getOutputField();</span>
+
+<span class="nc" id="L79">		return outputField.getOpType();</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Returns the &quot;finality&quot; (as decided by the PMML producer) of this output field.
+	 * Final values are suitable for displaying to the end user.
+	 * Non-final values correspond to intermediate states of the prediction
+	 * (eg. value transformations, value transfers between models) and are not suitable for displaying to the end user.
+	 * &lt;/p&gt;
+	 *
+	 * &lt;p&gt;
+	 * Typically, final values are always available in the result data record,
+	 * whereas non-final values may or may not be available depending on the &quot;evaluation path&quot; of a particular argument data record.
+	 * &lt;/p&gt;
+	 *
+	 * &lt;p&gt;
+	 * Filtering output fields based on their &quot;finality&quot;:
+	 * &lt;pre&gt;
+	 * List&amp;lt;OutputField&amp;gt; outputFields = evaluator.getOutputFields();
+	 * for(OutputField outputField : outputFields){
+	 *   boolean finalResult = outputField.isFinalResult();
+	 *
+	 *   if(!finalResult){
+	 *     continue;
+	 *   }
+	 * }
+	 * &lt;/pre&gt;
+	 * &lt;/p&gt;
+	 */
+	public boolean isFinalResult(){
+<span class="nc" id="L110">		org.dmg.pmml.OutputField outputField = getOutputField();</span>
+
+<span class="nc" id="L112">		return outputField.isFinalResult();</span>
+	}
+
+	@Override
+	protected ToStringHelper toStringHelper(){
+<span class="nc" id="L117">		ToStringHelper helper = super.toStringHelper()</span>
+<span class="nc" id="L118">			.add(&quot;finalResult&quot;, isFinalResult())</span>
+<span class="nc" id="L119">			.add(&quot;depth&quot;, getDepth());</span>
+
+<span class="nc" id="L121">		return helper;</span>
+	}
+
+	/**
+	 * @return the backing {@link org.dmg.pmml.OutputField} element.
+	 */
+	public org.dmg.pmml.OutputField getOutputField(){
+<span class="fc" id="L128">		return this.outputField;</span>
+	}
+
+	private void setOutputField(org.dmg.pmml.OutputField outputField){
+<span class="fc" id="L132">		this.outputField = outputField;</span>
+<span class="fc" id="L133">	}</span>
+
+	/**
+	 * &lt;p&gt;
+	 * Returns the nesting depth relative to the &quot;host&quot; {@link Evaluator} instance.
+	 * &lt;/p&gt;
+	 *
+	 * &lt;p&gt;
+	 * Filtering output fields based on their origin:
+	 * &lt;pre&gt;
+	 * List&amp;lt;OutputField&amp;gt; outputFields = evaluator.getOutputFields();
+	 * for(OutputField outputField : outputFields){
+	 *   int depth = outputField.getDepth();
+	 *
+	 *   if(depth == 0){
+	 *     // Defined by the top-level model
+	 *   } else
+	 *
+	 *   if(depth &gt; 0){
+	 *     // Defined by one of the nested models
+	 *   }
+	 * }
+	 * &lt;/pre&gt;
+	 * &lt;/p&gt;
+	 *
+	 * @return the nesting depth.
+	 */
+	public int getDepth(){
+<span class="fc" id="L161">		return this.depth;</span>
+	}
+
+	private void setDepth(int depth){
+<span class="fc" id="L165">		this.depth = depth;</span>
+<span class="fc" id="L166">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegressionTargetCorrector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML KNIME integration tests</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.knime.visitors</a> &gt; <span class="el_source">RegressionTargetCorrector.java</span></div><h1>RegressionTargetCorrector.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.knime.visitors;
+
+import java.util.Deque;
+import java.util.List;
+import java.util.Objects;
+
+import org.dmg.pmml.DataDictionary;
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MiningField;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.MiningSchema;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.PMMLObject;
+import org.dmg.pmml.Target;
+import org.dmg.pmml.Targets;
+import org.dmg.pmml.VisitorAction;
+import org.jpmml.evaluator.IndexableUtil;
+import org.jpmml.evaluator.MissingFieldException;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.model.visitors.AbstractModelVisitor;
+
+public class RegressionTargetCorrector extends AbstractModelVisitor {
+
+<span class="fc" id="L45">	private Target.CastInteger castInteger = null;</span>
+
+
+	public RegressionTargetCorrector(){
+<span class="fc" id="L49">		this(Target.CastInteger.ROUND);</span>
+<span class="fc" id="L50">	}</span>
+
+<span class="fc" id="L52">	public RegressionTargetCorrector(Target.CastInteger castInteger){</span>
+<span class="fc" id="L53">		setCastInteger(Objects.requireNonNull(castInteger));</span>
+<span class="fc" id="L54">	}</span>
+
+	@Override
+	public VisitorAction visit(Model model){
+<span class="fc" id="L58">		MiningFunction miningFunction = model.getMiningFunction();</span>
+
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">		switch(miningFunction){</span>
+			case REGRESSION:
+<span class="fc" id="L62">				processRegressionModel(model);</span>
+<span class="fc" id="L63">				break;</span>
+			default:
+				break;
+		}
+
+<span class="fc" id="L68">		return VisitorAction.CONTINUE;</span>
+	}
+
+	private void processRegressionModel(Model model){
+<span class="fc" id="L72">		PMML pmml = getPMML();</span>
+
+<span class="fc" id="L74">		MiningField miningField = getTargetField(model);</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		if(miningField == null){</span>
+<span class="nc" id="L76">			return;</span>
+		}
+
+<span class="fc" id="L79">		FieldName name = miningField.getName();</span>
+
+<span class="fc" id="L81">		DataDictionary dataDictionary = pmml.getDataDictionary();</span>
+
+<span class="fc" id="L83">		DataField dataField = IndexableUtil.find(name, dataDictionary.getDataFields());</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">		if(dataField == null){</span>
+<span class="nc" id="L85">			throw new MissingFieldException(name, miningField);</span>
+		}
+
+<span class="fc" id="L88">		DataType dataType = dataField.getDataType();</span>
+<span class="pc bpc" id="L89" title="1 of 3 branches missed.">		switch(dataType){</span>
+			case INTEGER:
+<span class="fc" id="L91">				break;</span>
+			case FLOAT:
+			case DOUBLE:
+<span class="fc" id="L94">				return;</span>
+			default:
+<span class="nc" id="L96">				throw new UnsupportedFeatureException(dataField, dataType);</span>
+		}
+
+<span class="fc" id="L99">		Targets targets = model.getTargets();</span>
+
+<span class="fc bfc" id="L101" title="All 2 branches covered.">		if(targets != null){</span>
+<span class="fc" id="L102">			Target target = IndexableUtil.find(name, targets.getTargets());</span>
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">			if(target != null){</span>
+
+<span class="fc bfc" id="L106" title="All 2 branches covered.">				if(target.getCastInteger() != null){</span>
+<span class="fc" id="L107">					return;</span>
+				} else
+
+				{
+<span class="fc" id="L111">					target.setCastInteger(getCastInteger());</span>
+				}
+			} else
+
+			{
+<span class="nc" id="L116">				targets.addTargets(createTarget(name));</span>
+			}
+<span class="fc" id="L118">		} else</span>
+
+		{
+<span class="fc" id="L121">			targets = new Targets()</span>
+<span class="fc" id="L122">				.addTargets(createTarget(name));</span>
+
+<span class="fc" id="L124">			model.setTargets(targets);</span>
+		}
+<span class="fc" id="L126">	}</span>
+
+	private Target createTarget(FieldName name){
+<span class="fc" id="L129">		Target target = new Target()</span>
+<span class="fc" id="L130">			.setField(name)</span>
+<span class="fc" id="L131">			.setCastInteger(getCastInteger());</span>
+
+<span class="fc" id="L133">		return target;</span>
+	}
+
+	private PMML getPMML(){
+<span class="fc" id="L137">		Deque&lt;PMMLObject&gt; parents = getParents();</span>
+
+<span class="fc" id="L139">		return (PMML)parents.getLast();</span>
+	}
+
+	public Target.CastInteger getCastInteger(){
+<span class="fc" id="L143">		return this.castInteger;</span>
+	}
+
+	private void setCastInteger(Target.CastInteger castInteger){
+<span class="fc" id="L147">		this.castInteger = castInteger;</span>
+<span class="fc" id="L148">	}</span>
+
+	static
+	private MiningField getTargetField(Model model){
+<span class="fc" id="L152">		MiningSchema miningSchema = model.getMiningSchema();</span>
+
+<span class="fc" id="L154">		MiningField result = null;</span>
+
+<span class="fc" id="L156">		List&lt;MiningField&gt; miningFields = miningSchema.getMiningFields();</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">		for(MiningField miningField : miningFields){</span>
+<span class="fc" id="L158">			MiningField.UsageType usageType = miningField.getUsageType();</span>
+
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">			switch(usageType){</span>
+				case TARGET:
+				case PREDICTED:
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">					if(result != null){</span>
+<span class="nc" id="L164">						throw new UnsupportedFeatureException(miningSchema);</span>
+					}
+<span class="fc" id="L166">					result = miningField;</span>
+<span class="fc" id="L167">					break;</span>
+				default:
+					break;
+			}
+<span class="fc" id="L171">		}</span>
+
+<span class="fc" id="L173">		return result;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

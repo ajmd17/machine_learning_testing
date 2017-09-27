@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReasonCodeRanking.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.scorecard</a> &gt; <span class="el_source">ReasonCodeRanking.java</span></div><h1>ReasonCodeRanking.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.scorecard;
+
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.base.Objects;
+import com.google.common.base.Objects.ToStringHelper;
+import org.dmg.pmml.MiningFunction;
+import org.jpmml.evaluator.Classification;
+import org.jpmml.evaluator.Computable;
+import org.jpmml.evaluator.HasReasonCodeRanking;
+
+/**
+ * @see MiningFunction#REGRESSION
+ */
+public class ReasonCodeRanking implements Computable, HasReasonCodeRanking {
+
+<span class="fc" id="L36">	private Object result = null;</span>
+
+<span class="fc" id="L38">	private Map&lt;String, Double&gt; reasonCodes = null;</span>
+
+
+<span class="fc" id="L41">	ReasonCodeRanking(Object result, Map&lt;String, Double&gt; reasonCodes){</span>
+<span class="fc" id="L42">		setResult(result);</span>
+<span class="fc" id="L43">		setReasonCodes(reasonCodes);</span>
+<span class="fc" id="L44">	}</span>
+
+	@Override
+	public Object getResult(){
+<span class="fc" id="L48">		return this.result;</span>
+	}
+
+	private void setResult(Object result){
+<span class="fc" id="L52">		this.result = result;</span>
+<span class="fc" id="L53">	}</span>
+
+	@Override
+	public List&lt;String&gt; getReasonCodeRanking(){
+<span class="fc" id="L57">		Map&lt;String, Double&gt; reasonCodes = getReasonCodes();</span>
+
+<span class="fc" id="L59">		return Classification.entryKeys(Classification.getWinnerList(Classification.Type.VOTE, reasonCodes.entrySet()));</span>
+	}
+
+	@Override
+	public String toString(){
+<span class="nc" id="L64">		ToStringHelper helper = Objects.toStringHelper(this)</span>
+<span class="nc" id="L65">			.add(&quot;result&quot;, getResult())</span>
+<span class="nc" id="L66">			.add(&quot;reasonCodeRanking&quot;, getReasonCodeRanking());</span>
+
+<span class="nc" id="L68">		return helper.toString();</span>
+	}
+
+	public Map&lt;String, Double&gt; getReasonCodes(){
+<span class="fc" id="L72">		return this.reasonCodes;</span>
+	}
+
+	private void setReasonCodes(Map&lt;String, Double&gt; reasonCodes){
+<span class="fc" id="L76">		this.reasonCodes = reasonCodes;</span>
+<span class="fc" id="L77">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

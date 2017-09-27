@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EvaluationExample.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator example applications</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">EvaluationExample.java</span></div><h1>EvaluationExample.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.Console;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.validators.PositiveInteger;
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SlidingWindowReservoir;
+import com.codahale.metrics.Timer;
+import com.google.common.cache.CacheBuilderSpec;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.Visitor;
+import org.jpmml.evaluator.visitors.ExpressionOptimizer;
+import org.jpmml.evaluator.visitors.FieldOptimizer;
+import org.jpmml.evaluator.visitors.GeneralRegressionModelOptimizer;
+import org.jpmml.evaluator.visitors.MiningFieldInterner;
+import org.jpmml.evaluator.visitors.NaiveBayesModelOptimizer;
+import org.jpmml.evaluator.visitors.PredicateInterner;
+import org.jpmml.evaluator.visitors.PredicateOptimizer;
+import org.jpmml.evaluator.visitors.RegressionModelOptimizer;
+import org.jpmml.evaluator.visitors.ScoreDistributionInterner;
+import org.jpmml.model.visitors.ArrayListOptimizer;
+import org.jpmml.model.visitors.ArrayListTransformer;
+import org.jpmml.model.visitors.DoubleInterner;
+import org.jpmml.model.visitors.IntegerInterner;
+import org.jpmml.model.visitors.StringInterner;
+
+<span class="nc" id="L60">public class EvaluationExample extends Example {</span>
+
+<span class="nc" id="L62">	@Parameter (</span>
+		names = {&quot;--model&quot;},
+		description = &quot;Model PMML file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 1
+	)
+	private File model = null;
+
+<span class="nc" id="L72">	@Parameter (</span>
+		names = {&quot;--input&quot;},
+		description = &quot;Input CSV file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 2
+	)
+	private File input = null;
+
+<span class="nc" id="L82">	@Parameter (</span>
+		names = {&quot;--output&quot;},
+		description = &quot;Output CSV file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 3
+	)
+	private File output = null;
+
+<span class="nc" id="L92">	@Parameter (</span>
+		names = {&quot;--separator&quot;},
+		description = &quot;CSV cell separator character&quot;,
+		converter = SeparatorConverter.class
+	)
+	@ParameterOrder (
+		value = 4
+	)
+	private String separator = null;
+
+<span class="nc" id="L102">	@Parameter (</span>
+		names = {&quot;--sparse&quot;},
+		description = &quot;Permit missing input field columns&quot;
+	)
+	@ParameterOrder (
+		value = 5
+	)
+	private boolean sparse = false;
+
+<span class="nc" id="L111">	@Parameter (</span>
+		names = {&quot;--copy-columns&quot;},
+		description = &quot;Copy all columns from input CSV file to output CSV file&quot;,
+		arity = 1
+	)
+	@ParameterOrder (
+		value = 6
+	)
+	private boolean copyColumns = true;
+
+<span class="nc" id="L121">	@Parameter (</span>
+		names = {&quot;--wait-before-init&quot;},
+		description = &quot;Pause before initializing the JPMML stack&quot;,
+		hidden = true
+	)
+	private boolean waitBeforeInit = false;
+
+<span class="nc" id="L128">	@Parameter (</span>
+		names = &quot;--cache-builder-spec&quot;,
+		description = &quot;CacheBuilder configuration&quot;,
+		hidden = true
+	)
+	private String cacheBuilderSpec = null;
+
+<span class="nc" id="L135">	@Parameter (</span>
+		names = {&quot;--factory-class&quot;, &quot;--modelevaluatorfactory-class&quot;},
+		description = &quot;Name of ModelEvaluatorFactory class&quot;,
+		hidden = true
+	)
+<span class="nc" id="L140">	private String modelEvaluatorFactoryClazz = ModelEvaluatorFactory.class.getName();</span>
+
+<span class="nc" id="L142">	@Parameter (</span>
+		names = {&quot;--valuefactoryfactory-class&quot;},
+		description = &quot;Name of ValueFactoryFactory class&quot;,
+		hidden = true
+	)
+<span class="nc" id="L147">	private String valueFactoryFactoryClazz = ValueFactoryFactory.class.getName();</span>
+
+
+<span class="nc" id="L150">	@Parameter (</span>
+		names = &quot;--optimize&quot;,
+		description = &quot;Optimize PMML class model&quot;,
+		hidden = true
+	)
+	private boolean optimize = false;
+
+<span class="nc" id="L157">	@Parameter (</span>
+		names = &quot;--intern&quot;,
+		description = &quot;Intern PMML class model&quot;,
+		hidden = true
+	)
+	private boolean intern = false;
+
+<span class="nc" id="L164">	@Parameter (</span>
+		names = &quot;--loop&quot;,
+		description = &quot;The number of repetitions&quot;,
+		hidden = true,
+		validateWith = PositiveInteger.class
+	)
+	private int loop = 1;
+
+<span class="nc" id="L172">	@Parameter (</span>
+		names = {&quot;--wait-before-loop&quot;},
+		description = &quot;Pause before entering the main evaluation loop&quot;,
+		hidden = true
+	)
+	private boolean waitBeforeLoop = false;
+
+<span class="nc" id="L179">	@Parameter (</span>
+		names = {&quot;--wait-after-loop&quot;},
+		description = &quot;Pause after exiting the main evaluation loop&quot;,
+		hidden = true
+	)
+	private boolean waitAfterLoop = false;
+
+
+	static
+	public void main(String... args) throws Exception {
+<span class="nc" id="L189">		execute(EvaluationExample.class, args);</span>
+<span class="nc" id="L190">	}</span>
+
+	@Override
+	public void execute() throws Exception {
+<span class="nc" id="L194">		MetricRegistry metricRegistry = new MetricRegistry();</span>
+
+<span class="nc" id="L196">		ConsoleReporter reporter = ConsoleReporter.forRegistry(metricRegistry)</span>
+<span class="nc" id="L197">			.convertRatesTo(TimeUnit.SECONDS)</span>
+<span class="nc" id="L198">			.convertDurationsTo(TimeUnit.MILLISECONDS)</span>
+<span class="nc" id="L199">			.build();</span>
+
+<span class="nc" id="L201">		CsvUtil.Table inputTable = readTable(this.input, this.separator);</span>
+
+<span class="nc" id="L203">		List&lt;? extends Map&lt;FieldName, ?&gt;&gt; inputRecords = BatchUtil.parseRecords(inputTable, Example.CSV_PARSER);</span>
+
+<span class="nc bnc" id="L205" title="All 2 branches missed.">		if(this.waitBeforeInit){</span>
+<span class="nc" id="L206">			waitForUserInput();</span>
+		}
+
+<span class="nc" id="L209">		PMML pmml = readPMML(this.model);</span>
+
+<span class="nc bnc" id="L211" title="All 2 branches missed.">		if(this.cacheBuilderSpec != null){</span>
+<span class="nc" id="L212">			CacheBuilderSpec cacheBuilderSpec = CacheBuilderSpec.parse(this.cacheBuilderSpec);</span>
+
+<span class="nc" id="L214">			CacheUtil.setCacheBuilderSpec(cacheBuilderSpec);</span>
+		} // End if
+
+<span class="nc bnc" id="L217" title="All 2 branches missed.">		if(this.optimize){</span>
+<span class="nc" id="L218">			List&lt;? extends Visitor&gt; optimizers = Arrays.asList(new ArrayListOptimizer(), new ExpressionOptimizer(), new FieldOptimizer(), new PredicateOptimizer(), new GeneralRegressionModelOptimizer(), new NaiveBayesModelOptimizer(), new RegressionModelOptimizer());</span>
+
+<span class="nc bnc" id="L220" title="All 2 branches missed.">			for(Visitor optimizer : optimizers){</span>
+<span class="nc" id="L221">				optimizer.applyTo(pmml);</span>
+<span class="nc" id="L222">			}</span>
+		} // End if
+
+		// Optimize first, intern second.
+		// The goal is to intern optimized elements (keeps one copy), not optimize interned elements (expands one copy to multiple copies).
+<span class="nc bnc" id="L227" title="All 2 branches missed.">		if(this.intern){</span>
+<span class="nc" id="L228">			List&lt;? extends Visitor&gt; interners = Arrays.asList(new DoubleInterner(), new IntegerInterner(), new StringInterner(), new MiningFieldInterner(), new PredicateInterner(), new ScoreDistributionInterner());</span>
+
+<span class="nc bnc" id="L230" title="All 2 branches missed.">			for(Visitor interner : interners){</span>
+<span class="nc" id="L231">				interner.applyTo(pmml);</span>
+<span class="nc" id="L232">			}</span>
+		} // End if
+
+<span class="nc bnc" id="L235" title="All 4 branches missed.">		if(this.optimize || this.intern){</span>
+<span class="nc" id="L236">			Visitor transformer = new ArrayListTransformer();</span>
+
+<span class="nc" id="L238">			transformer.applyTo(pmml);</span>
+		}
+
+<span class="nc" id="L241">		ModelEvaluatorFactory modelEvaluatorFactory = (ModelEvaluatorFactory)newInstance(Class.forName(this.modelEvaluatorFactoryClazz));</span>
+
+<span class="nc" id="L243">		ValueFactoryFactory valueFactoryFactory = (ValueFactoryFactory)newInstance(Class.forName(this.valueFactoryFactoryClazz));</span>
+<span class="nc" id="L244">		modelEvaluatorFactory.setValueFactoryFactory(valueFactoryFactory);</span>
+
+<span class="nc" id="L246">		Evaluator evaluator = modelEvaluatorFactory.newModelEvaluator(pmml);</span>
+
+		// Perform self-testing
+<span class="nc" id="L249">		evaluator.verify();</span>
+
+<span class="nc" id="L251">		List&lt;InputField&gt; inputFields = evaluator.getInputFields();</span>
+<span class="nc" id="L252">		List&lt;InputField&gt; groupFields = Collections.emptyList();</span>
+
+<span class="nc bnc" id="L254" title="All 2 branches missed.">		if(evaluator instanceof HasGroupFields){</span>
+<span class="nc" id="L255">			HasGroupFields hasGroupfields = (HasGroupFields)evaluator;</span>
+
+<span class="nc" id="L257">			groupFields = hasGroupfields.getGroupFields();</span>
+		} // End if
+
+<span class="nc bnc" id="L260" title="All 2 branches missed.">		if(inputRecords.size() &gt; 0){</span>
+<span class="nc" id="L261">			Map&lt;FieldName, ?&gt; inputRecord = inputRecords.get(0);</span>
+
+<span class="nc" id="L263">			Sets.SetView&lt;FieldName&gt; missingInputFields = Sets.difference(new LinkedHashSet&lt;&gt;(EvaluatorUtil.getNames(inputFields)), inputRecord.keySet());</span>
+<span class="nc bnc" id="L264" title="All 4 branches missed.">			if((missingInputFields.size() &gt; 0) &amp;&amp; !this.sparse){</span>
+<span class="nc" id="L265">				throw new IllegalArgumentException(&quot;Missing input field(s): &quot; + missingInputFields.toString());</span>
+			}
+
+<span class="nc" id="L268">			Sets.SetView&lt;FieldName&gt; missingGroupFields = Sets.difference(new LinkedHashSet&lt;&gt;(EvaluatorUtil.getNames(groupFields)), inputRecord.keySet());</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">			if(missingGroupFields.size() &gt; 0){</span>
+<span class="nc" id="L270">				throw new IllegalArgumentException(&quot;Missing group field(s): &quot; + missingGroupFields.toString());</span>
+			}
+		} // End if
+
+<span class="nc bnc" id="L274" title="All 2 branches missed.">		if(evaluator instanceof HasGroupFields){</span>
+<span class="nc" id="L275">			HasGroupFields hasGroupFields = (HasGroupFields)evaluator;</span>
+
+<span class="nc" id="L277">			inputRecords = EvaluatorUtil.groupRows(hasGroupFields, inputRecords);</span>
+		}
+
+<span class="nc" id="L280">		List&lt;Map&lt;FieldName, ?&gt;&gt; outputRecords = new ArrayList&lt;&gt;(inputRecords.size());</span>
+
+<span class="nc" id="L282">		Timer timer = new Timer(new SlidingWindowReservoir(this.loop));</span>
+
+<span class="nc" id="L284">		metricRegistry.register(&quot;main&quot;, timer);</span>
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">		if(this.waitBeforeLoop){</span>
+<span class="nc" id="L287">			waitForUserInput();</span>
+		}
+
+<span class="nc bnc" id="L290" title="All 2 branches missed.">		for(int i = 0; i &lt; this.loop; i++){</span>
+<span class="nc" id="L291">			Timer.Context context = timer.time();</span>
+
+			try {
+<span class="nc" id="L294">				outputRecords.clear();</span>
+
+<span class="nc" id="L296">				Map&lt;FieldName, FieldValue&gt; arguments = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L298" title="All 2 branches missed.">				for(Map&lt;FieldName, ?&gt; inputRecord : inputRecords){</span>
+<span class="nc" id="L299">					arguments.clear();</span>
+
+<span class="nc bnc" id="L301" title="All 2 branches missed.">					for(InputField inputField : inputFields){</span>
+<span class="nc" id="L302">						FieldName name = inputField.getName();</span>
+
+<span class="nc" id="L304">						FieldValue value = EvaluatorUtil.prepare(inputField, inputRecord.get(name));</span>
+
+<span class="nc" id="L306">						arguments.put(name, value);</span>
+<span class="nc" id="L307">					}</span>
+
+<span class="nc" id="L309">					Map&lt;FieldName, ?&gt; result = evaluator.evaluate(arguments);</span>
+
+<span class="nc" id="L311">					outputRecords.add(result);</span>
+<span class="nc" id="L312">				}</span>
+			} finally {
+<span class="nc" id="L314">				context.close();</span>
+<span class="nc" id="L315">			}</span>
+		}
+
+<span class="nc bnc" id="L318" title="All 2 branches missed.">		if(this.waitAfterLoop){</span>
+<span class="nc" id="L319">			waitForUserInput();</span>
+		}
+
+<span class="nc" id="L322">		List&lt;TargetField&gt; targetFields = evaluator.getTargetFields();</span>
+<span class="nc" id="L323">		List&lt;OutputField&gt; outputFields = evaluator.getOutputFields();</span>
+
+<span class="nc" id="L325">		List&lt;? extends ResultField&gt; resultFields = Lists.newArrayList(Iterables.concat(targetFields, outputFields));</span>
+
+<span class="nc" id="L327">		CsvUtil.Table outputTable = new CsvUtil.Table();</span>
+<span class="nc" id="L328">		outputTable.setSeparator(inputTable.getSeparator());</span>
+
+<span class="nc" id="L330">		outputTable.addAll(BatchUtil.formatRecords(outputRecords, EvaluatorUtil.getNames(resultFields), Example.CSV_FORMATTER));</span>
+
+<span class="nc bnc" id="L332" title="All 4 branches missed.">		if((inputTable.size() == outputTable.size()) &amp;&amp; this.copyColumns){</span>
+
+<span class="nc bnc" id="L334" title="All 2 branches missed.">			for(int i = 0; i &lt; inputTable.size(); i++){</span>
+<span class="nc" id="L335">				List&lt;String&gt; inputRow = inputTable.get(i);</span>
+<span class="nc" id="L336">				List&lt;String&gt; outputRow = outputTable.get(i);</span>
+
+<span class="nc" id="L338">				outputRow.addAll(0, inputRow);</span>
+			}
+		}
+
+<span class="nc" id="L342">		writeTable(outputTable, this.output);</span>
+
+<span class="nc bnc" id="L344" title="All 2 branches missed.">		if(this.loop &gt; 1){</span>
+<span class="nc" id="L345">			reporter.report();</span>
+		}
+
+<span class="nc" id="L348">		reporter.close();</span>
+<span class="nc" id="L349">	}</span>
+
+	static
+	private void waitForUserInput(){
+<span class="nc" id="L353">		Console console = System.console();</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">		if(console == null){</span>
+<span class="nc" id="L355">			throw new IllegalStateException();</span>
+		}
+
+<span class="nc" id="L358">		console.readLine(&quot;Press ENTER to continue&quot;);</span>
+<span class="nc" id="L359">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

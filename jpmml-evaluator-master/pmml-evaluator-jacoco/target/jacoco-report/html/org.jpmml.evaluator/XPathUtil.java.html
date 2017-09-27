@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>XPathUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">XPathUtil.java</span></div><h1>XPathUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2014 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.List;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.dmg.pmml.PMMLObject;
+
+public class XPathUtil {
+
+<span class="nc" id="L34">	private XPathUtil(){</span>
+<span class="nc" id="L35">	}</span>
+
+	static
+	public String formatXPath(PMMLObject object){
+<span class="fc" id="L39">		Class&lt;?&gt; clazz = object.getClass();</span>
+
+<span class="fc" id="L41">		return getElementName(clazz);</span>
+	}
+
+	static
+	public String formatXPath(PMMLObject object, Field field){
+<span class="fc" id="L46">		XmlElement element = field.getAnnotation(XmlElement.class);</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">		if(element != null){</span>
+<span class="fc" id="L48">			Class&lt;?&gt; elementClazz = field.getType();</span>
+
+<span class="fc bfc" id="L50" title="All 2 branches covered.">			if(List.class.isAssignableFrom(elementClazz)){</span>
+<span class="fc" id="L51">				ParameterizedType listType = (ParameterizedType)field.getGenericType();</span>
+
+<span class="fc" id="L53">				Type[] typeArguments = listType.getActualTypeArguments();</span>
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">				if(typeArguments.length != 1){</span>
+<span class="nc" id="L55">					throw new RuntimeException();</span>
+				}
+
+<span class="fc" id="L58">				elementClazz = (Class&lt;?&gt;)typeArguments[0];</span>
+			}
+
+<span class="fc" id="L61">			return formatXPath(object) + &quot;/&quot; + getElementName(elementClazz);</span>
+		}
+
+<span class="fc" id="L64">		XmlAttribute attribute = field.getAnnotation(XmlAttribute.class);</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">		if(attribute != null){</span>
+<span class="fc" id="L66">			return formatXPath(object) + &quot;@&quot; + attribute.name();</span>
+		}
+
+<span class="nc" id="L69">		throw new RuntimeException();</span>
+	}
+
+	static
+	public String formatXPath(PMMLObject object, Field field, Object value){
+<span class="fc" id="L74">		XmlAttribute attribute = field.getAnnotation(XmlAttribute.class);</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		if(attribute != null){</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">			return formatXPath(object, field) + (value != null ? (&quot;=&quot; + String.valueOf(value)) : &quot;&quot;);</span>
+		}
+
+<span class="nc" id="L79">		throw new RuntimeException();</span>
+	}
+
+	static
+	private String getElementName(Class&lt;?&gt; clazz){
+
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">		while(clazz != null){</span>
+<span class="fc" id="L86">			XmlRootElement rootElement = clazz.getAnnotation(XmlRootElement.class);</span>
+
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">			if(rootElement != null){</span>
+<span class="fc" id="L89">				return rootElement.name();</span>
+			}
+
+<span class="nc" id="L92">			clazz = clazz.getSuperclass();</span>
+<span class="nc" id="L93">		}</span>
+
+<span class="nc" id="L95">		throw new RuntimeException();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

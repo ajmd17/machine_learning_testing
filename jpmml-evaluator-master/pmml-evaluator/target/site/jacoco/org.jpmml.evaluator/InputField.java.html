@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InputField.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">InputField.java</span></div><h1>InputField.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Objects;
+
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.Field;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MiningField;
+import org.dmg.pmml.OpType;
+
+public class InputField extends ModelField {
+
+<span class="fc" id="L32">	private Field field = null;</span>
+
+<span class="fc" id="L34">	private MiningField miningField = null;</span>
+
+
+<span class="fc" id="L37">	public InputField(Field field, MiningField miningField){</span>
+<span class="fc" id="L38">		setField(Objects.requireNonNull(field));</span>
+<span class="fc" id="L39">		setMiningField(Objects.requireNonNull(miningField));</span>
+
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">		if(!Objects.equals(field.getName(), miningField.getName())){</span>
+<span class="nc" id="L42">			throw new IllegalArgumentException();</span>
+		}
+<span class="fc" id="L44">	}</span>
+
+	/**
+	 * &lt;p&gt;
+	 * Prepares the input value for a field.
+	 * &lt;/p&gt;
+	 *
+	 * &lt;p&gt;
+	 * First, the value is converted from the user-supplied representation to PMML representation.
+	 * After that, the value is subjected to missing value treatment, invalid value treatment and outlier treatment.
+	 * &lt;/p&gt;
+	 *
+	 * @param value The input value in user-supplied representation.
+	 * Use &lt;code&gt;null&lt;/code&gt; to represent a missing input value.
+	 *
+	 * @throws EvaluationException If the input value preparation fails.
+	 * @throws InvalidFeatureException
+	 * @throws UnsupportedFeatureException
+	 */
+	public FieldValue prepare(Object value){
+<span class="fc" id="L64">		return FieldValueUtil.prepareInputValue(getField(), getMiningField(), value);</span>
+	}
+
+	@Override
+	public FieldName getName(){
+<span class="fc" id="L69">		Field field = getField();</span>
+
+<span class="fc" id="L71">		return field.getName();</span>
+	}
+
+	@Override
+	public DataType getDataType(){
+<span class="nc" id="L76">		Field field = getField();</span>
+
+<span class="nc" id="L78">		return field.getDataType();</span>
+	}
+
+	@Override
+	public OpType getOpType(){
+<span class="nc" id="L83">		return FieldValueUtil.getOpType(getField(), getMiningField());</span>
+	}
+
+	/**
+	 * @return the backing {@link Field} element.
+	 * For top-level models, this is always the {@link DataField} element.
+	 */
+	public Field getField(){
+<span class="fc" id="L91">		return this.field;</span>
+	}
+
+	private void setField(Field field){
+<span class="fc" id="L95">		this.field = field;</span>
+<span class="fc" id="L96">	}</span>
+
+	/**
+	 * @return the backing {@link MiningField} element.
+	 */
+	public MiningField getMiningField(){
+<span class="fc" id="L102">		return this.miningField;</span>
+	}
+
+	private void setMiningField(MiningField miningField){
+<span class="fc" id="L106">		this.miningField = miningField;</span>
+<span class="fc" id="L107">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

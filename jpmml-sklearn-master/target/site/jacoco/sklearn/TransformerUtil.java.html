@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransformerUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML-SkLearn</a> &gt; <a href="index.source.html" class="el_package">sklearn</a> &gt; <span class="el_source">TransformerUtil.java</span></div><h1>TransformerUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-SkLearn
+ *
+ * JPMML-SkLearn is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-SkLearn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-SkLearn.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package sklearn;
+
+import java.util.List;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import org.jpmml.sklearn.ClassDictUtil;
+import sklearn.pipeline.FeatureUnion;
+import sklearn.pipeline.Pipeline;
+
+public class TransformerUtil {
+
+<span class="nc" id="L31">	private TransformerUtil(){</span>
+<span class="nc" id="L32">	}</span>
+
+	static
+	public Transformer asTransformer(Object object){
+<span class="nc" id="L36">		return TransformerUtil.transformerFunction.apply(object);</span>
+	}
+
+	static
+	public List&lt;Transformer&gt; asTransformerList(List&lt;?&gt; objects){
+<span class="fc" id="L41">		return Lists.transform(objects, TransformerUtil.transformerFunction);</span>
+	}
+
+	static
+	public Selector asSelector(Object object){
+<span class="nc" id="L46">		return TransformerUtil.selectorFunction.apply(object);</span>
+	}
+
+	static
+	public List&lt;Selector&gt; asSelectorList(List&lt;?&gt; objects){
+<span class="nc" id="L51">		return Lists.transform(objects, TransformerUtil.selectorFunction);</span>
+	}
+
+	static
+	public Transformer getHead(List&lt;Transformer&gt; transformers){
+
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		while(transformers.size() &gt; 0){</span>
+<span class="fc" id="L58">			Transformer transformer = transformers.get(0);</span>
+
+<span class="fc bfc" id="L60" title="All 2 branches covered.">			if(transformer instanceof FeatureUnion){</span>
+<span class="fc" id="L61">				FeatureUnion featureUnion = (FeatureUnion)transformer;</span>
+
+<span class="fc" id="L63">				transformers = featureUnion.getTransformers();</span>
+<span class="fc" id="L64">			} else</span>
+
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">			if(transformer instanceof Pipeline){</span>
+<span class="nc" id="L67">				Pipeline pipeline = (Pipeline)transformer;</span>
+
+<span class="nc" id="L69">				transformers = pipeline.getTransformers();</span>
+<span class="nc" id="L70">			} else</span>
+
+			{
+<span class="fc" id="L73">				return transformer;</span>
+			}
+<span class="fc" id="L75">		}</span>
+
+<span class="nc" id="L77">		return null;</span>
+	}
+
+<span class="fc" id="L80">	private static final Function&lt;Object, Transformer&gt; transformerFunction = new Function&lt;Object, Transformer&gt;(){</span>
+
+		@Override
+		public Transformer apply(Object object){
+
+			try {
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">				if(object == null){</span>
+<span class="nc" id="L87">					throw new NullPointerException();</span>
+				}
+
+<span class="fc" id="L90">				return (Transformer)object;</span>
+<span class="nc" id="L91">			} catch(RuntimeException re){</span>
+<span class="nc" id="L92">				throw new IllegalArgumentException(&quot;The transformer object (&quot; + ClassDictUtil.formatClass(object) + &quot;) is not a Transformer or is not a supported Transformer subclass&quot;, re);</span>
+			}
+		}
+	};
+
+<span class="fc" id="L97">	private static final Function&lt;Object, Selector&gt; selectorFunction = new Function&lt;Object, Selector&gt;(){</span>
+
+		@Override
+		public Selector apply(Object object){
+
+			try {
+<span class="nc bnc" id="L103" title="All 2 branches missed.">				if(object == null){</span>
+<span class="nc" id="L104">					throw new NullPointerException();</span>
+				}
+
+<span class="nc" id="L107">				return (Selector)object;</span>
+<span class="nc" id="L108">			} catch(RuntimeException re){</span>
+<span class="nc" id="L109">				throw new IllegalArgumentException(&quot;The transformer object (&quot; + ClassDictUtil.formatClass(object) + &quot;) is not a Selector or is not a supported Selector subclass&quot;);</span>
+			}
+		}
+	};
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

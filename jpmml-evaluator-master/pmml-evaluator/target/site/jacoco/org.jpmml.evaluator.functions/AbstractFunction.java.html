@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractFunction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.functions</a> &gt; <span class="el_source">AbstractFunction.java</span></div><h1>AbstractFunction.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2014 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.functions;
+
+import java.util.List;
+import java.util.Objects;
+
+import org.dmg.pmml.DataType;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.Function;
+import org.jpmml.evaluator.FunctionException;
+
+abstract
+public class AbstractFunction implements Function {
+
+<span class="fc" id="L32">	private String name = null;</span>
+
+
+<span class="fc" id="L35">	public AbstractFunction(String name){</span>
+<span class="fc" id="L36">		setName(Objects.requireNonNull(name));</span>
+<span class="fc" id="L37">	}</span>
+
+	protected void checkArguments(List&lt;FieldValue&gt; arguments, int size){
+<span class="fc" id="L40">		checkArguments(arguments, size, false);</span>
+<span class="fc" id="L41">	}</span>
+
+	/**
+	 * &lt;p&gt;
+	 * Validates arguments for a function that has a fixed number of formal parameters.
+	 * &lt;/p&gt;
+	 *
+	 * @param size The number of arguments.
+	 * @param allowNulls &lt;code&gt;true&lt;/code&gt; if missing arguments are permitted, &lt;code&gt;false&lt;/code&gt; otherwise.
+	 *
+	 * @throws FunctionException If the validation fails.
+	 */
+	protected void checkArguments(List&lt;FieldValue&gt; arguments, int size, boolean allowNulls){
+
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">		if(arguments.size() != size){</span>
+<span class="nc" id="L56">			throw new FunctionException(this, &quot;Expected &quot; + size + &quot; arguments, but got &quot; + arguments.size() + &quot; arguments&quot;);</span>
+		} // End if
+
+<span class="pc bpc" id="L59" title="1 of 4 branches missed.">		if(!allowNulls &amp;&amp; arguments.contains(null)){</span>
+<span class="nc" id="L60">			throw new FunctionException(this, &quot;Missing arguments&quot;);</span>
+		}
+<span class="fc" id="L62">	}</span>
+
+	protected void checkVariableArguments(List&lt;FieldValue&gt; arguments, int minSize){
+<span class="fc" id="L65">		checkVariableArguments(arguments, minSize, false);</span>
+<span class="fc" id="L66">	}</span>
+
+	/**
+	 * &lt;p&gt;
+	 * Validates arguments for a function that has a variable number (&quot;&lt;code&gt;n&lt;/code&gt; or more&quot;) of formal parameters.
+	 * &lt;/p&gt;
+	 *
+	 * @param minSize The minimum number of arguments.
+	 * @param allowNulls &lt;code&gt;true&lt;/code&gt; if missing arguments are allowed, &lt;code&gt;false&lt;/code&gt; otherwise.
+	 *
+	 * @throws FunctionException If the validation fails.
+	 */
+	protected void checkVariableArguments(List&lt;FieldValue&gt; arguments, int minSize, boolean allowNulls){
+
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">		if(arguments.size() &lt; minSize){</span>
+<span class="nc" id="L81">			throw new FunctionException(this, &quot;Expected &quot; + minSize + &quot; or more arguments, but got &quot; + arguments.size() + &quot; arguments&quot;);</span>
+		} // End if
+
+<span class="pc bpc" id="L84" title="1 of 4 branches missed.">		if(!allowNulls &amp;&amp; arguments.contains(null)){</span>
+<span class="nc" id="L85">			throw new FunctionException(this, &quot;Missing arguments&quot;);</span>
+		}
+<span class="fc" id="L87">	}</span>
+
+	@Override
+	public String getName(){
+<span class="fc" id="L91">		return this.name;</span>
+	}
+
+	private void setName(String name){
+<span class="fc" id="L95">		this.name = name;</span>
+<span class="fc" id="L96">	}</span>
+
+	static
+	protected DataType integerToDouble(DataType dataType){
+
+<span class="pc bfc" id="L101" title="All 2 branches covered.">		switch(dataType){</span>
+			case INTEGER:
+<span class="fc" id="L103">				return DataType.DOUBLE;</span>
+			default:
+				break;
+		}
+
+<span class="fc" id="L108">		return dataType;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

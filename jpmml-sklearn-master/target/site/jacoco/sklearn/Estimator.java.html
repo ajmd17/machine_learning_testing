@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Estimator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML-SkLearn</a> &gt; <a href="index.source.html" class="el_package">sklearn</a> &gt; <span class="el_source">Estimator.java</span></div><h1>Estimator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-SkLearn
+ *
+ * JPMML-SkLearn is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-SkLearn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-SkLearn.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package sklearn;
+
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.Visitor;
+import org.jpmml.converter.Schema;
+import org.jpmml.converter.ValueUtil;
+import org.jpmml.sklearn.SkLearnEncoder;
+import org.jpmml.sklearn.TreeModelProducer;
+import org.jpmml.sklearn.visitors.TreeModelCompactor;
+
+abstract
+public class Estimator extends BaseEstimator implements HasNumberOfFeatures {
+
+	public Estimator(String module, String name){
+<span class="fc" id="L36">		super(module, name);</span>
+<span class="fc" id="L37">	}</span>
+
+	abstract
+	public MiningFunction getMiningFunction();
+
+	abstract
+	public boolean isSupervised();
+
+	abstract
+	public Model encodeModel(Schema schema);
+
+	public Model encodeModel(Schema schema, SkLearnEncoder encoder){
+<span class="fc" id="L49">		Model model = encodeModel(schema);</span>
+
+<span class="fc bfc" id="L51" title="All 2 branches covered.">		if(this instanceof TreeModelProducer){</span>
+<span class="fc" id="L52">			Boolean compact = (Boolean)getOption(TreeModelProducer.OPTION_COMPACT, Boolean.FALSE);</span>
+
+<span class="fc bfc" id="L54" title="All 2 branches covered.">			if(compact){</span>
+<span class="fc" id="L55">				Visitor visitor = new TreeModelCompactor();</span>
+
+<span class="fc" id="L57">				visitor.applyTo(model);</span>
+			}
+		}
+
+<span class="fc" id="L61">		return model;</span>
+	}
+
+	@Override
+	public int getNumberOfFeatures(){
+<span class="fc" id="L66">		return ValueUtil.asInt((Number)get(&quot;n_features_&quot;));</span>
+	}
+
+	public OpType getOpType(){
+<span class="nc" id="L70">		return OpType.CONTINUOUS;</span>
+	}
+
+	public DataType getDataType(){
+<span class="nc" id="L74">		return DataType.DOUBLE;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

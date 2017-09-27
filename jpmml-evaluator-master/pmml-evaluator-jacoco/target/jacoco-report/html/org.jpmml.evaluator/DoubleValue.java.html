@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DoubleValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">DoubleValue.java</span></div><h1>DoubleValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2017 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.List;
+
+public class DoubleValue extends Value&lt;Double&gt; {
+
+<span class="fc" id="L25">	protected double value = 0d;</span>
+
+
+	@Operation (
+		value = &quot;${0}&quot;
+	)
+<span class="fc" id="L31">	public DoubleValue(double value){</span>
+<span class="fc" id="L32">		this.value = value;</span>
+<span class="fc" id="L33">	}</span>
+
+	@Override
+	public int compareTo(Value&lt;Double&gt; that){
+<span class="fc" id="L37">		return Double.compare(this.doubleValue(), that.doubleValue());</span>
+	}
+
+	@Override
+	public String toString(){
+<span class="nc" id="L42">		return Double.toString(this.value);</span>
+	}
+
+	@Override
+	public int hashCode(){
+<span class="nc" id="L47">		long bits = Double.doubleToLongBits(this.value);</span>
+
+<span class="nc" id="L49">		return (int)(bits ^ (bits &gt;&gt;&gt; 32));</span>
+	}
+
+	@Override
+	public boolean equals(Object object){
+
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">		if(object instanceof DoubleValue){</span>
+<span class="fc" id="L56">			DoubleValue that = (DoubleValue)object;</span>
+
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">			return (Double.doubleToLongBits(this.value) == Double.doubleToLongBits(that.value));</span>
+		}
+
+<span class="nc" id="L61">		return false;</span>
+	}
+
+	@Override
+	public DoubleValue copy(){
+<span class="fc" id="L66">		return new DoubleValue(this.value);</span>
+	}
+
+	@Override
+	public DoubleValue add(double value){
+<span class="fc" id="L71">		this.value += value;</span>
+
+<span class="fc" id="L73">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue add(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L78">		this.value += value.doubleValue();</span>
+
+<span class="fc" id="L80">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue add(double coefficient, Number factor){
+<span class="fc" id="L85">		this.value += coefficient * factor.doubleValue();</span>
+
+<span class="fc" id="L87">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue add(double coefficient, Number factor, int exponent){
+<span class="fc" id="L92">		this.value += coefficient * Math.pow(factor.doubleValue(), exponent);</span>
+
+<span class="fc" id="L94">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue add(double coefficient, List&lt;? extends Number&gt; factors){
+<span class="nc" id="L99">		double value = coefficient;</span>
+
+<span class="nc bnc" id="L101" title="All 2 branches missed.">		for(int i = 0; i &lt; factors.size(); i++){</span>
+<span class="nc" id="L102">			Number factor = factors.get(i);</span>
+
+<span class="nc" id="L104">			value *= factor.doubleValue();</span>
+		}
+
+<span class="nc" id="L107">		this.value += value;</span>
+
+<span class="nc" id="L109">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue subtract(double value){
+<span class="nc" id="L114">		this.value -= value;</span>
+
+<span class="nc" id="L116">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue subtract(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L121">		this.value -= value.doubleValue();</span>
+
+<span class="fc" id="L123">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue multiply(double value){
+<span class="fc" id="L128">		this.value *= value;</span>
+
+<span class="fc" id="L130">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue multiply(Value&lt;? extends Number&gt; value){
+<span class="nc" id="L135">		this.value *= value.doubleValue();</span>
+
+<span class="nc" id="L137">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue multiply(Number factor, double exponent){
+<span class="nc" id="L142">		this.value *= Math.pow(factor.doubleValue(), exponent);</span>
+
+<span class="nc" id="L144">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue divide(double value){
+<span class="fc" id="L149">		this.value /= value;</span>
+
+<span class="fc" id="L151">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue divide(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L156">		this.value /= value.doubleValue();</span>
+
+<span class="fc" id="L158">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue residual(Value&lt;? extends Number&gt; value){
+<span class="fc" id="L163">		this.value = 1d - value.doubleValue();</span>
+
+<span class="fc" id="L165">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue square(){
+<span class="nc" id="L170">		this.value *= this.value;</span>
+
+<span class="nc" id="L172">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue reciprocal(){
+<span class="nc" id="L177">		this.value = 1d / this.value;</span>
+
+<span class="nc" id="L179">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue elliott(){
+<span class="nc" id="L184">		this.value /= (1d + Math.abs(this.value));</span>
+
+<span class="nc" id="L186">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue exp(){
+<span class="fc" id="L191">		this.value = Math.exp(this.value);</span>
+
+<span class="fc" id="L193">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue gauss(){
+<span class="nc" id="L198">		this.value = Math.exp(-(this.value * this.value));</span>
+
+<span class="nc" id="L200">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseLogit(){
+<span class="fc" id="L205">		this.value = 1d / (1d + Math.exp(-this.value));</span>
+
+<span class="fc" id="L207">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseCloglog(){
+<span class="nc" id="L212">		this.value = 1d - Math.exp(-Math.exp(this.value));</span>
+
+<span class="nc" id="L214">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseLoglog(){
+<span class="nc" id="L219">		this.value = Math.exp(-Math.exp(-this.value));</span>
+
+<span class="nc" id="L221">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseLogc(){
+<span class="nc" id="L226">		this.value = 1d - Math.exp(this.value);</span>
+
+<span class="nc" id="L228">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseNegbin(double value){
+<span class="nc" id="L233">		this.value = 1d / (value * (Math.exp(-this.value) - 1d));</span>
+
+<span class="nc" id="L235">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseOddspower(double value){
+
+<span class="nc bnc" id="L241" title="All 4 branches missed.">		if(value &lt; 0d || value &gt; 0d){</span>
+<span class="nc" id="L242">			this.value = 1d / (1d + Math.pow(1d + (value * this.value), -(1d / value)));</span>
+		} else
+
+		{
+<span class="nc" id="L246">			this.value = 1d / (1d + Math.exp(-this.value));</span>
+		}
+
+<span class="nc" id="L249">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inversePower(double value){
+
+<span class="nc bnc" id="L255" title="All 4 branches missed.">		if(value &lt; 0d || value &gt; 0d){</span>
+<span class="nc" id="L256">			this.value = Math.pow(this.value, 1d / value);</span>
+		} else
+
+		{
+<span class="nc" id="L260">			this.value = Math.exp(this.value);</span>
+		}
+
+<span class="nc" id="L263">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseCauchit(){
+<span class="nc" id="L268">		this.value = 0.5d + (1d / DoubleValue.PI) * Math.atan(this.value);</span>
+
+<span class="nc" id="L270">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue inverseProbit(){
+<span class="fc" id="L275">		this.value = NormalDistributionUtil.cumulativeProbability(this.value);</span>
+
+<span class="fc" id="L277">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue sin(){
+<span class="nc" id="L282">		this.value = Math.sin(this.value);</span>
+
+<span class="nc" id="L284">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue cos(){
+<span class="nc" id="L289">		this.value = Math.cos(this.value);</span>
+
+<span class="nc" id="L291">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue atan(){
+<span class="nc" id="L296">		this.value = Math.atan(this.value);</span>
+
+<span class="nc" id="L298">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue tanh(){
+<span class="nc" id="L303">		this.value = Math.tanh(this.value);</span>
+
+<span class="nc" id="L305">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue threshold(double value){
+<span class="nc bnc" id="L310" title="All 2 branches missed.">		this.value = (this.value &gt; value ? 1d : 0d);</span>
+
+<span class="nc" id="L312">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue relu(){
+<span class="nc" id="L317">		this.value = Math.max(this.value, 0);</span>
+
+<span class="nc" id="L319">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue restrict(double lowValue, double highValue){
+<span class="fc" id="L324">		this.value = Math.max(this.value, lowValue);</span>
+<span class="fc" id="L325">		this.value = Math.min(this.value, highValue);</span>
+
+<span class="fc" id="L327">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue round(){
+<span class="fc" id="L332">		this.value = Math.round(this.value);</span>
+
+<span class="fc" id="L334">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue ceiling(){
+<span class="nc" id="L339">		this.value = Math.ceil(this.value);</span>
+
+<span class="nc" id="L341">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue floor(){
+<span class="nc" id="L346">		this.value = Math.floor(this.value);</span>
+
+<span class="nc" id="L348">		return this;</span>
+	}
+
+	@Override
+	public DoubleValue denormalize(double leftOrig, double leftNorm, double rightOrig, double rightNorm){
+<span class="fc" id="L353">		this.value = ((this.value - leftNorm) / (rightNorm - leftNorm)) * (rightOrig - leftOrig) + leftOrig;</span>
+
+<span class="fc" id="L355">		return this;</span>
+	}
+
+	@Override
+	public float floatValue(){
+<span class="fc" id="L360">		return (float)this.value;</span>
+	}
+
+	@Override
+	public double doubleValue(){
+<span class="fc" id="L365">		return this.value;</span>
+	}
+
+	@Override
+	public Double getValue(){
+<span class="fc" id="L370">		return this.value;</span>
+	}
+
+	public static final double E = Math.E;
+
+	public static final double PI = Math.PI;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

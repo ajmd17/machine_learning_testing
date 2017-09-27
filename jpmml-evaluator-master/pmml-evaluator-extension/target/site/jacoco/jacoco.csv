@@ -1,0 +1,38 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+JPMML evaluator extensions,org.jpmml.evaluator.general_regression,RichObjectFactory,11,0,0,0,3,0,3,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator.general_regression,RichPPCell,28,0,2,0,9,0,4,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator.general_regression,RichBaseCumHazardTables,59,0,4,0,16,0,6,0,4,0
+JPMML evaluator extensions,org.jpmml.evaluator,RichDataField.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator extensions,org.jpmml.evaluator,RichConstant,49,0,6,0,14,0,9,0,6,0
+JPMML evaluator extensions,org.jpmml.evaluator,RichSimpleSetPredicate.new Function() {...},19,0,0,0,2,0,2,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator,RichDataField,12,84,1,6,3,24,2,7,1,4
+JPMML evaluator extensions,org.jpmml.evaluator,RichSimpleSetPredicate,36,9,2,0,9,4,4,1,3,1
+JPMML evaluator extensions,org.jpmml.evaluator,RichNormDiscrete,28,0,2,0,9,0,4,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator,RichSimplePredicate,19,9,2,0,5,4,3,1,2,1
+JPMML evaluator extensions,org.jpmml.evaluator,RichObjectFactory,23,0,0,0,6,0,6,0,6,0
+JPMML evaluator extensions,org.jpmml.evaluator.naive_bayes,RichObjectFactory,7,0,0,0,2,0,2,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator.naive_bayes,RichBayesInput,69,0,6,0,19,0,7,0,4,0
+JPMML evaluator extensions,org.jpmml.evaluator.regression,RichObjectFactory,7,0,0,0,2,0,2,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator.regression,RichCategoricalPredictor,28,0,2,0,9,0,4,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator.functions,PercentileFunction,15,74,2,4,1,16,2,5,0,4
+JPMML evaluator extensions,org.jpmml.evaluator.functions,StandardDeviationFunction,22,81,3,7,2,19,3,6,0,4
+JPMML evaluator extensions,org.jpmml.evaluator.functions,MeanFunction,0,56,0,2,0,14,0,5,0,4
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,MiningFieldInterner,51,0,10,0,12,0,8,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,ScoreDistributionInterner,2,44,2,6,1,9,2,5,0,3
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,ElementHashMap,0,23,0,2,0,7,0,3,0,2
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,NodeSorter,0,21,0,2,0,6,0,4,0,3
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,FieldOptimizer,28,0,4,0,6,0,4,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,ExpressionOptimizer,38,0,8,0,11,0,7,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,PredicateOptimizer,4,34,3,5,2,9,3,4,0,3
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,ScoreDistributionInterner.new ElementHashMap() {...},0,35,0,0,0,3,0,2,0,2
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,MiningFieldInterner.new ElementHashMap() {...},19,0,0,0,3,0,2,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,PredicateInterner,4,111,3,9,2,27,3,12,0,9
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,PredicateInterner.new ElementHashMap() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,NaiveBayesModelOptimizer,28,0,4,0,6,0,4,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,PredicateInterner.new ElementHashMap() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,PredicateInterner.new ElementHashMap() {...},0,32,0,0,0,4,0,2,0,2
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,PredicateInterner.new ElementHashMap() {...},0,29,0,0,0,3,0,2,0,2
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,GeneralRegressionModelOptimizer,44,0,6,0,10,0,6,0,3,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,ElementKey,2,41,1,1,1,13,1,6,0,6
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,RegressionModelOptimizer,28,0,4,0,6,0,4,0,2,0
+JPMML evaluator extensions,org.jpmml.evaluator.visitors,NodeSorter.new Comparator() {...},0,16,0,0,0,5,0,2,0,2

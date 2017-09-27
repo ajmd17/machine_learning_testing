@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TestingExample.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator example applications</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">TestingExample.java</span></div><h1>TestingExample.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import com.beust.jcommander.Parameter;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.PMML;
+
+<span class="nc" id="L32">public class TestingExample extends Example {</span>
+
+<span class="nc" id="L34">	@Parameter (</span>
+		names = {&quot;--model&quot;},
+		description = &quot;Model PMML file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 1
+	)
+	private File model = null;
+
+<span class="nc" id="L44">	@Parameter (</span>
+		names = {&quot;--input&quot;},
+		description = &quot;Input CSV file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 2
+	)
+	private File input = null;
+
+<span class="nc" id="L54">	@Parameter (</span>
+		names = {&quot;--expected-output&quot;},
+		description = &quot;Expected output CSV file&quot;,
+		required = true
+	)
+	@ParameterOrder (
+		value = 3
+	)
+	private File output = null;
+
+<span class="nc" id="L64">	@Parameter (</span>
+		names = {&quot;--separator&quot;},
+		description = &quot;CSV cell separator character&quot;,
+		converter = SeparatorConverter.class
+	)
+	@ParameterOrder (
+		value = 4
+	)
+	private String separator = null;
+
+<span class="nc" id="L74">	@Parameter (</span>
+		names = {&quot;--ignored-fields&quot;},
+		description = &quot;Ignored Model fields&quot;,
+		converter = FieldNameConverter.class
+	)
+	@ParameterOrder (
+		value = 5
+	)
+	private List&lt;FieldName&gt; ignoredFields = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L84">	@Parameter (</span>
+		names = {&quot;--precision&quot;},
+		description = &quot;Relative error&quot;
+	)
+	@ParameterOrder (
+		value = 6
+	)
+	private double precision = 1e-9;
+
+<span class="nc" id="L93">	@Parameter (</span>
+		names = {&quot;--zero-threshold&quot;},
+		description = &quot;Absolute error near zero&quot;
+	)
+	@ParameterOrder (
+		value = 7
+	)
+	private double zeroThreshold = 1e-9;
+
+<span class="nc" id="L102">	@Parameter (</span>
+		names = {&quot;--factory-class&quot;, &quot;--modelevaluatorfactory-class&quot;},
+		description = &quot;Name of ModelEvaluatorFactory class&quot;,
+		hidden = true
+	)
+<span class="nc" id="L107">	private String modelEvaluatorFactoryClazz = ModelEvaluatorFactory.class.getName();</span>
+
+
+	static
+	public void main(String... args) throws Exception {
+<span class="nc" id="L112">		execute(TestingExample.class, args);</span>
+<span class="nc" id="L113">	}</span>
+
+	@Override
+	public void execute() throws Exception {
+<span class="nc" id="L117">		PMML pmml = readPMML(this.model);</span>
+
+<span class="nc" id="L119">		CsvUtil.Table inputTable = readTable(this.input, this.separator);</span>
+
+<span class="nc" id="L121">		CsvUtil.Table outputTable = readTable(this.output, this.separator);</span>
+
+<span class="nc" id="L123">		ModelEvaluatorFactory modelEvaluatorFactory = (ModelEvaluatorFactory)newInstance(Class.forName(this.modelEvaluatorFactoryClazz));</span>
+
+<span class="nc" id="L125">		Evaluator evaluator = modelEvaluatorFactory.newModelEvaluator(pmml);</span>
+
+		// Perform self-testing
+<span class="nc" id="L128">		evaluator.verify();</span>
+
+<span class="nc" id="L130">		Predicate&lt;FieldName&gt; predicate = Predicates.alwaysTrue();</span>
+
+<span class="nc bnc" id="L132" title="All 4 branches missed.">		if(this.ignoredFields != null &amp;&amp; this.ignoredFields.size() &gt; 0){</span>
+<span class="nc" id="L133">			predicate = Predicates.not(Predicates.in(this.ignoredFields));</span>
+		}
+
+<span class="nc" id="L136">		List&lt;? extends Map&lt;FieldName, ?&gt;&gt; inputRecords = BatchUtil.parseRecords(inputTable, Example.CSV_PARSER);</span>
+
+<span class="nc" id="L138">		List&lt;? extends Map&lt;FieldName, ?&gt;&gt; outputRecords = BatchUtil.parseRecords(outputTable, Example.CSV_PARSER);</span>
+
+		List&lt;Conflict&gt; conflicts;
+
+<span class="nc" id="L142">		try(Batch batch = createBatch(evaluator, inputRecords, outputRecords, predicate)){</span>
+<span class="nc" id="L143">			conflicts = BatchUtil.evaluate(batch, new PMMLEquivalence(this.precision, this.zeroThreshold));</span>
+<span class="nc bnc" id="L144" title="All 8 branches missed.">		}</span>
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">		for(Conflict conflict : conflicts){</span>
+<span class="nc" id="L147">			System.err.println(conflict);</span>
+<span class="nc" id="L148">		}</span>
+<span class="nc" id="L149">	}</span>
+
+	static
+	private Batch createBatch(final Evaluator evaluator, final List&lt;? extends Map&lt;FieldName, ?&gt;&gt; input, final List&lt;? extends Map&lt;FieldName, ?&gt;&gt; output, final Predicate&lt;FieldName&gt; predicate){
+<span class="nc" id="L153">		Batch batch = new Batch(){</span>
+
+			@Override
+			public Evaluator getEvaluator(){
+<span class="nc" id="L157">				return evaluator;</span>
+			}
+
+			@Override
+			public List&lt;? extends Map&lt;FieldName, ?&gt;&gt; getInput(){
+<span class="nc" id="L162">				return input;</span>
+			}
+
+			@Override
+			public List&lt;? extends Map&lt;FieldName, ?&gt;&gt; getOutput(){
+<span class="nc" id="L167">				return output;</span>
+			}
+
+			@Override
+			public Predicate&lt;FieldName&gt; getPredicate(){
+<span class="nc" id="L172">				return predicate;</span>
+			}
+
+			@Override
+			public void close(){
+<span class="nc" id="L177">			}</span>
+		};
+
+<span class="nc" id="L180">		return batch;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

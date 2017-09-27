@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TargetUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">TargetUtil.java</span></div><h1>TargetUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.Target;
+import org.dmg.pmml.TargetValue;
+
+public class TargetUtil {
+
+<span class="nc" id="L33">	private TargetUtil(){</span>
+<span class="nc" id="L34">	}</span>
+
+	static
+	public &lt;V extends Number&gt; Map&lt;FieldName, ?&gt; evaluateRegressionDefault(ValueFactory&lt;V&gt; valueFactory, TargetField targetField){
+<span class="fc" id="L38">		Target target = targetField.getTarget();</span>
+
+<span class="pc bpc" id="L40" title="1 of 4 branches missed.">		if(target != null &amp;&amp; target.hasTargetValues()){</span>
+<span class="fc" id="L41">			Value&lt;V&gt; value = getDefaultValue(valueFactory, target);</span>
+
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">			if(value != null){</span>
+<span class="fc" id="L44">				return evaluateRegression(targetField, value);</span>
+			}
+		}
+
+<span class="fc" id="L48">		return Collections.singletonMap(targetField.getName(), null);</span>
+	}
+
+	static
+	public Map&lt;FieldName, ?&gt; evaluateRegression(TargetField targetField, Double value){
+<span class="fc" id="L53">		return Collections.singletonMap(targetField.getName(), evaluateRegressionInternal(targetField, value));</span>
+	}
+
+	static
+	public &lt;V extends Number&gt; Map&lt;FieldName, ?&gt; evaluateRegression(TargetField targetField, Value&lt;V&gt; value){
+<span class="fc" id="L58">		return Collections.singletonMap(targetField.getName(), evaluateRegressionInternal(targetField, value));</span>
+	}
+
+	static
+	public Object evaluateRegressionInternal(TargetField targetField, Double value){
+<span class="fc" id="L63">		DataField dataField = targetField.getDataField();</span>
+<span class="fc" id="L64">		Target target = targetField.getTarget();</span>
+
+<span class="fc bfc" id="L66" title="All 2 branches covered.">		if(target != null){</span>
+<span class="fc" id="L67">			value = processValue(target, value);</span>
+		}
+
+<span class="fc" id="L70">		return TypeUtil.cast(dataField.getDataType(), value);</span>
+	}
+
+	static
+	public &lt;V extends Number&gt; Object evaluateRegressionInternal(TargetField targetField, Value&lt;V&gt; value){
+<span class="fc" id="L75">		DataField dataField = targetField.getDataField();</span>
+<span class="fc" id="L76">		Target target = targetField.getTarget();</span>
+
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		if(target != null){</span>
+<span class="fc" id="L79">			value = processValue(target, value);</span>
+		}
+
+<span class="fc" id="L82">		return TypeUtil.cast(dataField.getDataType(), value.getValue());</span>
+	}
+
+	static
+	public &lt;V extends Number&gt; Map&lt;FieldName, ? extends Classification&gt; evaluateClassificationDefault(ValueFactory&lt;V&gt; valueFactory, TargetField targetField){
+<span class="fc" id="L87">		Target target = targetField.getTarget();</span>
+
+<span class="fc bfc" id="L89" title="All 4 branches covered.">		if(target != null &amp;&amp; target.hasTargetValues()){</span>
+<span class="fc" id="L90">			ProbabilityDistribution result = getPriorProbabilities(valueFactory, target);</span>
+
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">			if(result != null){</span>
+<span class="fc" id="L93">				return evaluateClassification(targetField, result);</span>
+			}
+		}
+
+<span class="fc" id="L97">		return Collections.singletonMap(targetField.getName(), null);</span>
+	}
+
+	static
+	public Map&lt;FieldName, ? extends Classification&gt; evaluateClassification(TargetField targetField, Classification value){
+<span class="fc" id="L102">		DataField dataField = targetField.getDataField();</span>
+
+<span class="fc" id="L104">		value.computeResult(dataField.getDataType());</span>
+
+<span class="fc" id="L106">		return Collections.singletonMap(targetField.getName(), value);</span>
+	}
+
+	static
+	public Double processValue(Target target, Double value){
+<span class="fc" id="L111">		double result = value.doubleValue();</span>
+
+<span class="fc" id="L113">		Double min = target.getMin();</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">		if(min != null){</span>
+<span class="fc" id="L115">			result = Math.max(result, min);</span>
+		}
+
+<span class="fc" id="L118">		Double max = target.getMax();</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">		if(max != null){</span>
+<span class="fc" id="L120">			result = Math.min(result, max);</span>
+		}
+
+<span class="fc" id="L123">		double rescaleFactor = target.getRescaleFactor();</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">		if(rescaleFactor != 1d){</span>
+<span class="fc" id="L125">			result *= rescaleFactor;</span>
+		}
+
+<span class="fc" id="L128">		double rescaleConstant = target.getRescaleConstant();</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">		if(rescaleConstant != 0d){</span>
+<span class="fc" id="L130">			result += rescaleConstant;</span>
+		}
+
+<span class="fc" id="L133">		Target.CastInteger castInteger = target.getCastInteger();</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">		if(castInteger == null){</span>
+
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">			if(result == value.doubleValue()){</span>
+<span class="nc" id="L137">				return value;</span>
+			}
+
+<span class="fc" id="L140">			return result;</span>
+		}
+
+<span class="pc bpc" id="L143" title="3 of 4 branches missed.">		switch(castInteger){</span>
+			case ROUND:
+<span class="fc" id="L145">				return (double)Math.round(result);</span>
+			case CEILING:
+<span class="nc" id="L147">				return Math.ceil(result);</span>
+			case FLOOR:
+<span class="nc" id="L149">				return Math.floor(result);</span>
+			default:
+<span class="nc" id="L151">				throw new UnsupportedFeatureException(target, castInteger);</span>
+		}
+	}
+
+	static
+	public &lt;V extends Number&gt; Value&lt;V&gt; processValue(Target target, Value&lt;V&gt; value){
+<span class="fc" id="L157">		Double min = target.getMin();</span>
+<span class="fc" id="L158">		Double max = target.getMax();</span>
+
+<span class="pc bpc" id="L160" title="1 of 4 branches missed.">		if(min != null || max != null){</span>
+<span class="pc bpc" id="L161" title="2 of 4 branches missed.">			value.restrict((min != null ? min : Double.NEGATIVE_INFINITY), (max != null ? max : Double.POSITIVE_INFINITY));</span>
+		}
+
+<span class="fc" id="L164">		double rescaleFactor = target.getRescaleFactor();</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">		if(rescaleFactor != 1d){</span>
+<span class="fc" id="L166">			value.multiply(rescaleFactor);</span>
+		}
+
+<span class="fc" id="L169">		double rescaleConstant = target.getRescaleConstant();</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">		if(rescaleConstant != 0d){</span>
+<span class="fc" id="L171">			value.add(rescaleConstant);</span>
+		}
+
+<span class="fc" id="L174">		Target.CastInteger castInteger = target.getCastInteger();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">		if(castInteger == null){</span>
+<span class="fc" id="L176">			return value;</span>
+		}
+
+<span class="pc bpc" id="L179" title="3 of 4 branches missed.">		switch(castInteger){</span>
+			case ROUND:
+<span class="fc" id="L181">				return value.round();</span>
+			case CEILING:
+<span class="nc" id="L183">				return value.ceiling();</span>
+			case FLOOR:
+<span class="nc" id="L185">				return value.floor();</span>
+			default:
+<span class="nc" id="L187">				throw new UnsupportedFeatureException(target, castInteger);</span>
+		}
+	}
+
+	static
+	public TargetValue getTargetValue(Target target, Object value){
+<span class="fc" id="L193">		DataType dataType = TypeUtil.getDataType(value);</span>
+
+<span class="fc" id="L195">		List&lt;TargetValue&gt; targetValues = target.getTargetValues();</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">		for(TargetValue targetValue : targetValues){</span>
+
+<span class="fc bfc" id="L198" title="All 2 branches covered.">			if(TypeUtil.equals(dataType, value, TypeUtil.parseOrCast(dataType, targetValue.getValue()))){</span>
+<span class="fc" id="L199">				return targetValue;</span>
+			}
+<span class="fc" id="L201">		}</span>
+
+<span class="nc" id="L203">		return null;</span>
+	}
+
+	static
+	private &lt;V extends Number&gt; Value&lt;V&gt; getDefaultValue(ValueFactory&lt;V&gt; valueFactory, Target target){
+
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">		if(!target.hasTargetValues()){</span>
+<span class="nc" id="L210">			return null;</span>
+		}
+
+<span class="fc" id="L213">		List&lt;TargetValue&gt; targetValues = target.getTargetValues();</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">		if(targetValues.size() != 1){</span>
+<span class="nc" id="L215">			throw new InvalidFeatureException(target);</span>
+		}
+
+<span class="fc" id="L218">		TargetValue targetValue = targetValues.get(0);</span>
+
+<span class="fc" id="L220">		Double defaultValue = targetValue.getDefaultValue();</span>
+
+		// &quot;The value and priorProbability attributes are used only if the optype of the field is categorical or ordinal&quot;
+<span class="pc bpc" id="L223" title="2 of 4 branches missed.">		if(targetValue.getValue() != null || targetValue.getPriorProbability() != null){</span>
+<span class="nc" id="L224">			throw new InvalidFeatureException(targetValue);</span>
+		} // End if
+
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">		if(defaultValue == null){</span>
+<span class="nc" id="L228">			return null;</span>
+		}
+
+<span class="fc" id="L231">		return valueFactory.newValue(defaultValue);</span>
+	}
+
+	static
+	private &lt;V extends Number&gt; ProbabilityDistribution getPriorProbabilities(ValueFactory&lt;V&gt; valueFactory, Target target){
+
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">		if(!target.hasTargetValues()){</span>
+<span class="nc" id="L238">			return null;</span>
+		}
+
+<span class="fc" id="L241">		ProbabilityDistribution result = new ProbabilityDistribution();</span>
+
+<span class="fc" id="L243">		Value&lt;V&gt; sum = valueFactory.newValue();</span>
+
+<span class="fc" id="L245">		List&lt;TargetValue&gt; targetValues = target.getTargetValues();</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">		for(TargetValue targetValue : targetValues){</span>
+<span class="fc" id="L247">			String targetCategory = targetValue.getValue();</span>
+<span class="fc" id="L248">			Double probability = targetValue.getPriorProbability();</span>
+
+<span class="pc bpc" id="L250" title="2 of 4 branches missed.">			if(targetCategory == null || probability == null){</span>
+<span class="nc" id="L251">				throw new InvalidFeatureException(targetValue);</span>
+			} // End if
+
+			// &quot;The defaultValue attribute is used only if the optype of the field is continuous&quot;
+<span class="pc bpc" id="L255" title="1 of 2 branches missed.">			if(targetValue.getDefaultValue() != null){</span>
+<span class="nc" id="L256">				throw new InvalidFeatureException(targetValue);</span>
+			}
+
+<span class="fc" id="L259">			Value&lt;V&gt; value = valueFactory.newValue(probability);</span>
+
+<span class="fc" id="L261">			sum.add(value);</span>
+
+<span class="fc" id="L263">			result.put(targetCategory, value.doubleValue());</span>
+<span class="fc" id="L264">		}</span>
+
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">		if(sum.doubleValue() != 1d){</span>
+<span class="nc" id="L267">			throw new InvalidFeatureException(target);</span>
+		}
+
+<span class="fc" id="L270">		return result;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

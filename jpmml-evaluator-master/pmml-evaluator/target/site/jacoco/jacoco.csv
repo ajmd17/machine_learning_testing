@@ -1,0 +1,384 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelEvaluator.SegmentHandler,0,29,0,0,0,12,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelEvaluator,251,820,38,83,63,209,39,51,4,22
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelEvaluator.new CacheLoader() {...},0,10,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelEvaluator.new Object() {...},17,115,0,0,0,3,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.mining,SegmentResult,37,75,0,0,12,28,4,12,4,12
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelUtil.new ProbabilityAggregator() {...},11,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelUtil.new ProbabilityAggregator() {...},10,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelUtil.new VoteAggregator() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelEvaluationContext,21,65,3,3,8,18,4,9,2,8
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelUtil.new Object() {...},9,59,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelUtil.new ProbabilityAggregator() {...},10,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator.mining,MiningModelUtil,226,33,33,3,58,8,28,2,3,1
+JPMML evaluator,org.jpmml.evaluator.scorecard,ScorecardEvaluator.new Object() {...},5,43,0,0,0,3,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.scorecard,ScorecardEvaluator.new VoteAggregator() {...},0,12,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.scorecard,ReasonCodeRanking,14,38,0,0,4,14,1,6,1,6
+JPMML evaluator,org.jpmml.evaluator.scorecard,ScorecardEvaluator,87,256,21,32,19,76,23,10,2,4
+JPMML evaluator,org.jpmml.evaluator.tree,TreeModelEvaluator.new Object() {...},10,77,0,0,0,4,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.tree,TreeModelEvaluator.new CacheLoader() {...},0,52,0,4,0,12,0,5,0,3
+JPMML evaluator,org.jpmml.evaluator.tree,TreeModelEvaluator,128,478,26,59,26,125,26,35,2,14
+JPMML evaluator,org.jpmml.evaluator.tree,NodeScoreDistribution,22,88,5,11,6,25,5,11,1,7
+JPMML evaluator,org.jpmml.evaluator.tree,TreeModelEvaluator.Trail,4,63,1,1,1,25,1,12,0,12
+JPMML evaluator,org.jpmml.evaluator.tree,NodeScore,63,0,0,0,23,0,9,0,9,0
+JPMML evaluator,org.jpmml.evaluator.regression,RegressionModelEvaluator,273,334,56,50,66,81,46,18,2,6
+JPMML evaluator,org.jpmml.evaluator.regression,RegressionModelUtil,81,155,22,16,26,40,22,10,1,5
+JPMML evaluator,org.jpmml.evaluator.regression,RegressionModelUtil.new Object() {...},9,59,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.regression,RegressionModelEvaluator.new Object() {...},16,113,0,0,0,4,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.support_vector_machine,SupportVectorMachineModelEvaluator,284,452,64,43,67,125,51,16,2,10
+JPMML evaluator,org.jpmml.evaluator.support_vector_machine,KernelUtil,97,56,10,6,17,11,12,4,5,3
+JPMML evaluator,org.jpmml.evaluator.support_vector_machine,SupportVectorMachineModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.support_vector_machine,SupportVectorMachineModelEvaluator.new Object() {...},6,53,0,0,0,4,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.visitors,FeatureInspector,1,33,1,1,1,10,1,5,0,5
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector,153,104,3,17,25,26,14,11,11,4
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.CollectionSize,4,28,2,2,1,8,2,3,0,3
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},27,0,2,0,4,0,5,0,4,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},20,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.Condition,0,19,0,0,0,7,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},20,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},20,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},0,19,0,0,0,3,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator.visitors,UnsupportedFeatureInspector.new Object() {...},9,87,0,0,0,8,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,InvalidFeatureInspector.new InvalidFeatureInspector.CollectionSize() {...},19,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.visitors,UnsupportedFeatureInspector,392,23,53,1,84,6,52,2,22,2
+JPMML evaluator,org.jpmml.evaluator.clustering,ClusteringModelEvaluator.new Object() {...},5,47,0,0,0,4,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.clustering,ClusteringModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.clustering,ClusteringModelEvaluator.new CacheLoader() {...},8,3,0,0,2,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator.clustering,ClusteringModelEvaluator.new CacheLoader() {...},0,15,0,0,0,4,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.clustering,ClusterAffinityDistribution,15,16,0,0,4,5,3,4,3,4
+JPMML evaluator,org.jpmml.evaluator.clustering,ClusteringModelEvaluator,167,273,22,21,37,70,22,11,3,8
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row.FactorHandler,20,27,3,1,4,10,3,3,1,3
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row.new Function() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row.CovariateHandler,11,41,2,2,2,13,2,4,0,4
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelUtil.new Object() {...},114,0,0,0,2,0,1,0,1,0
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator,837,555,139,53,219,148,105,29,15,16
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row.PredictorHandler,0,25,0,0,0,9,0,4,0,4
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row,20,139,5,9,5,33,5,8,0,6
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Object() {...},28,193,0,0,0,6,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row.ContrastMatrixHandler,8,108,4,4,2,29,4,9,0,9
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new CacheLoader() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new CacheLoader() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Comparator() {...},12,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Predicate() {...},0,20,0,2,0,3,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Predicate() {...},25,0,2,0,3,0,3,0,2,0
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Function() {...},0,6,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Function() {...},5,65,1,5,1,15,1,4,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new CacheLoader() {...},5,3,0,0,1,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.new Function() {...},0,6,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelEvaluator.Row.ContrastMatrixHandler.new Function() {...},0,19,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.general_regression,GeneralRegressionModelUtil,89,0,23,0,27,0,21,0,3,0
+JPMML evaluator,org.jpmml.evaluator,MatrixUtil.new Comparator() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil.3.new Function() {...},5,13,1,1,1,4,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator,MatrixUtil.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,MatrixUtil.new Predicate() {...},0,23,0,4,0,2,0,4,0,2
+JPMML evaluator,org.jpmml.evaluator,MatrixUtil.new Comparator() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,SecondsSinceMidnight,24,50,2,2,6,19,4,8,3,7
+JPMML evaluator,org.jpmml.evaluator,ContinuousValue.ContinuousDouble,0,13,0,0,0,4,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator,ExpressionUtil,176,587,42,90,41,156,35,52,2,15
+JPMML evaluator,org.jpmml.evaluator,OutputUtil,279,866,61,110,71,244,61,71,3,20
+JPMML evaluator,org.jpmml.evaluator,SecondsSinceDate,19,70,4,4,3,17,5,8,1,8
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.new Object() {...},2,17,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,TextUtil,81,388,21,51,22,112,21,24,1,7
+JPMML evaluator,org.jpmml.evaluator,TypeCheckException,12,76,4,4,5,16,5,8,1,8
+JPMML evaluator,org.jpmml.evaluator,Vector,0,3,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ValueAggregator,52,191,16,18,13,45,16,12,1,10
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory,13,26,2,1,4,8,3,4,1,4
+JPMML evaluator,org.jpmml.evaluator,TypeUtil,201,1081,70,242,42,262,59,162,2,38
+JPMML evaluator,org.jpmml.evaluator,ComplexFloatVector,120,0,8,0,28,0,14,0,10,0
+JPMML evaluator,org.jpmml.evaluator,TargetReferenceField,24,15,0,0,4,6,4,2,4,2
+JPMML evaluator,org.jpmml.evaluator,JavaModelEvaluator,31,0,2,0,9,0,5,0,4,0
+JPMML evaluator,org.jpmml.evaluator,FieldValue,119,346,9,33,32,83,15,44,6,32
+JPMML evaluator,org.jpmml.evaluator,DoubleValue,314,178,14,2,62,39,35,20,27,20
+JPMML evaluator,org.jpmml.evaluator,NormalizationUtil,24,221,6,24,6,44,7,14,1,4
+JPMML evaluator,org.jpmml.evaluator,ValueFactoryFactory.DoubleValueFactory,6,35,0,2,1,8,1,7,1,6
+JPMML evaluator,org.jpmml.evaluator,ValueFactoryFactory,4,16,1,2,1,6,1,4,0,3
+JPMML evaluator,org.jpmml.evaluator,Classification.Type,22,120,2,2,3,22,4,10,2,10
+JPMML evaluator,org.jpmml.evaluator,OutputField,35,53,1,1,11,19,5,8,4,8
+JPMML evaluator,org.jpmml.evaluator,TextUtil.TextProcessor,0,39,1,1,0,11,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Classification,28,181,1,5,9,50,3,25,2,23
+JPMML evaluator,org.jpmml.evaluator,EntityClassification,9,60,0,4,3,19,1,9,1,7
+JPMML evaluator,org.jpmml.evaluator,MissingFieldException,6,5,0,0,2,2,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,InputField,16,52,1,1,4,16,3,7,2,7
+JPMML evaluator,org.jpmml.evaluator,PredicateUtil.CompoundPredicateResult,0,29,0,0,0,12,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator,ContinuousValue.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,CategoricalValue.CategoricalString,0,9,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,IndexableUtil,61,45,8,6,15,11,9,5,4,3
+JPMML evaluator,org.jpmml.evaluator,ComplexDoubleVector,12,139,3,7,3,33,3,13,0,11
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator,110,1025,35,112,23,276,32,82,0,40
+JPMML evaluator,org.jpmml.evaluator,Report.Entry,14,29,0,0,4,12,1,5,1,5
+JPMML evaluator,org.jpmml.evaluator,DistributionUtil,10,65,2,6,4,12,3,7,1,5
+JPMML evaluator,org.jpmml.evaluator,SparseArrayUtil,21,104,8,12,6,23,9,6,1,4
+JPMML evaluator,org.jpmml.evaluator,TargetUtil.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,NormalDistributionUtil,12,0,0,0,3,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator,ReportingComplexFloatVector,183,0,2,0,25,0,13,0,12,0
+JPMML evaluator,org.jpmml.evaluator,FieldValues,0,21,0,0,0,4,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,DefineFunctionEvaluationContext,14,13,0,0,4,6,3,2,3,2
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluationContext,56,251,15,26,16,80,12,26,0,17
+JPMML evaluator,org.jpmml.evaluator,ArrayUtil.new Function() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ArrayUtil.new Function() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ArrayUtil.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ArrayUtil.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,TextUtil.new Callable() {...},0,5,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,TextUtil.new Callable() {...},0,5,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,TextUtil.new Object() {...},5,39,0,0,0,2,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,InvalidResultException,5,4,0,0,2,2,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,FunctionException,3,14,0,0,1,6,1,2,1,2
+JPMML evaluator,org.jpmml.evaluator,ValueUtil,5,128,6,26,4,31,7,12,1,2
+JPMML evaluator,org.jpmml.evaluator,InlineTableUtil.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,OutputUtil.new Object() {...},42,273,0,0,0,5,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,VerificationUtil,7,98,4,22,3,12,5,12,1,3
+JPMML evaluator,org.jpmml.evaluator,OutputUtil.new Comparator() {...},89,51,8,3,16,11,12,4,4,4
+JPMML evaluator,org.jpmml.evaluator,DiscretizationUtil.RowFilter,0,69,1,3,0,20,1,6,0,5
+JPMML evaluator,org.jpmml.evaluator,ReportingSimpleFloatVector,181,0,2,0,25,0,13,0,12,0
+JPMML evaluator,org.jpmml.evaluator,JavaExpression,5,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,SecondsSinceMidnight.HoursOfEpochFieldType.new PreciseDurationDateTimeField() {...},0,21,0,0,0,6,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator,PredicateUtil,82,347,14,88,20,86,15,54,2,11
+JPMML evaluator,org.jpmml.evaluator,MeasureUtil,222,348,52,39,50,68,39,20,3,8
+JPMML evaluator,org.jpmml.evaluator,ComplexReport,34,0,0,0,10,0,5,0,5,0
+JPMML evaluator,org.jpmml.evaluator,Functions,23,296,2,0,6,59,3,1,2,1
+JPMML evaluator,org.jpmml.evaluator,MiningFieldUtil.new Object() {...},2,21,0,0,0,2,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,JavaPredicate,5,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,ArrayUtil,39,234,10,35,10,55,11,21,1,7
+JPMML evaluator,org.jpmml.evaluator,TextUtil.TermProcessor,0,37,1,1,0,11,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactory,3,25,1,1,1,10,1,4,0,4
+JPMML evaluator,org.jpmml.evaluator,OrdinalValue.new Object() {...},1,11,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,MatrixUtil,46,276,19,43,11,73,20,21,1,6
+JPMML evaluator,org.jpmml.evaluator,TextUtil.StringProcessor,0,33,0,0,0,12,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator,Evaluator,0,3,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.ReportingDoubleValueFactory,48,0,2,0,9,0,7,0,6,0
+JPMML evaluator,org.jpmml.evaluator,ExtensionUtil,14,0,2,0,6,0,3,0,2,0
+JPMML evaluator,org.jpmml.evaluator,DuplicateValueException,11,0,0,0,4,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,FloatVector,28,0,0,0,5,0,5,0,5,0
+JPMML evaluator,org.jpmml.evaluator,StringUtil,31,207,12,30,7,45,11,13,1,2
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.ReportingDoubleValueFactory.new ReportingSimpleDoubleVector() {...},10,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.ReportingDoubleValueFactory.new ReportingComplexDoubleVector() {...},11,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,OrdinalValue.OrdinalString,4,5,0,0,1,2,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,Report,36,22,4,2,9,5,5,3,3,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new FpMathFunction() {...},5,4,0,0,1,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new FpMathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,DaysSinceDate,19,69,4,4,3,17,5,8,1,8
+JPMML evaluator,org.jpmml.evaluator,Functions.new FpMathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,VoteAggregator.new Function() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new FpMathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,KeyValueAggregator,0,86,0,4,0,25,0,10,0,8
+JPMML evaluator,org.jpmml.evaluator,SecondsSinceMidnight.HoursOfEpochFieldType,22,23,3,1,7,7,6,3,4,3
+JPMML evaluator,org.jpmml.evaluator,ContinuousValue.ContinuousInteger,0,13,0,0,0,4,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator,SparseArrayUtil.new AbstractList() {...},0,31,0,2,0,6,0,4,0,3
+JPMML evaluator,org.jpmml.evaluator,SparseArrayUtil.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ReportingFloatValue,1225,56,17,1,141,16,51,5,42,5
+JPMML evaluator,org.jpmml.evaluator,JavaModel,199,0,6,0,59,0,29,0,26,0
+JPMML evaluator,org.jpmml.evaluator,Classification.new Comparator() {...},0,16,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,FloatValue,413,116,14,2,74,27,43,14,35,14
+JPMML evaluator,org.jpmml.evaluator,EvaluationContext,15,134,5,15,4,36,6,16,1,11
+JPMML evaluator,org.jpmml.evaluator,SimplePeriod,12,3,0,0,3,1,3,1,3,1
+JPMML evaluator,org.jpmml.evaluator,ReportingDoubleValue,1258,0,18,0,157,0,56,0,47,0
+JPMML evaluator,org.jpmml.evaluator,ExpressionUtil.new Object() {...},12,89,0,0,0,4,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,Classification.new Function() {...},0,6,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Classification.new Function() {...},0,6,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ProbabilityAggregator.new Function() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ProbabilityAggregator.new Function() {...},0,18,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ProbabilityAggregator.new ProbabilityAggregator() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ProbabilityAggregator.new Function() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,InlineTableUtil,18,176,3,13,6,40,4,10,1,5
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.ReportingFloatValueFactory.new ReportingSimpleFloatVector() {...},10,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,ProbabilityAggregator.new Function() {...},0,18,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.ReportingFloatValueFactory.new ReportingComplexFloatVector() {...},11,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,TargetField,26,47,2,0,6,18,5,7,4,7
+JPMML evaluator,org.jpmml.evaluator,ModelField,23,3,0,0,7,1,2,1,2,1
+JPMML evaluator,org.jpmml.evaluator,FieldValue.new Predicate() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,FieldValue.new Predicate() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,VoteAggregator,0,59,0,4,0,15,0,5,0,3
+JPMML evaluator,org.jpmml.evaluator,ProbabilityDistribution,0,16,0,0,0,6,0,4,0,4
+JPMML evaluator,org.jpmml.evaluator,InvalidFeatureException,12,21,0,0,4,8,2,4,2,4
+JPMML evaluator,org.jpmml.evaluator,ValueAggregator.Entry,0,18,0,0,0,5,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,RegExUtil,3,26,0,2,2,6,1,3,1,2
+JPMML evaluator,org.jpmml.evaluator,UnsupportedFeatureException,35,70,2,4,13,16,6,6,4,5
+JPMML evaluator,org.jpmml.evaluator,Value,0,3,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,TypeUtil.new Object() {...},17,107,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluationContext.new Object() {...},5,35,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ValueMap.new Function() {...},0,10,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,NormalizationUtil.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,TextTokenizer,0,125,0,22,0,42,0,16,0,5
+JPMML evaluator,org.jpmml.evaluator,CacheUtil,46,29,4,0,17,9,5,6,3,6
+JPMML evaluator,org.jpmml.evaluator,CategoricalValue.new Object() {...},2,17,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluatorFactory,31,152,5,23,7,35,5,16,1,6
+JPMML evaluator,org.jpmml.evaluator,VariableField,28,20,0,0,7,7,5,3,5,3
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.VerificationBatch,0,13,0,0,0,5,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator,SimpleDoubleVector,22,54,2,0,6,14,5,7,4,7
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new Object() {...},6,49,0,0,0,3,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,6,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,SimpleReport,10,36,0,4,3,13,1,8,1,6
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ReportFactory,3,0,0,0,1,0,1,0,1,0
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ContinuousValue.ContinuousFloat,0,9,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ProbabilityAggregator,49,422,14,48,12,103,14,27,0,10
+JPMML evaluator,org.jpmml.evaluator,PredicateUtil.new Object() {...},14,97,0,0,0,3,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},28,4,0,0,5,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,42,0,0,0,6,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ValueFactoryFactory.new Object() {...},2,17,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,34,0,0,0,6,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},36,4,2,0,7,1,2,1,1,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new TrigonometricFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil.new CacheLoader() {...},0,16,0,0,0,4,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ResultField,0,3,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ContinuousValue,9,59,1,5,3,15,1,8,0,5
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil.new Object() {...},17,123,0,0,0,5,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil.new Function() {...},12,0,0,0,2,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil.new Function() {...},0,16,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AggregateFunction() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AggregateFunction() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AggregateFunction() {...},0,11,0,0,0,3,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator,Functions.new AggregateFunction() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AggregateFunction() {...},0,8,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,EvaluationException,5,11,0,0,2,6,1,3,1,3
+JPMML evaluator,org.jpmml.evaluator,MissingValueException,11,0,0,0,4,0,2,0,2,0
+JPMML evaluator,org.jpmml.evaluator,DiscretizationUtil,59,316,17,52,16,83,18,27,1,8
+JPMML evaluator,org.jpmml.evaluator,Functions.new StringFunction() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},28,59,2,2,2,11,2,2,0,2
+JPMML evaluator,org.jpmml.evaluator,PMMLException,58,48,8,2,16,18,5,8,1,7
+JPMML evaluator,org.jpmml.evaluator,DiscretizationUtil.new Object() {...},4,29,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},12,65,2,12,2,13,2,7,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new StringFunction() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,DiscretizationUtil.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,DiscretizationUtil.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ArithmeticFunction() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ArithmeticFunction() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ArithmeticFunction() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ArithmeticFunction() {...},0,24,0,4,0,4,0,4,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,44,0,2,0,9,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,ValueMap,0,24,0,0,0,9,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,43,0,0,0,9,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new StringFunction() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},19,81,2,6,2,15,2,5,0,3
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,34,0,0,0,6,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,AffinityDistribution,25,27,2,2,7,9,7,4,5,4
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,34,0,0,0,7,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},19,35,0,0,2,7,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,ValueFactory,0,3,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,SimpleFloatVector,74,0,2,0,19,0,11,0,10,0
+JPMML evaluator,org.jpmml.evaluator,DoubleVector,0,28,0,0,0,5,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator,XPathUtil,23,111,5,11,8,21,6,7,1,4
+JPMML evaluator,org.jpmml.evaluator,TypeAnalysisException,16,0,0,0,8,0,4,0,4,0
+JPMML evaluator,org.jpmml.evaluator,MiningFieldUtil,5,39,1,7,3,15,2,4,1,1
+JPMML evaluator,org.jpmml.evaluator,ComplexPeriod,0,16,0,0,0,7,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator,FieldValueUtil,222,774,53,119,58,212,51,74,3,30
+JPMML evaluator,org.jpmml.evaluator,ReportingComplexDoubleVector,181,0,2,0,25,0,13,0,12,0
+JPMML evaluator,org.jpmml.evaluator,CategoricalValue,0,47,0,5,0,11,0,8,0,5
+JPMML evaluator,org.jpmml.evaluator,CategoricalValue.CategoricalBoolean,15,31,0,0,4,9,0,4,0,4
+JPMML evaluator,org.jpmml.evaluator,TargetUtil,70,351,27,49,19,89,28,25,1,12
+JPMML evaluator,org.jpmml.evaluator,Functions.new ComparisonFunction() {...},0,11,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ComparisonFunction() {...},0,11,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new EqualityFunction() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new EqualityFunction() {...},1,10,1,1,0,2,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ComparisonFunction() {...},0,11,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ComparisonFunction() {...},0,11,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new BinaryBooleanFunction() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ValueListFunction() {...},1,10,1,1,0,2,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ValueListFunction() {...},1,10,1,1,0,2,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new BinaryBooleanFunction() {...},0,11,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new UnaryBooleanFunction() {...},0,12,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Numbers,0,31,0,0,0,10,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ValueFactoryFactory.FloatValueFactory,23,19,2,0,5,4,4,4,3,4
+JPMML evaluator,org.jpmml.evaluator,VoteDistribution,28,36,2,2,6,11,4,3,3,2
+JPMML evaluator,org.jpmml.evaluator,MeasureUtil.new Object() {...},5,35,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,AffinityDistribution.new Object() {...},2,17,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator,ReportingValueFactoryFactory.ReportingFloatValueFactory,29,20,2,0,5,4,4,3,3,3
+JPMML evaluator,org.jpmml.evaluator,Classification.Type.new Classification.Type() {...},3,8,0,0,1,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,ReportingSimpleDoubleVector,179,0,2,0,25,0,13,0,12,0
+JPMML evaluator,org.jpmml.evaluator,Functions.new MathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,38,0,0,0,7,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,EvaluatorUtil,17,287,5,31,5,74,5,21,1,7
+JPMML evaluator,org.jpmml.evaluator,Functions.new FpMathFunction() {...},5,4,0,0,1,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator,Functions.new FpMathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new AbstractFunction() {...},0,41,0,2,0,7,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new MathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,EntityUtil,3,71,0,6,2,19,1,8,1,5
+JPMML evaluator,org.jpmml.evaluator,FunctionRegistry,44,80,3,9,15,26,8,7,5,4
+JPMML evaluator,org.jpmml.evaluator,Functions.new MathFunction() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,OrdinalValue,42,91,9,9,9,24,7,12,2,8
+JPMML evaluator,org.jpmml.evaluator,FunctionUtil,26,380,4,14,6,34,5,9,1,4
+JPMML evaluator,org.jpmml.evaluator,Functions.new ValueFunction() {...},0,11,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new ValueFunction() {...},0,11,0,2,0,2,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new MathFunction() {...},0,10,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator,Functions.new MathFunction() {...},5,4,0,0,1,1,1,1,1,1
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.IdentifierLoader,0,11,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.InstanceResult.Distance,12,16,1,1,2,4,2,2,1,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.FieldLoader,0,39,0,0,0,14,0,6,0,6
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Function() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new VoteAggregator() {...},0,10,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Callable() {...},0,10,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Function() {...},6,25,1,1,1,4,1,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Function() {...},0,9,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Maps.EntryTransformer() {...},0,6,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Callable() {...},0,10,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Object() {...},12,93,0,0,0,5,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.new Callable() {...},0,10,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.DerivedFieldLoader,24,0,0,0,8,0,4,0,4,0
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.InstanceResult,0,29,0,0,0,12,0,5,0,5
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.DataFieldLoader,0,39,0,0,0,13,0,6,0,6
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator,204,943,36,74,43,228,37,46,2,22
+JPMML evaluator,org.jpmml.evaluator.nearest_neighbor,NearestNeighborModelEvaluator.InstanceResult.Similarity,18,6,2,0,4,2,3,1,2,1
+JPMML evaluator,org.jpmml.evaluator.association,Association,22,114,1,7,6,36,3,13,2,9
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator,89,504,13,53,19,122,16,34,3,14
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator.new Object() {...},3,31,0,0,0,3,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator.new Association() {...},0,21,0,0,0,4,0,4,0,4
+JPMML evaluator,org.jpmml.evaluator.association,AssociationModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.association,Association.new Object() {...},3,23,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.naive_bayes,ProbabilityMap,9,23,0,2,3,7,1,3,1,2
+JPMML evaluator,org.jpmml.evaluator.naive_bayes,NaiveBayesModelEvaluator,113,510,27,59,24,139,27,31,2,13
+JPMML evaluator,org.jpmml.evaluator.naive_bayes,NaiveBayesModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.naive_bayes,NaiveBayesModelEvaluator.new CacheLoader() {...},0,7,0,0,0,2,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.naive_bayes,NaiveBayesModelEvaluator.new Object() {...},2,21,0,0,0,2,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.naive_bayes,NaiveBayesModelEvaluator.new ProbabilityMap() {...},0,22,0,0,0,5,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator.functions,AbstractFunction,52,61,4,10,4,20,4,11,0,8
+JPMML evaluator,org.jpmml.evaluator.functions,FpMathFunction,0,7,0,0,0,3,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,StringFunction,0,23,0,0,0,6,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,UnaryBooleanFunction,0,23,0,0,0,6,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,ValueFunction,0,23,0,0,0,6,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,ComparisonFunction,0,29,0,0,0,7,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,MathFunction,0,30,0,0,0,8,0,3,0,3
+JPMML evaluator,org.jpmml.evaluator.functions,ArithmeticFunction,0,50,0,4,0,13,0,4,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,ValueListFunction,0,30,0,0,0,7,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,EqualityFunction,0,29,0,0,0,7,0,2,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,AbstractFunction.new Object() {...},1,11,0,0,0,1,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.functions,BinaryBooleanFunction,0,36,0,2,0,7,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator.functions,AggregateFunction,5,58,1,5,1,15,1,5,0,3
+JPMML evaluator,org.jpmml.evaluator.functions,TrigonometricFunction,0,31,0,2,0,8,0,3,0,2
+JPMML evaluator,org.jpmml.evaluator.rule_set,SimpleRuleScoreDistribution,16,28,2,2,5,11,4,3,2,3
+JPMML evaluator,org.jpmml.evaluator.rule_set,RuleSetModelEvaluator.new Object() {...},5,43,0,0,0,3,0,1,0,1
+JPMML evaluator,org.jpmml.evaluator.rule_set,RuleSetModelEvaluator.new CacheLoader() {...},5,70,1,5,1,18,1,6,0,4
+JPMML evaluator,org.jpmml.evaluator.rule_set,RuleSetModelEvaluator,58,307,13,35,12,80,15,19,2,7
+JPMML evaluator,org.jpmml.evaluator.neural_network,NeuralNetworkEvaluator,877,0,126,0,236,0,76,0,12,0
+JPMML evaluator,org.jpmml.evaluator.neural_network,NeuralNetworkUtil,76,0,20,0,27,0,20,0,3,0
+JPMML evaluator,org.jpmml.evaluator.neural_network,NeuronProbabilityDistribution,12,0,0,0,4,0,3,0,3,0
+JPMML evaluator,org.jpmml.evaluator.neural_network,NeuralNetworkEvaluator.new CacheLoader() {...},69,0,6,0,15,0,5,0,2,0
+JPMML evaluator,org.jpmml.evaluator.neural_network,NeuralNetworkEvaluator.new Object() {...},157,0,0,0,4,0,1,0,1,0
+JPMML evaluator,org.jpmml.evaluator.neural_network,NeuralNetworkUtil.new Object() {...},121,0,0,0,2,0,1,0,1,0

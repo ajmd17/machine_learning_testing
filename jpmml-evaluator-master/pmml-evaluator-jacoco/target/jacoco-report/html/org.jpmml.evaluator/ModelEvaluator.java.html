@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ModelEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">ModelEvaluator.java</span></div><h1>ModelEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Callable;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
+import com.google.common.collect.Table;
+import org.dmg.pmml.DataDictionary;
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.DefineFunction;
+import org.dmg.pmml.DerivedField;
+import org.dmg.pmml.Field;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.InlineTable;
+import org.dmg.pmml.LocalTransformations;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.MiningField;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.MiningSchema;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.ModelVerification;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.Output;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.ResultFeature;
+import org.dmg.pmml.Target;
+import org.dmg.pmml.Targets;
+import org.dmg.pmml.TransformationDictionary;
+import org.dmg.pmml.TypeDefinitionField;
+import org.dmg.pmml.VerificationField;
+import org.dmg.pmml.VerificationFields;
+
+abstract
+public class ModelEvaluator&lt;M extends Model&gt; implements Evaluator, Serializable {
+
+<span class="fc" id="L70">	private PMML pmml = null;</span>
+
+<span class="fc" id="L72">	private M model = null;</span>
+
+<span class="fc" id="L74">	private ValueFactoryFactory valueFactoryFactory = null;</span>
+
+<span class="fc" id="L76">	private ValueFactory&lt;?&gt; valueFactory = null;</span>
+
+<span class="fc" id="L78">	private Map&lt;FieldName, DataField&gt; dataFields = Collections.emptyMap();</span>
+
+<span class="fc" id="L80">	private Map&lt;FieldName, DerivedField&gt; derivedFields = Collections.emptyMap();</span>
+
+<span class="fc" id="L82">	private Map&lt;String, DefineFunction&gt; defineFunctions = Collections.emptyMap();</span>
+
+<span class="fc" id="L84">	private Map&lt;FieldName, MiningField&gt; miningFields = Collections.emptyMap();</span>
+
+<span class="fc" id="L86">	transient</span>
+	private List&lt;InputField&gt; inputFields = null;
+
+<span class="fc" id="L89">	transient</span>
+	private List&lt;InputField&gt; activeInputFields = null;
+
+<span class="fc" id="L92">	private Map&lt;FieldName, DerivedField&gt; localDerivedFields = Collections.emptyMap();</span>
+
+<span class="fc" id="L94">	private Map&lt;FieldName, Target&gt; targets = Collections.emptyMap();</span>
+
+<span class="fc" id="L96">	transient</span>
+	private List&lt;TargetField&gt; targetResultFields = null;
+
+<span class="fc" id="L99">	private Map&lt;FieldName, org.dmg.pmml.OutputField&gt; outputFields = Collections.emptyMap();</span>
+
+<span class="fc" id="L101">	transient</span>
+	private List&lt;OutputField&gt; outputResultFields = null;
+
+
+<span class="fc" id="L105">	protected ModelEvaluator(PMML pmml, M model){</span>
+<span class="fc" id="L106">		setPMML(Objects.requireNonNull(pmml));</span>
+<span class="fc" id="L107">		setModel(Objects.requireNonNull(model));</span>
+
+<span class="fc" id="L109">		DataDictionary dataDictionary = pmml.getDataDictionary();</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">		if(dataDictionary == null){</span>
+<span class="nc" id="L111">			throw new InvalidFeatureException(pmml);</span>
+		} // End if
+
+<span class="fc bfc" id="L114" title="All 2 branches covered.">		if(dataDictionary.hasDataFields()){</span>
+<span class="fc" id="L115">			this.dataFields = CacheUtil.getValue(dataDictionary, ModelEvaluator.dataFieldCache);</span>
+		}
+
+<span class="fc" id="L118">		TransformationDictionary transformationDictionary = pmml.getTransformationDictionary();</span>
+<span class="fc bfc" id="L119" title="All 4 branches covered.">		if(transformationDictionary != null &amp;&amp; transformationDictionary.hasDerivedFields()){</span>
+<span class="fc" id="L120">			this.derivedFields = CacheUtil.getValue(transformationDictionary, ModelEvaluator.derivedFieldCache);</span>
+		} // End if
+
+<span class="fc bfc" id="L123" title="All 4 branches covered.">		if(transformationDictionary != null &amp;&amp; transformationDictionary.hasDefineFunctions()){</span>
+<span class="fc" id="L124">			this.defineFunctions = CacheUtil.getValue(transformationDictionary, ModelEvaluator.defineFunctionCache);</span>
+		}
+
+<span class="fc" id="L127">		MiningSchema miningSchema = model.getMiningSchema();</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">		if(miningSchema == null){</span>
+<span class="nc" id="L129">			throw new InvalidFeatureException(model);</span>
+		} // End if
+
+<span class="fc bfc" id="L132" title="All 2 branches covered.">		if(miningSchema.hasMiningFields()){</span>
+<span class="fc" id="L133">			this.miningFields = CacheUtil.getValue(miningSchema, ModelEvaluator.miningFieldCache);</span>
+		}
+
+<span class="fc" id="L136">		LocalTransformations localTransformations = model.getLocalTransformations();</span>
+<span class="fc bfc" id="L137" title="All 4 branches covered.">		if(localTransformations != null &amp;&amp; localTransformations.hasDerivedFields()){</span>
+<span class="fc" id="L138">			this.localDerivedFields = CacheUtil.getValue(localTransformations, ModelEvaluator.localDerivedFieldCache);</span>
+		}
+
+<span class="fc" id="L141">		Targets targets = model.getTargets();</span>
+<span class="pc bpc" id="L142" title="1 of 4 branches missed.">		if(targets != null &amp;&amp; targets.hasTargets()){</span>
+<span class="fc" id="L143">			this.targets = CacheUtil.getValue(targets, ModelEvaluator.targetCache);</span>
+		}
+
+<span class="fc" id="L146">		Output output = model.getOutput();</span>
+<span class="pc bpc" id="L147" title="1 of 4 branches missed.">		if(output != null &amp;&amp; output.hasOutputFields()){</span>
+<span class="fc" id="L148">			this.outputFields = CacheUtil.getValue(output, ModelEvaluator.outputFieldCache);</span>
+		}
+<span class="fc" id="L150">	}</span>
+
+	abstract
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context);
+
+	protected void configure(ModelEvaluatorFactory modelEvaluatorFactory){
+<span class="fc" id="L156">		ValueFactoryFactory valueFactoryFactory = modelEvaluatorFactory.getValueFactoryFactory();</span>
+
+<span class="fc" id="L158">		setValueFactoryFactory(valueFactoryFactory);</span>
+<span class="fc" id="L159">	}</span>
+
+	@Override
+	public MiningFunction getMiningFunction(){
+<span class="fc" id="L163">		M model = getModel();</span>
+
+<span class="fc" id="L165">		return model.getMiningFunction();</span>
+	}
+
+	public MathContext getMathContext(){
+<span class="fc" id="L169">		M model = getModel();</span>
+
+<span class="fc" id="L171">		return model.getMathContext();</span>
+	}
+
+	public ValueFactory&lt;?&gt; getValueFactory(){
+
+<span class="fc bfc" id="L176" title="All 2 branches covered.">		if(this.valueFactory == null){</span>
+<span class="fc" id="L177">			this.valueFactory = createValueFactory();</span>
+		}
+
+<span class="fc" id="L180">		return this.valueFactory;</span>
+	}
+
+	protected ValueFactory&lt;?&gt; createValueFactory(){
+<span class="fc" id="L184">		ValueFactoryFactory valueFactoryFactory = getValueFactoryFactory();</span>
+
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">		if(valueFactoryFactory == null){</span>
+<span class="fc" id="L187">			valueFactoryFactory = ValueFactoryFactory.newInstance();</span>
+		}
+
+<span class="fc" id="L190">		MathContext mathContext = getMathContext();</span>
+
+<span class="fc" id="L192">		return valueFactoryFactory.newValueFactory(mathContext);</span>
+	}
+
+	public DataField getDataField(FieldName name){
+
+<span class="fc bfc" id="L197" title="All 2 branches covered.">		if(Objects.equals(Evaluator.DEFAULT_TARGET_NAME, name)){</span>
+<span class="fc" id="L198">			return getDataField();</span>
+		}
+
+<span class="fc" id="L201">		return this.dataFields.get(name);</span>
+	}
+
+	/**
+	 * @return A synthetic {@link DataField} element describing the default target field.
+	 */
+	protected DataField getDataField(){
+<span class="fc" id="L208">		MiningFunction miningFunction = getMiningFunction();</span>
+
+<span class="pc bfc" id="L210" title="All 3 branches covered.">		switch(miningFunction){</span>
+			case REGRESSION:
+<span class="fc" id="L212">				MathContext mathContext = getMathContext();</span>
+
+<span class="pc bfc" id="L214" title="All 2 branches covered.">				switch(mathContext){</span>
+					case FLOAT:
+<span class="fc" id="L216">						return ModelEvaluator.DEFAULT_TARGET_CONTINUOUS_FLOAT;</span>
+					default:
+<span class="fc" id="L218">						return ModelEvaluator.DEFAULT_TARGET_CONTINUOUS_DOUBLE;</span>
+				}
+			case CLASSIFICATION:
+			case CLUSTERING:
+<span class="fc" id="L222">				return ModelEvaluator.DEFAULT_TARGET_CATEGORICAL_STRING;</span>
+			default:
+<span class="fc" id="L224">				return null;</span>
+		}
+	}
+
+	public DerivedField getDerivedField(FieldName name){
+<span class="fc" id="L229">		return this.derivedFields.get(name);</span>
+	}
+
+	public DefineFunction getDefineFunction(String name){
+<span class="fc" id="L233">		return this.defineFunctions.get(name);</span>
+	}
+
+	public MiningField getMiningField(FieldName name){
+
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">		if(Objects.equals(Evaluator.DEFAULT_TARGET_NAME, name)){</span>
+<span class="nc" id="L239">			return null;</span>
+		}
+
+<span class="fc" id="L242">		return this.miningFields.get(name);</span>
+	}
+
+	@Override
+	public List&lt;InputField&gt; getInputFields(){
+
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">		if(this.inputFields == null){</span>
+<span class="fc" id="L249">			this.inputFields = createInputFields();</span>
+		}
+
+<span class="fc" id="L252">		return this.inputFields;</span>
+	}
+
+	@Override
+	public List&lt;InputField&gt; getActiveFields(){
+
+<span class="fc bfc" id="L258" title="All 2 branches covered.">		if(this.activeInputFields == null){</span>
+<span class="fc" id="L259">			this.activeInputFields = createInputFields(MiningField.UsageType.ACTIVE);</span>
+		}
+
+<span class="fc" id="L262">		return this.activeInputFields;</span>
+	}
+
+	public DerivedField getLocalDerivedField(FieldName name){
+<span class="fc" id="L266">		return this.localDerivedFields.get(name);</span>
+	}
+
+	public Target getTarget(FieldName name){
+<span class="fc" id="L270">		return this.targets.get(name);</span>
+	}
+
+	@Override
+	public List&lt;TargetField&gt; getTargetFields(){
+
+<span class="fc bfc" id="L276" title="All 2 branches covered.">		if(this.targetResultFields == null){</span>
+<span class="fc" id="L277">			this.targetResultFields = createTargetFields();</span>
+		}
+
+<span class="fc" id="L280">		return this.targetResultFields;</span>
+	}
+
+	public TargetField getTargetField(){
+<span class="fc" id="L284">		List&lt;TargetField&gt; targetFields = getTargetFields();</span>
+
+<span class="fc bfc" id="L286" title="All 2 branches covered.">		if(targetFields.size() != 1){</span>
+<span class="fc" id="L287">			throw new EvaluationException();</span>
+		}
+
+<span class="fc" id="L290">		TargetField targetField = targetFields.get(0);</span>
+
+<span class="fc" id="L292">		return targetField;</span>
+	}
+
+	public FieldName getTargetFieldName(){
+<span class="fc" id="L296">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L298">		return targetField.getName();</span>
+	}
+
+	public org.dmg.pmml.OutputField getOutputField(FieldName name){
+<span class="fc" id="L302">		return this.outputFields.get(name);</span>
+	}
+
+	@Override
+	public List&lt;OutputField&gt; getOutputFields(){
+
+<span class="fc bfc" id="L308" title="All 2 branches covered.">		if(this.outputResultFields == null){</span>
+<span class="fc" id="L309">			this.outputResultFields = createOutputFields();</span>
+		}
+
+<span class="fc" id="L312">		return this.outputResultFields;</span>
+	}
+
+	@Override
+	public void verify(){
+<span class="fc" id="L317">		M model = getModel();</span>
+
+<span class="fc" id="L319">		ModelVerification modelVerification = model.getModelVerification();</span>
+<span class="fc bfc" id="L320" title="All 2 branches covered.">		if(modelVerification == null){</span>
+<span class="fc" id="L321">			return;</span>
+		}
+
+<span class="fc" id="L324">		VerificationBatch batch = CacheUtil.getValue(modelVerification, ModelEvaluator.batchCache);</span>
+
+<span class="fc" id="L326">		List&lt;? extends Map&lt;FieldName, ?&gt;&gt; records = batch.getRecords();</span>
+
+<span class="fc" id="L328">		List&lt;InputField&gt; inputFields = getInputFields();</span>
+
+<span class="fc bfc" id="L330" title="All 2 branches covered.">		if(this instanceof HasGroupFields){</span>
+<span class="fc" id="L331">			HasGroupFields hasGroupFields = (HasGroupFields)this;</span>
+
+<span class="fc" id="L333">			records = EvaluatorUtil.groupRows(hasGroupFields, records);</span>
+		}
+
+<span class="fc" id="L336">		List&lt;TargetField&gt; targetFields = getTargetFields();</span>
+<span class="fc" id="L337">		List&lt;OutputField&gt; outputFields = getOutputFields();</span>
+
+<span class="fc" id="L339">		SetView&lt;FieldName&gt; intersection = Sets.intersection(batch.keySet(), new LinkedHashSet&lt;&gt;(EvaluatorUtil.getNames(outputFields)));</span>
+
+<span class="fc bfc" id="L341" title="All 2 branches covered.">		for(Map&lt;FieldName, ?&gt; record : records){</span>
+<span class="fc" id="L342">			Map&lt;FieldName, Object&gt; arguments = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L344" title="All 2 branches covered.">			for(InputField inputField : inputFields){</span>
+<span class="fc" id="L345">				FieldName name = inputField.getName();</span>
+
+<span class="fc" id="L347">				FieldValue value = EvaluatorUtil.prepare(inputField, record.get(name));</span>
+
+<span class="fc" id="L349">				arguments.put(name, value);</span>
+<span class="fc" id="L350">			}</span>
+
+<span class="fc" id="L352">			Map&lt;FieldName, ?&gt; result = evaluate(arguments);</span>
+
+			// &quot;If there exist VerificationField elements that refer to OutputField elements,
+			// then any VerificationField element that refers to a MiningField element whose &quot;usageType=target&quot; should be ignored,
+			// because they are considered to represent a dependent variable from the training data set, not an expected output&quot;
+<span class="pc bpc" id="L357" title="1 of 2 branches missed.">			if(intersection.size() &gt; 0){</span>
+
+<span class="fc bfc" id="L359" title="All 2 branches covered.">				for(OutputField outputField : outputFields){</span>
+<span class="fc" id="L360">					FieldName name = outputField.getName();</span>
+
+<span class="fc" id="L362">					VerificationField verificationField = batch.get(name);</span>
+<span class="pc bpc" id="L363" title="1 of 2 branches missed.">					if(verificationField == null){</span>
+<span class="nc" id="L364">						continue;</span>
+					}
+
+<span class="fc" id="L367">					verify(record.get(name), result.get(name), verificationField.getPrecision(), verificationField.getZeroThreshold());</span>
+<span class="fc" id="L368">				}</span>
+			} else
+
+			// &quot;If there are no such VerificationField elements,
+			// then any VerificationField element that refers to a MiningField element whose &quot;usageType=target&quot; should be considered to represent an expected output&quot;
+			{
+<span class="nc bnc" id="L374" title="All 2 branches missed.">				for(TargetField targetField : targetFields){</span>
+<span class="nc" id="L375">					FieldName name = targetField.getName();</span>
+
+<span class="nc" id="L377">					VerificationField verificationField = batch.get(name);</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">					if(verificationField == null){</span>
+<span class="nc" id="L379">						continue;</span>
+					}
+
+<span class="nc" id="L382">					verify(record.get(name), EvaluatorUtil.decode(result.get(name)), verificationField.getPrecision(), verificationField.getZeroThreshold());</span>
+<span class="nc" id="L383">				}</span>
+			}
+<span class="fc" id="L385">		}</span>
+<span class="fc" id="L386">	}</span>
+
+	/**
+	 * @param expected A string or a collection of strings representing the expected value
+	 * @param actual The actual value
+	 */
+	private void verify(Object expected, Object actual, double precision, double zeroThreshold){
+
+<span class="fc bfc" id="L394" title="All 2 branches covered.">		if(expected == null){</span>
+<span class="fc" id="L395">			return;</span>
+		} // End if
+
+<span class="fc bfc" id="L398" title="All 2 branches covered.">		if(!(actual instanceof Collection)){</span>
+<span class="fc" id="L399">			DataType dataType = TypeUtil.getDataType(actual);</span>
+
+<span class="fc" id="L401">			expected = TypeUtil.parseOrCast(dataType, expected);</span>
+		}
+
+<span class="fc" id="L404">		boolean acceptable = VerificationUtil.acceptable(expected, actual, precision, zeroThreshold);</span>
+<span class="pc bpc" id="L405" title="1 of 2 branches missed.">		if(!acceptable){</span>
+<span class="nc" id="L406">			throw new EvaluationException();</span>
+		}
+<span class="fc" id="L408">	}</span>
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(Map&lt;FieldName, ?&gt; arguments){
+<span class="fc" id="L412">		ModelEvaluationContext context = new ModelEvaluationContext(this);</span>
+<span class="fc" id="L413">		context.setArguments(arguments);</span>
+
+<span class="fc" id="L415">		return evaluate(context);</span>
+	}
+
+	protected TypeDefinitionField resolveField(FieldName name){
+<span class="fc" id="L419">		TypeDefinitionField result = getDataField(name);</span>
+
+<span class="pc bpc" id="L421" title="1 of 2 branches missed.">		if(result == null){</span>
+<span class="nc" id="L422">			result = resolveDerivedField(name);</span>
+		}
+
+<span class="fc" id="L425">		return result;</span>
+	}
+
+	protected DerivedField resolveDerivedField(FieldName name){
+<span class="fc" id="L429">		DerivedField result = getDerivedField(name);</span>
+
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">		if(result == null){</span>
+<span class="fc" id="L432">			result = getLocalDerivedField(name);</span>
+		}
+
+<span class="fc" id="L435">		return result;</span>
+	}
+
+	protected List&lt;InputField&gt; createInputFields(){
+<span class="fc" id="L439">		List&lt;InputField&gt; inputFields = getActiveFields();</span>
+
+<span class="fc" id="L441">		List&lt;OutputField&gt; outputFields = getOutputFields();</span>
+<span class="fc bfc" id="L442" title="All 2 branches covered.">		if(outputFields.size() &gt; 0){</span>
+<span class="fc" id="L443">			List&lt;TargetReferenceField&gt; targetReferenceFields = null;</span>
+
+<span class="fc bfc" id="L445" title="All 2 branches covered.">			for(OutputField outputField : outputFields){</span>
+<span class="fc" id="L446">				org.dmg.pmml.OutputField pmmlOutputField = outputField.getOutputField();</span>
+
+<span class="fc bfc" id="L448" title="All 2 branches covered.">				if(!(pmmlOutputField.getResultFeature()).equals(ResultFeature.RESIDUAL)){</span>
+<span class="fc" id="L449">					continue;</span>
+				}
+
+<span class="fc" id="L452">				int depth = outputField.getDepth();</span>
+<span class="pc bpc" id="L453" title="1 of 2 branches missed.">				if(depth &gt; 0){</span>
+<span class="nc" id="L454">					throw new UnsupportedFeatureException(pmmlOutputField);</span>
+				}
+
+<span class="fc" id="L457">				FieldName targetFieldName = pmmlOutputField.getTargetField();</span>
+<span class="pc bpc" id="L458" title="1 of 2 branches missed.">				if(targetFieldName == null){</span>
+<span class="fc" id="L459">					targetFieldName = getTargetFieldName();</span>
+				}
+
+<span class="fc" id="L462">				DataField dataField = getDataField(targetFieldName);</span>
+<span class="pc bpc" id="L463" title="1 of 2 branches missed.">				if(dataField == null){</span>
+<span class="nc" id="L464">					throw new MissingFieldException(targetFieldName, pmmlOutputField);</span>
+				}
+
+<span class="fc" id="L467">				MiningField miningField = getMiningField(targetFieldName);</span>
+<span class="pc bpc" id="L468" title="1 of 2 branches missed.">				if(miningField == null){</span>
+<span class="nc" id="L469">					throw new EvaluationException();</span>
+				}
+
+<span class="fc" id="L472">				Target target = getTarget(targetFieldName);</span>
+
+<span class="fc" id="L474">				TargetReferenceField targetReferenceField = new TargetReferenceField(dataField, miningField, target);</span>
+
+<span class="pc bpc" id="L476" title="1 of 2 branches missed.">				if(targetReferenceFields == null){</span>
+<span class="fc" id="L477">					targetReferenceFields = new ArrayList&lt;&gt;();</span>
+				}
+
+<span class="fc" id="L480">				targetReferenceFields.add(targetReferenceField);</span>
+<span class="fc" id="L481">			}</span>
+
+<span class="pc bpc" id="L483" title="1 of 4 branches missed.">			if(targetReferenceFields != null &amp;&amp; targetReferenceFields.size() &gt; 0){</span>
+<span class="fc" id="L484">				inputFields = ImmutableList.copyOf(Iterables.concat(inputFields, targetReferenceFields));</span>
+			}
+		}
+
+<span class="fc" id="L488">		return inputFields;</span>
+	}
+
+	protected List&lt;InputField&gt; createInputFields(MiningField.UsageType usageType){
+<span class="fc" id="L492">		M model = getModel();</span>
+
+<span class="fc" id="L494">		MiningSchema miningSchema = model.getMiningSchema();</span>
+
+<span class="fc" id="L496">		List&lt;InputField&gt; inputFields = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L498" title="1 of 2 branches missed.">		if(miningSchema.hasMiningFields()){</span>
+<span class="fc" id="L499">			List&lt;MiningField&gt; miningFields = miningSchema.getMiningFields();</span>
+
+<span class="fc bfc" id="L501" title="All 2 branches covered.">			for(MiningField miningField : miningFields){</span>
+<span class="fc" id="L502">				FieldName name = miningField.getName();</span>
+
+<span class="fc bfc" id="L504" title="All 2 branches covered.">				if(!(miningField.getUsageType()).equals(usageType)){</span>
+<span class="fc" id="L505">					continue;</span>
+				}
+
+<span class="fc" id="L508">				Field field = getDataField(name);</span>
+<span class="fc bfc" id="L509" title="All 2 branches covered.">				if(field == null){</span>
+<span class="fc" id="L510">					field = new VariableField(name);</span>
+				}
+
+<span class="fc" id="L513">				InputField inputField = new InputField(field, miningField);</span>
+
+<span class="fc" id="L515">				inputFields.add(inputField);</span>
+<span class="fc" id="L516">			}</span>
+		}
+
+<span class="fc" id="L519">		return ImmutableList.copyOf(inputFields);</span>
+	}
+
+	protected List&lt;TargetField&gt; createTargetFields(){
+<span class="fc" id="L523">		M model = getModel();</span>
+
+<span class="fc" id="L525">		MiningSchema miningSchema = model.getMiningSchema();</span>
+
+<span class="fc" id="L527">		List&lt;TargetField&gt; targetFields = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L529" title="All 2 branches covered.">		if(miningSchema.hasMiningFields()){</span>
+<span class="fc" id="L530">			List&lt;MiningField&gt; miningFields = miningSchema.getMiningFields();</span>
+
+<span class="fc bfc" id="L532" title="All 2 branches covered.">			for(MiningField miningField : miningFields){</span>
+<span class="fc" id="L533">				FieldName name = miningField.getName();</span>
+
+<span class="fc" id="L535">				MiningField.UsageType usageType = miningField.getUsageType();</span>
+<span class="pc bfc" id="L536" title="All 2 branches covered.">				switch(usageType){</span>
+					case TARGET:
+					case PREDICTED:
+<span class="fc" id="L539">						break;</span>
+					default:
+<span class="fc" id="L541">						continue;</span>
+				}
+
+<span class="fc" id="L544">				DataField dataField = getDataField(name);</span>
+<span class="pc bpc" id="L545" title="1 of 2 branches missed.">				if(dataField == null){</span>
+<span class="nc" id="L546">					throw new MissingFieldException(name, miningField);</span>
+				}
+
+<span class="fc" id="L549">				Target target = getTarget(name);</span>
+
+<span class="fc" id="L551">				TargetField targetField = new TargetField(dataField, miningField, target);</span>
+
+<span class="fc" id="L553">				targetFields.add(targetField);</span>
+<span class="fc" id="L554">			}</span>
+		}
+
+		synthesis:
+<span class="fc bfc" id="L558" title="All 2 branches covered.">		if(targetFields.isEmpty()){</span>
+<span class="fc" id="L559">			DataField dataField = getDataField();</span>
+
+<span class="fc bfc" id="L561" title="All 2 branches covered.">			if(dataField == null){</span>
+<span class="fc" id="L562">				break synthesis;</span>
+			}
+
+<span class="fc" id="L565">			Target target = getTarget(dataField.getName());</span>
+
+<span class="fc" id="L567">			TargetField targetField = new TargetField(dataField, null, target);</span>
+
+<span class="fc" id="L569">			targetFields.add(targetField);</span>
+		}
+
+<span class="fc" id="L572">		return ImmutableList.copyOf(targetFields);</span>
+	}
+
+	protected List&lt;OutputField&gt; createOutputFields(){
+<span class="fc" id="L576">		M model = getModel();</span>
+
+<span class="fc" id="L578">		Output output = model.getOutput();</span>
+
+<span class="fc" id="L580">		List&lt;OutputField&gt; resultFields = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L582" title="1 of 4 branches missed.">		if(output != null &amp;&amp; output.hasOutputFields()){</span>
+<span class="fc" id="L583">			List&lt;org.dmg.pmml.OutputField&gt; outputFields = output.getOutputFields();</span>
+
+<span class="fc bfc" id="L585" title="All 2 branches covered.">			for(org.dmg.pmml.OutputField outputField : outputFields){</span>
+<span class="fc" id="L586">				OutputField resultField = new OutputField(outputField);</span>
+
+<span class="fc" id="L588">				resultFields.add(resultField);</span>
+<span class="fc" id="L589">			}</span>
+		}
+
+<span class="fc" id="L592">		return ImmutableList.copyOf(resultFields);</span>
+	}
+
+	public &lt;V&gt; V getValue(LoadingCache&lt;M, V&gt; cache){
+<span class="fc" id="L596">		M model = getModel();</span>
+
+<span class="fc" id="L598">		return CacheUtil.getValue(model, cache);</span>
+	}
+
+	public &lt;V&gt; V getValue(Cache&lt;M, V&gt; cache, Callable&lt;? extends V&gt; loader){
+<span class="fc" id="L602">		M model = getModel();</span>
+
+<span class="fc" id="L604">		return CacheUtil.getValue(model, cache, loader);</span>
+	}
+
+	public PMML getPMML(){
+<span class="fc" id="L608">		return this.pmml;</span>
+	}
+
+	private void setPMML(PMML pmml){
+<span class="fc" id="L612">		this.pmml = pmml;</span>
+<span class="fc" id="L613">	}</span>
+
+	public M getModel(){
+<span class="fc" id="L616">		return this.model;</span>
+	}
+
+	private void setModel(M model){
+<span class="fc" id="L620">		this.model = model;</span>
+<span class="fc" id="L621">	}</span>
+
+	public ValueFactoryFactory getValueFactoryFactory(){
+<span class="fc" id="L624">		return this.valueFactoryFactory;</span>
+	}
+
+	private void setValueFactoryFactory(ValueFactoryFactory valueFactoryFactory){
+<span class="fc" id="L628">		this.valueFactoryFactory = valueFactoryFactory;</span>
+<span class="fc" id="L629">	}</span>
+
+	static
+	protected &lt;M extends Model&gt; M selectModel(PMML pmml, Class&lt;? extends M&gt; clazz){
+
+<span class="pc bpc" id="L634" title="1 of 2 branches missed.">		if(!pmml.hasModels()){</span>
+<span class="nc" id="L635">			throw new InvalidFeatureException(pmml);</span>
+		}
+
+<span class="fc" id="L638">		List&lt;Model&gt; models = pmml.getModels();</span>
+
+<span class="fc" id="L640">		Iterable&lt;? extends M&gt; filteredModels = Iterables.filter(models, clazz);</span>
+
+<span class="fc" id="L642">		M model = Iterables.getFirst(filteredModels, null);</span>
+<span class="pc bpc" id="L643" title="1 of 2 branches missed.">		if(model == null){</span>
+<span class="nc" id="L644">			throw new InvalidFeatureException(pmml);</span>
+		}
+
+<span class="fc" id="L647">		return model;</span>
+	}
+
+	static
+	private VerificationBatch parseModelVerification(ModelVerification modelVerification){
+<span class="fc" id="L652">		VerificationBatch result = new VerificationBatch();</span>
+
+<span class="fc" id="L654">		VerificationFields verificationFields = modelVerification.getVerificationFields();</span>
+<span class="pc bpc" id="L655" title="1 of 2 branches missed.">		if(verificationFields == null){</span>
+<span class="nc" id="L656">			throw new InvalidFeatureException(modelVerification);</span>
+		}
+
+<span class="fc bfc" id="L659" title="All 2 branches covered.">		for(VerificationField verificationField : verificationFields){</span>
+<span class="fc" id="L660">			result.put(verificationField.getField(), verificationField);</span>
+<span class="fc" id="L661">		}</span>
+
+<span class="fc" id="L663">		InlineTable inlineTable = modelVerification.getInlineTable();</span>
+<span class="pc bpc" id="L664" title="1 of 2 branches missed.">		if(inlineTable == null){</span>
+<span class="nc" id="L665">			throw new InvalidFeatureException(modelVerification);</span>
+		}
+
+<span class="fc" id="L668">		Table&lt;Integer, String, String&gt; table = InlineTableUtil.getContent(inlineTable);</span>
+
+<span class="fc" id="L670">		List&lt;Map&lt;FieldName, Object&gt;&gt; records = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L672">		Set&lt;Integer&gt; rowKeys = table.rowKeySet();</span>
+<span class="fc bfc" id="L673" title="All 2 branches covered.">		for(Integer rowKey : rowKeys){</span>
+<span class="fc" id="L674">			Map&lt;String, String&gt; row = table.row(rowKey);</span>
+
+<span class="fc" id="L676">			Map&lt;FieldName, Object&gt; record = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L678" title="All 2 branches covered.">			for(VerificationField verificationField : verificationFields){</span>
+<span class="fc" id="L679">				FieldName name = verificationField.getField();</span>
+<span class="fc" id="L680">				String column = verificationField.getColumn();</span>
+
+<span class="fc bfc" id="L682" title="All 2 branches covered.">				if(column == null){</span>
+<span class="fc" id="L683">					column = name.getValue();</span>
+				} // End if
+
+<span class="fc bfc" id="L686" title="All 2 branches covered.">				if(!row.containsKey(column)){</span>
+<span class="fc" id="L687">					continue;</span>
+				}
+
+<span class="fc" id="L690">				record.put(name, row.get(column));</span>
+<span class="fc" id="L691">			}</span>
+
+<span class="fc" id="L693">			records.add(record);</span>
+<span class="fc" id="L694">		}</span>
+
+<span class="fc" id="L696">		Integer recordCount = modelVerification.getRecordCount();</span>
+<span class="pc bpc" id="L697" title="3 of 4 branches missed.">		if(recordCount != null &amp;&amp; recordCount.intValue() != records.size()){</span>
+<span class="nc" id="L698">			throw new InvalidFeatureException(inlineTable);</span>
+		}
+
+<span class="fc" id="L701">		result.setRecords(records);</span>
+
+<span class="fc" id="L703">		return result;</span>
+	}
+
+<span class="fc" id="L706">	private static final DataField DEFAULT_TARGET_CONTINUOUS_FLOAT = new DataField(Evaluator.DEFAULT_TARGET_NAME, OpType.CONTINUOUS, DataType.FLOAT);</span>
+<span class="fc" id="L707">	private static final DataField DEFAULT_TARGET_CONTINUOUS_DOUBLE = new DataField(Evaluator.DEFAULT_TARGET_NAME, OpType.CONTINUOUS, DataType.DOUBLE);</span>
+<span class="fc" id="L708">	private static final DataField DEFAULT_TARGET_CATEGORICAL_STRING = new DataField(Evaluator.DEFAULT_TARGET_NAME, OpType.CATEGORICAL, DataType.STRING);</span>
+
+<span class="fc" id="L710">	private static final LoadingCache&lt;DataDictionary, Map&lt;FieldName, DataField&gt;&gt; dataFieldCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;DataDictionary, Map&lt;FieldName, DataField&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, DataField&gt; load(DataDictionary dataDictionary){
+<span class="fc" id="L714">			return IndexableUtil.buildMap(dataDictionary.getDataFields());</span>
+		}
+	});
+
+<span class="fc" id="L718">	private static final LoadingCache&lt;TransformationDictionary, Map&lt;FieldName, DerivedField&gt;&gt; derivedFieldCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;TransformationDictionary, Map&lt;FieldName, DerivedField&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, DerivedField&gt; load(TransformationDictionary transformationDictionary){
+<span class="fc" id="L722">			return IndexableUtil.buildMap(transformationDictionary.getDerivedFields());</span>
+		}
+	});
+
+<span class="fc" id="L726">	private static final LoadingCache&lt;TransformationDictionary, Map&lt;String, DefineFunction&gt;&gt; defineFunctionCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;TransformationDictionary, Map&lt;String, DefineFunction&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;String, DefineFunction&gt; load(TransformationDictionary transformationDictionary){
+<span class="fc" id="L730">			return IndexableUtil.buildMap(transformationDictionary.getDefineFunctions());</span>
+		}
+	});
+
+<span class="fc" id="L734">	private static final LoadingCache&lt;MiningSchema, Map&lt;FieldName, MiningField&gt;&gt; miningFieldCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;MiningSchema, Map&lt;FieldName, MiningField&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, MiningField&gt; load(MiningSchema miningSchema){
+<span class="fc" id="L738">			return IndexableUtil.buildMap(miningSchema.getMiningFields());</span>
+		}
+	});
+
+<span class="fc" id="L742">	private static final LoadingCache&lt;LocalTransformations, Map&lt;FieldName, DerivedField&gt;&gt; localDerivedFieldCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;LocalTransformations, Map&lt;FieldName, DerivedField&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, DerivedField&gt; load(LocalTransformations localTransformations){
+<span class="fc" id="L746">			return IndexableUtil.buildMap(localTransformations.getDerivedFields());</span>
+		}
+	});
+
+<span class="fc" id="L750">	private static final LoadingCache&lt;Targets, Map&lt;FieldName, Target&gt;&gt; targetCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;Targets, Map&lt;FieldName, Target&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, Target&gt; load(Targets targets){
+<span class="fc" id="L754">			return IndexableUtil.buildMap(targets.getTargets(), true);</span>
+		}
+	});
+
+<span class="fc" id="L758">	private static final LoadingCache&lt;Output, Map&lt;FieldName, org.dmg.pmml.OutputField&gt;&gt; outputFieldCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;Output, Map&lt;FieldName, org.dmg.pmml.OutputField&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;FieldName, org.dmg.pmml.OutputField&gt; load(Output output){
+<span class="fc" id="L762">			return IndexableUtil.buildMap(output.getOutputFields());</span>
+		}
+	});
+
+	static
+<span class="fc" id="L767">	private class VerificationBatch extends LinkedHashMap&lt;FieldName, VerificationField&gt; {</span>
+
+<span class="fc" id="L769">		private List&lt;Map&lt;FieldName, Object&gt;&gt; records = null;</span>
+
+
+		public List&lt;Map&lt;FieldName, Object&gt;&gt; getRecords(){
+<span class="fc" id="L773">			return this.records;</span>
+		}
+
+		private void setRecords(List&lt;Map&lt;FieldName, Object&gt;&gt; records){
+<span class="fc" id="L777">			this.records = records;</span>
+<span class="fc" id="L778">		}</span>
+	}
+
+<span class="fc" id="L781">	private static final LoadingCache&lt;ModelVerification, VerificationBatch&gt; batchCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;ModelVerification, VerificationBatch&gt;(){</span>
+
+		@Override
+		public VerificationBatch load(ModelVerification modelVerification){
+<span class="fc" id="L785">			return parseModelVerification(modelVerification);</span>
+		}
+	});
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

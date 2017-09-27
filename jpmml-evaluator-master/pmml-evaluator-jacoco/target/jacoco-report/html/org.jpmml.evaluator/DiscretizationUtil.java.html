@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DiscretizationUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">DiscretizationUtil.java</span></div><h1>DiscretizationUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Table;
+import com.google.common.collect.TreeRangeMap;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.Discretize;
+import org.dmg.pmml.DiscretizeBin;
+import org.dmg.pmml.InlineTable;
+import org.dmg.pmml.Interval;
+import org.dmg.pmml.MapValues;
+import org.dmg.pmml.OpType;
+
+public class DiscretizationUtil {
+
+<span class="nc" id="L50">	private DiscretizationUtil(){</span>
+<span class="nc" id="L51">	}</span>
+
+	static
+	public FieldValue discretize(Discretize discretize, FieldValue value){
+<span class="fc" id="L55">		String result = discretize(discretize, value.asDouble());</span>
+
+<span class="fc" id="L57">		return FieldValueUtil.create(discretize.getDataType(), null, result);</span>
+	}
+
+	static
+	public String discretize(Discretize discretize, Double value){
+<span class="fc" id="L62">		RangeMap&lt;Double, String&gt; binRanges = CacheUtil.getValue(discretize, DiscretizationUtil.binRangeCache);</span>
+
+<span class="fc" id="L64">		Map.Entry&lt;Range&lt;Double&gt;, String&gt; entry = binRanges.getEntry(value);</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">		if(entry != null){</span>
+<span class="fc" id="L66">			return entry.getValue();</span>
+		}
+
+<span class="fc" id="L69">		return discretize.getDefaultValue();</span>
+	}
+
+	static
+	public FieldValue mapValue(MapValues mapValues, Map&lt;String, FieldValue&gt; values){
+<span class="fc" id="L74">		String outputColumn = mapValues.getOutputColumn();</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">		if(outputColumn == null){</span>
+<span class="nc" id="L76">			throw new InvalidFeatureException(mapValues);</span>
+		}
+
+<span class="fc" id="L79">		DataType dataType = mapValues.getDataType();</span>
+
+<span class="fc" id="L81">		InlineTable inlineTable = InlineTableUtil.getInlineTable(mapValues);</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">		if(inlineTable != null){</span>
+<span class="fc" id="L83">			Map&lt;String, String&gt; row = match(inlineTable, values);</span>
+
+<span class="fc bfc" id="L85" title="All 2 branches covered.">			if(row != null){</span>
+<span class="fc" id="L86">				String result = row.get(outputColumn);</span>
+
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">				if(result == null){</span>
+<span class="nc" id="L89">					throw new InvalidFeatureException(inlineTable);</span>
+				}
+
+<span class="fc" id="L92">				return FieldValueUtil.create(dataType, null, result);</span>
+			}
+		}
+
+<span class="fc" id="L96">		return FieldValueUtil.create(dataType, null, mapValues.getDefaultValue());</span>
+	}
+
+	static
+	public Range&lt;Double&gt; toRange(Interval interval){
+<span class="fc" id="L101">		Double leftMargin = interval.getLeftMargin();</span>
+<span class="fc" id="L102">		Double rightMargin = interval.getRightMargin();</span>
+
+		// &quot;The leftMargin and rightMargin attributes are optional, but at least one value must be defined&quot;
+<span class="pc bpc" id="L105" title="1 of 4 branches missed.">		if(leftMargin == null &amp;&amp; rightMargin == null){</span>
+<span class="nc" id="L106">			throw new InvalidFeatureException(interval);</span>
+		} // End if
+
+<span class="pc bpc" id="L109" title="1 of 6 branches missed.">		if(leftMargin != null &amp;&amp; rightMargin != null &amp;&amp; (leftMargin).compareTo(rightMargin) &gt; 0){</span>
+<span class="nc" id="L110">			throw new InvalidFeatureException(interval);</span>
+		}
+
+<span class="fc" id="L113">		Interval.Closure closure = interval.getClosure();</span>
+<span class="pc bpc" id="L114" title="1 of 5 branches missed.">		switch(closure){</span>
+			case OPEN_OPEN:
+				{
+<span class="fc bfc" id="L117" title="All 2 branches covered.">					if(leftMargin == null){</span>
+<span class="fc" id="L118">						return Range.lessThan(rightMargin);</span>
+					} else
+
+<span class="fc bfc" id="L121" title="All 2 branches covered.">					if(rightMargin == null){</span>
+<span class="fc" id="L122">						return Range.greaterThan(leftMargin);</span>
+					}
+
+<span class="fc" id="L125">					return Range.open(leftMargin, rightMargin);</span>
+				}
+			case OPEN_CLOSED:
+				{
+<span class="fc bfc" id="L129" title="All 2 branches covered.">					if(leftMargin == null){</span>
+<span class="fc" id="L130">						return Range.atMost(rightMargin);</span>
+					} else
+
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">					if(rightMargin == null){</span>
+<span class="nc" id="L134">						return Range.greaterThan(leftMargin);</span>
+					}
+
+<span class="fc" id="L137">					return Range.openClosed(leftMargin, rightMargin);</span>
+				}
+			case CLOSED_OPEN:
+				{
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">					if(leftMargin == null){</span>
+<span class="nc" id="L142">						return Range.lessThan(rightMargin);</span>
+					} else
+
+<span class="fc bfc" id="L145" title="All 2 branches covered.">					if(rightMargin == null){</span>
+<span class="fc" id="L146">						return Range.atLeast(leftMargin);</span>
+					}
+
+<span class="fc" id="L149">					return Range.closedOpen(leftMargin, rightMargin);</span>
+				}
+			case CLOSED_CLOSED:
+				{
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">					if(leftMargin == null){</span>
+<span class="nc" id="L154">						return Range.atMost(rightMargin);</span>
+					} else
+
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">					if(rightMargin == null){</span>
+<span class="nc" id="L158">						return Range.atLeast(leftMargin);</span>
+					}
+
+<span class="fc" id="L161">					return Range.closed(leftMargin, rightMargin);</span>
+				}
+			default:
+<span class="nc" id="L164">				throw new UnsupportedFeatureException(interval, closure);</span>
+		}
+	}
+
+	static
+	private Map&lt;String, String&gt; match(InlineTable inlineTable, Map&lt;String, FieldValue&gt; values){
+<span class="fc" id="L170">		Map&lt;String, RowFilter&gt; rowFilters = CacheUtil.getValue(inlineTable, DiscretizationUtil.rowFilterCache);</span>
+
+<span class="fc" id="L172">		Set&lt;Integer&gt; rows = null;</span>
+
+<span class="fc" id="L174">		Collection&lt;Map.Entry&lt;String, FieldValue&gt;&gt; entries = values.entrySet();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">		for(Map.Entry&lt;String, FieldValue&gt; entry : entries){</span>
+<span class="fc" id="L176">			String key = entry.getKey();</span>
+<span class="fc" id="L177">			FieldValue value = entry.getValue();</span>
+
+<span class="fc" id="L179">			RowFilter rowFilter = rowFilters.get(key);</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">			if(rowFilter == null){</span>
+<span class="nc" id="L181">				throw new InvalidFeatureException(inlineTable);</span>
+			}
+
+<span class="fc" id="L184">			Map&lt;FieldValue, Set&lt;Integer&gt;&gt; columnRowMap = rowFilter.getValueMapping(value.getDataType(), value.getOpType());</span>
+
+<span class="fc" id="L186">			Set&lt;Integer&gt; columnRows = columnRowMap.get(value);</span>
+
+<span class="pc bpc" id="L188" title="1 of 4 branches missed.">			if(columnRows != null &amp;&amp; columnRows.size() &gt; 0){</span>
+
+<span class="fc bfc" id="L190" title="All 2 branches covered.">				if(rows == null){</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">					rows = (entries.size() &gt; 1 ? new HashSet&lt;&gt;(columnRows) : columnRows);</span>
+				} else
+
+				{
+<span class="fc" id="L195">					rows.retainAll(columnRows);</span>
+				} // End if
+
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">				if(rows.isEmpty()){</span>
+<span class="nc" id="L199">					return null;</span>
+				}
+			} else
+
+			{
+<span class="fc" id="L204">				return null;</span>
+			}
+<span class="fc" id="L206">		}</span>
+
+<span class="pc bpc" id="L208" title="2 of 4 branches missed.">		if(rows != null &amp;&amp; rows.size() &gt; 0){</span>
+<span class="fc" id="L209">			Table&lt;Integer, String, String&gt; content = InlineTableUtil.getContent(inlineTable);</span>
+
+			// &quot;It is an error if the table entries used for matching are not unique&quot;
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">			if(rows.size() != 1){</span>
+<span class="nc" id="L213">				throw new EvaluationException();</span>
+			}
+
+<span class="fc" id="L216">			Integer row = Iterables.getOnlyElement(rows);</span>
+
+<span class="fc" id="L218">			return content.row(row);</span>
+		}
+
+<span class="nc" id="L221">		return null;</span>
+	}
+
+	static
+	private RangeMap&lt;Double, String&gt; parseDiscretize(Discretize discretize){
+<span class="fc" id="L226">		RangeMap&lt;Double, String&gt; result = TreeRangeMap.create();</span>
+
+<span class="fc" id="L228">		List&lt;DiscretizeBin&gt; discretizeBins = discretize.getDiscretizeBins();</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">		for(DiscretizeBin discretizeBin : discretizeBins){</span>
+<span class="fc" id="L230">			Interval interval = discretizeBin.getInterval();</span>
+<span class="fc" id="L231">			String binValue = discretizeBin.getBinValue();</span>
+
+<span class="pc bpc" id="L233" title="2 of 4 branches missed.">			if(interval == null || binValue == null){</span>
+<span class="nc" id="L234">				throw new InvalidFeatureException(discretizeBin);</span>
+			}
+
+<span class="fc" id="L237">			Range&lt;Double&gt; range = toRange(interval);</span>
+
+<span class="fc" id="L239">			result.put(range, binValue);</span>
+<span class="fc" id="L240">		}</span>
+
+<span class="fc" id="L242">		return result;</span>
+	}
+
+	static
+	private Map&lt;String, RowFilter&gt; parseInlineTable(InlineTable inlineTable){
+<span class="fc" id="L247">		Map&lt;String, RowFilter&gt; result = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L249">		Table&lt;Integer, String, String&gt; table = InlineTableUtil.getContent(inlineTable);</span>
+
+<span class="fc" id="L251">		Set&lt;String&gt; columns = table.columnKeySet();</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">		for(String column : columns){</span>
+<span class="fc" id="L253">			Map&lt;Integer, String&gt; columnValues = table.column(column);</span>
+
+<span class="fc" id="L255">			RowFilter rowFilter = new RowFilter(columnValues);</span>
+
+<span class="fc" id="L257">			result.put(column, rowFilter);</span>
+<span class="fc" id="L258">		}</span>
+
+<span class="fc" id="L260">		return result;</span>
+	}
+
+	static
+	private class RowFilter implements HasParsedValueMapping&lt;Set&lt;Integer&gt;&gt; {
+
+<span class="fc" id="L266">		private Map&lt;Integer, String&gt; columnValues = null;</span>
+
+<span class="fc" id="L268">		private SetMultimap&lt;FieldValue, Integer&gt; parsedColumnValues = null;</span>
+
+
+<span class="fc" id="L271">		private RowFilter(Map&lt;Integer, String&gt; columnValues){</span>
+<span class="fc" id="L272">			setColumnValues(columnValues);</span>
+<span class="fc" id="L273">		}</span>
+
+		@SuppressWarnings (
+			value = {&quot;rawtypes&quot;, &quot;unchecked&quot;}
+		)
+		@Override
+		public Map&lt;FieldValue, Set&lt;Integer&gt;&gt; getValueMapping(DataType dataType, OpType opType){
+
+<span class="fc bfc" id="L281" title="All 2 branches covered.">			if(this.parsedColumnValues == null){</span>
+<span class="fc" id="L282">				this.parsedColumnValues = ImmutableSetMultimap.copyOf(parseColumnValues(dataType, opType));</span>
+			}
+
+<span class="fc" id="L285">			return (Map)this.parsedColumnValues.asMap();</span>
+		}
+
+		private SetMultimap&lt;FieldValue, Integer&gt; parseColumnValues(DataType dataType, OpType opType){
+<span class="fc" id="L289">			SetMultimap&lt;FieldValue, Integer&gt; result = HashMultimap.create();</span>
+
+<span class="fc" id="L291">			Map&lt;Integer, String&gt; columnValues = getColumnValues();</span>
+
+<span class="fc" id="L293">			Collection&lt;Map.Entry&lt;Integer, String&gt;&gt; entries = columnValues.entrySet();</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">			for(Map.Entry&lt;Integer, String&gt; entry : entries){</span>
+<span class="fc" id="L295">				FieldValue value = FieldValueUtil.create(dataType, opType, entry.getValue());</span>
+<span class="fc" id="L296">				Integer row = entry.getKey();</span>
+
+<span class="fc" id="L298">				result.put(value, row);</span>
+<span class="fc" id="L299">			}</span>
+
+<span class="fc" id="L301">			return result;</span>
+		}
+
+		public Map&lt;Integer, String&gt; getColumnValues(){
+<span class="fc" id="L305">			return this.columnValues;</span>
+		}
+
+		private void setColumnValues(Map&lt;Integer, String&gt; columnValues){
+<span class="fc" id="L309">			this.columnValues = columnValues;</span>
+<span class="fc" id="L310">		}</span>
+	}
+
+<span class="fc" id="L313">	private static final LoadingCache&lt;Discretize, RangeMap&lt;Double, String&gt;&gt; binRangeCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;Discretize, RangeMap&lt;Double, String&gt;&gt;(){</span>
+
+		@Override
+		public RangeMap&lt;Double, String&gt; load(Discretize discretize){
+<span class="fc" id="L317">			return ImmutableRangeMap.copyOf(parseDiscretize(discretize));</span>
+		}
+	});
+
+<span class="fc" id="L321">	private static final LoadingCache&lt;InlineTable, Map&lt;String, RowFilter&gt;&gt; rowFilterCache = CacheUtil.buildLoadingCache(new CacheLoader&lt;InlineTable, Map&lt;String, RowFilter&gt;&gt;(){</span>
+
+		@Override
+		public Map&lt;String, RowFilter&gt; load(InlineTable inlineTable){
+<span class="fc" id="L325">			return ImmutableMap.copyOf(parseInlineTable(inlineTable));</span>
+		}
+	});
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

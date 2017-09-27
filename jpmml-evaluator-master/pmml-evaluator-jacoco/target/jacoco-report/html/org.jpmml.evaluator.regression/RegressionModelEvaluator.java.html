@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegressionModelEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.regression</a> &gt; <span class="el_source">RegressionModelEvaluator.java</span></div><h1>RegressionModelEvaluator.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.regression;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.FieldRef;
+import org.dmg.pmml.MathContext;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.PMML;
+import org.dmg.pmml.regression.CategoricalPredictor;
+import org.dmg.pmml.regression.NumericPredictor;
+import org.dmg.pmml.regression.PredictorTerm;
+import org.dmg.pmml.regression.RegressionModel;
+import org.dmg.pmml.regression.RegressionTable;
+import org.jpmml.evaluator.Classification;
+import org.jpmml.evaluator.EvaluationContext;
+import org.jpmml.evaluator.ExpressionUtil;
+import org.jpmml.evaluator.FieldValue;
+import org.jpmml.evaluator.FieldValueUtil;
+import org.jpmml.evaluator.InvalidFeatureException;
+import org.jpmml.evaluator.InvalidResultException;
+import org.jpmml.evaluator.ModelEvaluationContext;
+import org.jpmml.evaluator.ModelEvaluator;
+import org.jpmml.evaluator.OutputUtil;
+import org.jpmml.evaluator.ProbabilityDistribution;
+import org.jpmml.evaluator.TargetField;
+import org.jpmml.evaluator.TargetUtil;
+import org.jpmml.evaluator.UnsupportedFeatureException;
+import org.jpmml.evaluator.Value;
+import org.jpmml.evaluator.ValueFactory;
+import org.jpmml.evaluator.ValueMap;
+
+public class RegressionModelEvaluator extends ModelEvaluator&lt;RegressionModel&gt; {
+
+	public RegressionModelEvaluator(PMML pmml){
+<span class="nc" id="L59">		this(pmml, selectModel(pmml, RegressionModel.class));</span>
+<span class="nc" id="L60">	}</span>
+
+	public RegressionModelEvaluator(PMML pmml, RegressionModel regressionModel){
+<span class="fc" id="L63">		super(pmml, regressionModel);</span>
+
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">		if(!regressionModel.hasRegressionTables()){</span>
+<span class="nc" id="L66">			throw new InvalidFeatureException(regressionModel);</span>
+		}
+<span class="fc" id="L68">	}</span>
+
+	@Override
+	public String getSummary(){
+<span class="nc" id="L72">		return &quot;Regression&quot;;</span>
+	}
+
+	@Override
+	public Map&lt;FieldName, ?&gt; evaluate(ModelEvaluationContext context){
+<span class="fc" id="L77">		RegressionModel regressionModel = getModel();</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">		if(!regressionModel.isScorable()){</span>
+<span class="nc" id="L79">			throw new InvalidResultException(regressionModel);</span>
+		}
+
+		ValueFactory&lt;?&gt; valueFactory;
+
+<span class="fc" id="L84">		MathContext mathContext = regressionModel.getMathContext();</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">		switch(mathContext){</span>
+			case FLOAT:
+			case DOUBLE:
+<span class="fc" id="L88">				valueFactory = getValueFactory();</span>
+<span class="fc" id="L89">				break;</span>
+			default:
+<span class="nc" id="L91">				throw new UnsupportedFeatureException(regressionModel, mathContext);</span>
+		}
+
+		Map&lt;FieldName, ?&gt; predictions;
+
+<span class="fc" id="L96">		MiningFunction miningFunction = regressionModel.getMiningFunction();</span>
+<span class="pc bpc" id="L97" title="1 of 3 branches missed.">		switch(miningFunction){</span>
+			case REGRESSION:
+<span class="fc" id="L99">				predictions = evaluateRegression(valueFactory, context);</span>
+<span class="fc" id="L100">				break;</span>
+			case CLASSIFICATION:
+<span class="fc" id="L102">				predictions = evaluateClassification(valueFactory, context);</span>
+<span class="fc" id="L103">				break;</span>
+			default:
+<span class="nc" id="L105">				throw new UnsupportedFeatureException(regressionModel, miningFunction);</span>
+		}
+
+<span class="fc" id="L108">		return OutputUtil.evaluate(predictions, context);</span>
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, ?&gt; evaluateRegression(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L112">		RegressionModel regressionModel = getModel();</span>
+
+<span class="fc" id="L114">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L116">		FieldName targetFieldName = regressionModel.getTargetFieldName();</span>
+<span class="pc bpc" id="L117" title="1 of 4 branches missed.">		if(targetFieldName != null &amp;&amp; !Objects.equals(targetField.getName(), targetFieldName)){</span>
+<span class="nc" id="L118">			throw new InvalidFeatureException(regressionModel);</span>
+		}
+
+<span class="fc" id="L121">		List&lt;RegressionTable&gt; regressionTables = regressionModel.getRegressionTables();</span>
+<span class="pc bpc" id="L122" title="1 of 2 branches missed.">		if(regressionTables.size() != 1){</span>
+<span class="nc" id="L123">			throw new InvalidFeatureException(regressionModel);</span>
+		}
+
+<span class="fc" id="L126">		RegressionTable regressionTable = regressionTables.get(0);</span>
+
+<span class="fc" id="L128">		Value&lt;V&gt; result = evaluateRegressionTable(valueFactory, regressionTable, context);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">		if(result == null){</span>
+<span class="fc" id="L130">			return TargetUtil.evaluateRegressionDefault(valueFactory, targetField);</span>
+		}
+
+<span class="fc" id="L133">		RegressionModel.NormalizationMethod normalizationMethod = regressionModel.getNormalizationMethod();</span>
+<span class="pc bpc" id="L134" title="2 of 3 branches missed.">		switch(normalizationMethod){</span>
+			case NONE:
+			case SOFTMAX:
+			case LOGIT:
+			case EXP:
+			case PROBIT:
+			case CLOGLOG:
+			case LOGLOG:
+			case CAUCHIT:
+<span class="fc" id="L143">				RegressionModelUtil.normalizeRegressionResult(result, normalizationMethod);</span>
+<span class="fc" id="L144">				break;</span>
+			case SIMPLEMAX:
+<span class="nc" id="L146">				throw new InvalidFeatureException(regressionModel);</span>
+			default:
+<span class="nc" id="L148">				throw new UnsupportedFeatureException(regressionModel, normalizationMethod);</span>
+		}
+
+<span class="fc" id="L151">		return TargetUtil.evaluateRegression(targetField, result);</span>
+	}
+
+	private &lt;V extends Number&gt; Map&lt;FieldName, ? extends Classification&gt; evaluateClassification(ValueFactory&lt;V&gt; valueFactory, EvaluationContext context){
+<span class="fc" id="L155">		RegressionModel regressionModel = getModel();</span>
+
+<span class="fc" id="L157">		TargetField targetField = getTargetField();</span>
+
+<span class="fc" id="L159">		FieldName targetFieldName = regressionModel.getTargetFieldName();</span>
+<span class="pc bpc" id="L160" title="1 of 4 branches missed.">		if(targetFieldName != null &amp;&amp; !Objects.equals(targetField.getName(), targetFieldName)){</span>
+<span class="nc" id="L161">			throw new InvalidFeatureException(regressionModel);</span>
+		}
+
+<span class="fc" id="L164">		DataField dataField = targetField.getDataField();</span>
+
+<span class="fc" id="L166">		OpType opType = dataField.getOpType();</span>
+<span class="pc bpc" id="L167" title="2 of 3 branches missed.">		switch(opType){</span>
+			case CONTINUOUS:
+<span class="nc" id="L169">				throw new InvalidFeatureException(dataField);</span>
+			case CATEGORICAL:
+			case ORDINAL:
+<span class="fc" id="L172">				break;</span>
+			default:
+<span class="nc" id="L174">				throw new UnsupportedFeatureException(dataField, opType);</span>
+		}
+
+<span class="fc" id="L177">		List&lt;RegressionTable&gt; regressionTables = regressionModel.getRegressionTables();</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">		if(regressionTables.size() &lt; 2){</span>
+<span class="nc" id="L179">			throw new InvalidFeatureException(regressionModel);</span>
+		}
+
+<span class="fc" id="L182">		List&lt;String&gt; targetCategories = FieldValueUtil.getTargetCategories(dataField);</span>
+<span class="pc bpc" id="L183" title="1 of 4 branches missed.">		if(targetCategories.size() &gt; 0 &amp;&amp; targetCategories.size() != regressionTables.size()){</span>
+<span class="nc" id="L184">			throw new InvalidFeatureException(regressionModel);</span>
+		}
+
+<span class="fc" id="L187">		ValueMap&lt;String, V&gt; values = new ValueMap&lt;&gt;(2 * regressionTables.size());</span>
+
+<span class="fc bfc" id="L189" title="All 2 branches covered.">		for(RegressionTable regressionTable : regressionTables){</span>
+<span class="fc" id="L190">			String targetCategory = regressionTable.getTargetCategory();</span>
+
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">			if(targetCategory == null){</span>
+<span class="nc" id="L193">				throw new InvalidFeatureException(regressionTable);</span>
+			} // End if
+
+<span class="pc bpc" id="L196" title="1 of 4 branches missed.">			if(targetCategories.size() &gt; 0 &amp;&amp; targetCategories.indexOf(targetCategory) &lt; 0){</span>
+<span class="nc" id="L197">				throw new InvalidFeatureException(regressionTable);</span>
+			}
+
+<span class="fc" id="L200">			Value&lt;V&gt; value = evaluateRegressionTable(valueFactory, regressionTable, context);</span>
+
+			// &quot;If one or more RegressionTable elements cannot be evaluated, then the predictions are defined by the priorProbability values of the Target element&quot;
+<span class="fc bfc" id="L203" title="All 2 branches covered.">			if(value == null){</span>
+<span class="fc" id="L204">				return TargetUtil.evaluateClassificationDefault(valueFactory, targetField);</span>
+			}
+
+<span class="fc" id="L207">			values.put(targetCategory, value);</span>
+<span class="fc" id="L208">		}</span>
+
+<span class="fc" id="L210">		RegressionModel.NormalizationMethod normalizationMethod = regressionModel.getNormalizationMethod();</span>
+<span class="pc bpc" id="L211" title="2 of 5 branches missed.">		switch(normalizationMethod){</span>
+			case NONE:
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">				if((OpType.CATEGORICAL).equals(opType)){</span>
+
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">					if(values.size() == 2){</span>
+<span class="fc" id="L216">						RegressionModelUtil.computeBinomialProbabilities(values, normalizationMethod);</span>
+					} else
+
+					{
+<span class="nc" id="L220">						RegressionModelUtil.computeMultinomialProbabilities(values, normalizationMethod);</span>
+					}
+				} else
+
+				{
+<span class="nc" id="L225">					RegressionModelUtil.computeOrdinalProbabilities(values, normalizationMethod);</span>
+				}
+<span class="nc" id="L227">				break;</span>
+			case SIMPLEMAX:
+			case SOFTMAX:
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">				if((OpType.CATEGORICAL).equals(opType)){</span>
+
+					// XXX: Non-standard behaviour
+<span class="pc bpc" id="L233" title="2 of 6 branches missed.">					if((values.size() == 2 &amp;&amp; isDefault(regressionTables.get(1)) &amp;&amp; (RegressionModel.NormalizationMethod.SOFTMAX).equals(normalizationMethod))){</span>
+<span class="fc" id="L234">						RegressionModelUtil.computeBinomialProbabilities(values, RegressionModel.NormalizationMethod.LOGIT);</span>
+					} else
+
+					{
+<span class="fc" id="L238">						RegressionModelUtil.computeMultinomialProbabilities(values, normalizationMethod);</span>
+					}
+				} else
+
+				{
+<span class="nc" id="L243">					throw new InvalidFeatureException(regressionModel);</span>
+				}
+				break;
+			case LOGIT:
+			case PROBIT:
+			case CLOGLOG:
+			case LOGLOG:
+			case CAUCHIT:
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">				if((OpType.CATEGORICAL).equals(opType)){</span>
+
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">					if(values.size() == 2){</span>
+<span class="fc" id="L254">						RegressionModelUtil.computeBinomialProbabilities(values, normalizationMethod);</span>
+					} else
+
+					// XXX: Non-standard behaviour
+<span class="nc bnc" id="L258" title="All 4 branches missed.">					if(values.size() &gt; 2 &amp;&amp; (RegressionModel.NormalizationMethod.LOGIT).equals(normalizationMethod)){</span>
+<span class="nc" id="L259">						RegressionModelUtil.computeMultinomialProbabilities(values, normalizationMethod);</span>
+					} else
+
+					{
+<span class="nc" id="L263">						throw new InvalidFeatureException(regressionModel);</span>
+					}
+				} else
+
+				{
+<span class="nc" id="L268">					RegressionModelUtil.computeOrdinalProbabilities(values, normalizationMethod);</span>
+				}
+<span class="nc" id="L270">				break;</span>
+			case EXP:
+<span class="nc" id="L272">				throw new InvalidFeatureException(regressionModel);</span>
+			default:
+<span class="nc" id="L274">				throw new UnsupportedFeatureException(regressionModel, normalizationMethod);</span>
+		}
+
+<span class="fc" id="L277">		ProbabilityDistribution result = new ProbabilityDistribution(values.asDoubleMap());</span>
+
+<span class="fc" id="L279">		return TargetUtil.evaluateClassification(targetField, result);</span>
+	}
+
+	private &lt;V extends Number&gt; Value&lt;V&gt; evaluateRegressionTable(ValueFactory&lt;V&gt; valueFactory, RegressionTable regressionTable, EvaluationContext context){
+<span class="fc" id="L283">		Value&lt;V&gt; result = valueFactory.newValue();</span>
+
+<span class="fc bfc" id="L285" title="All 2 branches covered.">		if(regressionTable.hasNumericPredictors()){</span>
+<span class="fc" id="L286">			List&lt;NumericPredictor&gt; numericPredictors = regressionTable.getNumericPredictors();</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">			for(NumericPredictor numericPredictor : numericPredictors){</span>
+<span class="fc" id="L288">				FieldValue value = context.evaluate(numericPredictor.getName());</span>
+
+				// &quot;If the input value is missing, then the result evaluates to a missing value&quot;
+<span class="fc bfc" id="L291" title="All 2 branches covered.">				if(value == null){</span>
+<span class="fc" id="L292">					return null;</span>
+				}
+
+<span class="fc" id="L295">				int exponent = numericPredictor.getExponent();</span>
+<span class="fc bfc" id="L296" title="All 2 branches covered.">				if(exponent != 1){</span>
+<span class="fc" id="L297">					result.add(numericPredictor.getCoefficient(), value.asNumber(), exponent);</span>
+				} else
+
+				{
+<span class="fc" id="L301">					result.add(numericPredictor.getCoefficient(), value.asNumber());</span>
+				}
+<span class="fc" id="L303">			}</span>
+		} // End if
+
+<span class="fc bfc" id="L306" title="All 2 branches covered.">		if(regressionTable.hasCategoricalPredictors()){</span>
+			// A categorical field is represented by a list of CategoricalPredictor elements.
+			// The iteration over this list can be terminated right after finding the first and only match
+<span class="fc" id="L309">			FieldName matchedName = null;</span>
+
+<span class="fc" id="L311">			List&lt;CategoricalPredictor&gt; categoricalPredictors = regressionTable.getCategoricalPredictors();</span>
+<span class="fc bfc" id="L312" title="All 2 branches covered.">			for(CategoricalPredictor categoricalPredictor : categoricalPredictors){</span>
+<span class="fc" id="L313">				FieldName name = categoricalPredictor.getName();</span>
+
+<span class="fc bfc" id="L315" title="All 2 branches covered.">				if(matchedName != null){</span>
+
+<span class="fc bfc" id="L317" title="All 2 branches covered.">					if((matchedName).equals(name)){</span>
+<span class="fc" id="L318">						continue;</span>
+					}
+
+<span class="fc" id="L321">					matchedName = null;</span>
+				}
+
+<span class="fc" id="L324">				FieldValue value = context.evaluate(name);</span>
+
+				// &quot;If the input value is missing, then the categorical field is ignored&quot;
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">				if(value == null){</span>
+<span class="nc" id="L328">					matchedName = name;</span>
+
+<span class="nc" id="L330">					continue;</span>
+				}
+
+<span class="fc" id="L333">				boolean equals = value.equals(categoricalPredictor);</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">				if(equals){</span>
+<span class="fc" id="L335">					matchedName = name;</span>
+
+<span class="fc" id="L337">					result.add(categoricalPredictor.getCoefficient());</span>
+				}
+<span class="fc" id="L339">			}</span>
+		} // End if
+
+<span class="pc bpc" id="L342" title="1 of 2 branches missed.">		if(regressionTable.hasPredictorTerms()){</span>
+<span class="nc" id="L343">			List&lt;Number&gt; factors = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L345">			List&lt;PredictorTerm&gt; predictorTerms = regressionTable.getPredictorTerms();</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">			for(PredictorTerm predictorTerm : predictorTerms){</span>
+<span class="nc" id="L347">				factors.clear();</span>
+
+<span class="nc" id="L349">				List&lt;FieldRef&gt; fieldRefs = predictorTerm.getFieldRefs();</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">				for(FieldRef fieldRef : fieldRefs){</span>
+<span class="nc" id="L351">					FieldValue value = ExpressionUtil.evaluate(fieldRef, context);</span>
+
+					// &quot;If the input value is missing, then the result evaluates to a missing value&quot;
+<span class="nc bnc" id="L354" title="All 2 branches missed.">					if(value == null){</span>
+<span class="nc" id="L355">						return null;</span>
+					}
+
+<span class="nc" id="L358">					factors.add(value.asNumber());</span>
+<span class="nc" id="L359">				}</span>
+
+<span class="nc" id="L361">				result.add(predictorTerm.getCoefficient(), factors);</span>
+<span class="nc" id="L362">			}</span>
+		}
+
+<span class="fc" id="L365">		result.add(regressionTable.getIntercept());</span>
+
+<span class="fc" id="L367">		return result;</span>
+	}
+
+	static
+	private boolean isDefault(RegressionTable regressionTable){
+
+<span class="pc bpc" id="L373" title="1 of 2 branches missed.">		if(regressionTable.hasExtensions()){</span>
+<span class="nc" id="L374">			return false;</span>
+		} // End if
+
+<span class="pc bpc" id="L377" title="3 of 6 branches missed.">		if(regressionTable.hasNumericPredictors() || regressionTable.hasCategoricalPredictors() || regressionTable.hasPredictorTerms()){</span>
+<span class="nc" id="L378">			return false;</span>
+		}
+
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">		return (regressionTable.getIntercept() == 0d);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

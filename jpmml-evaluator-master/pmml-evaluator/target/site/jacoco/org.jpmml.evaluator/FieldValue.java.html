@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FieldValue.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator</a> &gt; <span class="el_source">FieldValue.java</span></div><h1>FieldValue.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2013 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import com.google.common.base.Objects.ToStringHelper;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import org.dmg.pmml.Array;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.Expression;
+import org.dmg.pmml.Field;
+import org.dmg.pmml.HasValue;
+import org.dmg.pmml.HasValueSet;
+import org.dmg.pmml.OpType;
+import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalDateTime;
+import org.joda.time.LocalTime;
+
+/**
+ * &lt;p&gt;
+ * A field value representation that meets the requirements of PMML type system.
+ * &lt;/p&gt;
+ *
+ * &lt;p&gt;
+ * Type information has two components to it:
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@link #getOpType() Operational type}. Determines supported type equality and type comparison operations.&lt;/li&gt;
+ *   &lt;li&gt;{@link #getDataType() Data type}. Determines supported type conversions.&lt;/li&gt;
+ * &lt;/ul&gt;
+ * &lt;/p&gt;
+ *
+ * &lt;p&gt;
+ * A field value is created after a {@link Field field}.
+ * It may be later refined by {@link Expression transformations} and {@link Function functions}.
+ * &lt;/p&gt;
+ *
+ * @see FieldValueUtil
+ */
+abstract
+public class FieldValue implements Comparable&lt;FieldValue&gt;, Serializable {
+
+<span class="fc" id="L65">	private DataType dataType = null;</span>
+
+<span class="fc" id="L67">	private Object value = null;</span>
+
+
+<span class="fc" id="L70">	FieldValue(DataType dataType, Object value){</span>
+<span class="fc" id="L71">		setDataType(Objects.requireNonNull(dataType));</span>
+<span class="fc" id="L72">		setValue(filterValue(Objects.requireNonNull(value)));</span>
+<span class="fc" id="L73">	}</span>
+
+	abstract
+	public OpType getOpType();
+
+	/**
+	 * &lt;p&gt;
+	 * Checks if this value is equal to the reference value.
+	 * &lt;/p&gt;
+	 */
+	public boolean equals(HasValue&lt;?&gt; hasValue){
+
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">		if(hasValue instanceof HasParsedValue){</span>
+<span class="nc" id="L86">			HasParsedValue&lt;?&gt; hasParsedValue = (HasParsedValue&lt;?&gt;)hasValue;</span>
+
+<span class="nc" id="L88">			return equals(hasParsedValue);</span>
+		}
+
+<span class="fc" id="L91">		return equalsString(hasValue.getValue());</span>
+	}
+
+	public boolean equals(HasParsedValue&lt;?&gt; hasParsedValue){
+<span class="nc" id="L95">		FieldValue value = hasParsedValue.getValue(getDataType(), getOpType());</span>
+
+<span class="nc" id="L97">		return this.equals(value);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Checks if this value is contained in the set of reference values.
+	 * &lt;/p&gt;
+	 */
+	public boolean isIn(HasValueSet&lt;?&gt; hasValueSet){
+
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">		if(hasValueSet instanceof HasParsedValueSet){</span>
+<span class="nc" id="L108">			HasParsedValueSet&lt;?&gt; hasParsedValueSet = (HasParsedValueSet&lt;?&gt;)hasValueSet;</span>
+
+<span class="nc" id="L110">			return isIn(hasParsedValueSet);</span>
+		}
+
+<span class="fc" id="L113">		Array array = hasValueSet.getArray();</span>
+
+<span class="fc" id="L115">		List&lt;String&gt; content = ArrayUtil.getContent(array);</span>
+
+<span class="fc bfc" id="L117" title="All 2 branches covered.">		return indexInStrings(content) &gt; -1;</span>
+	}
+
+	public boolean isIn(HasParsedValueSet&lt;?&gt; hasParsedValueSet){
+<span class="nc" id="L121">		Set&lt;FieldValue&gt; values = hasParsedValueSet.getValueSet(getDataType(), getOpType());</span>
+
+<span class="nc" id="L123">		return values.contains(this);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * Calculates the order between this value and the reference value.
+	 * &lt;/p&gt;
+	 */
+	public int compareTo(HasValue&lt;?&gt; hasValue){
+
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">		if(hasValue instanceof HasParsedValue){</span>
+<span class="nc" id="L134">			HasParsedValue&lt;?&gt; hasParsedValue = (HasParsedValue&lt;?&gt;)hasValue;</span>
+
+<span class="nc" id="L136">			return compareTo(hasParsedValue);</span>
+		}
+
+<span class="fc" id="L139">		return compareToString(hasValue.getValue());</span>
+	}
+
+	public int compareTo(HasParsedValue&lt;?&gt; hasParsedValue){
+<span class="nc" id="L143">		FieldValue value = hasParsedValue.getValue(getDataType(), getOpType());</span>
+
+<span class="nc" id="L145">		return this.compareTo(value);</span>
+	}
+
+	public boolean equalsString(String string){
+<span class="fc" id="L149">		Object value = parseValue(string);</span>
+
+<span class="fc bfc" id="L151" title="All 2 branches covered.">		if(isScalar()){</span>
+<span class="fc" id="L152">			return (getValue()).equals(value);</span>
+		}
+
+<span class="fc" id="L155">		return TypeUtil.equals(getDataType(), getValue(), value);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * A value-safe replacement for {@link #equals(FieldValue)}.
+	 * &lt;/p&gt;
+	 */
+	public boolean equalsValue(FieldValue value){
+
+<span class="fc bfc" id="L165" title="All 2 branches covered.">		if(sameScalarType(value)){</span>
+<span class="fc" id="L166">			return (getValue()).equals(value.getValue());</span>
+		}
+
+<span class="fc" id="L169">		DataType dataType = TypeUtil.getResultDataType(getDataType(), value.getDataType());</span>
+
+<span class="fc" id="L171">		return TypeUtil.equals(dataType, getValue(), value.getValue());</span>
+	}
+
+	public int indexInStrings(Iterable&lt;String&gt; strings){
+<span class="fc" id="L175">		Predicate&lt;String&gt; predicate = new Predicate&lt;String&gt;(){</span>
+
+			@Override
+			public boolean apply(String string){
+<span class="fc" id="L179">				return equalsString(string);</span>
+			}
+		};
+
+<span class="fc" id="L183">		return Iterables.indexOf(strings, predicate);</span>
+	}
+
+	public int indexInValues(Iterable&lt;FieldValue&gt; values){
+<span class="fc" id="L187">		Predicate&lt;FieldValue&gt; predicate = new Predicate&lt;FieldValue&gt;(){</span>
+
+			@Override
+			public boolean apply(FieldValue value){
+<span class="fc" id="L191">				return equalsValue(value);</span>
+			}
+		};
+
+<span class="fc" id="L195">		return Iterables.indexOf(values, predicate);</span>
+	}
+
+	public int compareToString(String string){
+<span class="fc" id="L199">		Object value = parseValue(string);</span>
+
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">		if(isScalar()){</span>
+<span class="fc" id="L202">			return ((Comparable)getValue()).compareTo(value);</span>
+		}
+
+<span class="nc" id="L205">		return TypeUtil.compare(getDataType(), getValue(), value);</span>
+	}
+
+	/**
+	 * &lt;p&gt;
+	 * A value-safe replacement for {@link #compareTo(FieldValue)}
+	 * &lt;/p&gt;
+	 */
+	public int compareToValue(FieldValue value){
+
+<span class="fc bfc" id="L215" title="All 2 branches covered.">		if(sameScalarType(value)){</span>
+<span class="fc" id="L216">			return ((Comparable)getValue()).compareTo(value.getValue());</span>
+		}
+
+<span class="fc" id="L219">		DataType dataType = TypeUtil.getResultDataType(getDataType(), value.getDataType());</span>
+
+<span class="fc" id="L221">		return TypeUtil.compare(dataType, getValue(), value.getValue());</span>
+	}
+
+	public Object parseValue(String string){
+<span class="fc" id="L225">		DataType dataType = getDataType();</span>
+
+<span class="fc" id="L227">		return TypeUtil.parse(dataType, string);</span>
+	}
+
+	public &lt;V&gt; V getMapping(HasParsedValueMapping&lt;V&gt; hasParsedValueMapping){
+<span class="nc" id="L231">		Map&lt;FieldValue, V&gt; values = hasParsedValueMapping.getValueMapping(getDataType(), getOpType());</span>
+
+<span class="nc" id="L233">		return values.get(this);</span>
+	}
+
+	private boolean isScalar(){
+<span class="fc" id="L237">		return (this instanceof Scalar);</span>
+	}
+
+	private boolean sameScalarType(FieldValue value){
+
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">		if(isScalar()){</span>
+<span class="fc" id="L243">			return (getClass()).equals(value.getClass());</span>
+		}
+
+<span class="nc" id="L246">		return false;</span>
+	}
+
+	public String asString(){
+<span class="nc" id="L250">		return (String)getValue(DataType.STRING);</span>
+	}
+
+	public Integer asInteger(){
+<span class="fc" id="L254">		return (Integer)getValue(DataType.INTEGER);</span>
+	}
+
+	public Number asNumber(){
+<span class="fc" id="L258">		Object value = getValue();</span>
+
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">		if(value instanceof Number){</span>
+<span class="nc" id="L261">			return (Number)value;</span>
+		}
+
+<span class="fc" id="L264">		return (Double)getValue(DataType.DOUBLE);</span>
+	}
+
+	/**
+	 * Getting the value of a field as {@link Double}:
+	 * &lt;pre&gt;
+	 * FieldValue value = ...;
+	 * Double result = value.asDouble();
+	 * &lt;/pre&gt;
+	 *
+	 * Getting the value of a field as &lt;code&gt;double&lt;/code&gt;:
+	 * &lt;pre&gt;
+	 * FieldValue value = ...;
+	 * double result = (value.asNumber()).doubleValue();
+	 * &lt;/pre&gt;
+	 *
+	 * @see #asNumber()
+	 */
+	public Double asDouble(){
+<span class="fc" id="L283">		Number number = asNumber();</span>
+
+<span class="fc" id="L285">		return number.doubleValue();</span>
+	}
+
+	public Boolean asBoolean(){
+<span class="fc" id="L289">		return (Boolean)getValue(DataType.BOOLEAN);</span>
+	}
+
+	public LocalDateTime asLocalDateTime(){
+<span class="fc" id="L293">		return (LocalDateTime)getValue(DataType.DATE_TIME);</span>
+	}
+
+	public LocalDate asLocalDate(){
+<span class="fc" id="L297">		return (LocalDate)getValue(DataType.DATE);</span>
+	}
+
+	public LocalTime asLocalTime(){
+<span class="fc" id="L301">		return (LocalTime)getValue(DataType.TIME);</span>
+	}
+
+	public DateTime asDateTime(){
+
+		try {
+<span class="nc" id="L307">			LocalDateTime dateTime = asLocalDateTime();</span>
+
+<span class="nc" id="L309">			return dateTime.toDateTime();</span>
+<span class="fc" id="L310">		} catch(TypeCheckException tceDateTime){</span>
+
+			try {
+<span class="fc" id="L313">				LocalDate date = asLocalDate();</span>
+
+<span class="fc" id="L315">				return date.toDateTimeAtStartOfDay();</span>
+<span class="nc" id="L316">			} catch(TypeCheckException tceDate){</span>
+				// Ignored
+			}
+
+			try {
+<span class="nc" id="L321">				LocalTime time = asLocalTime();</span>
+
+<span class="nc" id="L323">				return time.toDateTimeToday();</span>
+<span class="nc" id="L324">			} catch(TypeCheckException tceTime){</span>
+				// Ignored
+			}
+
+<span class="nc" id="L328">			throw tceDateTime;</span>
+		}
+	}
+
+	private Object getValue(DataType dataType){
+<span class="fc" id="L333">		Object value = getValue();</span>
+
+		try {
+<span class="fc" id="L336">			return TypeUtil.cast(dataType, value);</span>
+<span class="fc" id="L337">		} catch(TypeCheckException tce){</span>
+
+			try {
+<span class="fc bfc" id="L340" title="All 2 branches covered.">				if(value instanceof String){</span>
+<span class="fc" id="L341">					String string = (String)value;</span>
+
+<span class="fc" id="L343">					return TypeUtil.parse(dataType, string);</span>
+				}
+<span class="nc" id="L345">			} catch(IllegalArgumentException iae){</span>
+				// Ignored
+<span class="fc" id="L347">			}</span>
+
+<span class="fc" id="L349">			throw tce;</span>
+		}
+	}
+
+	@Override
+	public int compareTo(FieldValue that){
+
+<span class="fc bfc" id="L356" title="All 4 branches covered.">		if((this.getOpType() != that.getOpType()) || (this.getDataType() != that.getDataType())){</span>
+<span class="fc" id="L357">			throw new ClassCastException();</span>
+		}
+
+<span class="fc" id="L360">		return compareToValue(that);</span>
+	}
+
+	@Override
+	public int hashCode(){
+<span class="fc" id="L365">		return (31 * (getOpType().hashCode() ^ getDataType().hashCode())) + getValue().hashCode();</span>
+	}
+
+	@Override
+	public boolean equals(Object object){
+
+<span class="pc bpc" id="L371" title="1 of 2 branches missed.">		if(object instanceof FieldValue){</span>
+<span class="fc" id="L372">			FieldValue that = (FieldValue)object;</span>
+
+<span class="pc bpc" id="L374" title="2 of 6 branches missed.">			return (this.getOpType() == that.getOpType()) &amp;&amp; (this.getDataType() == that.getDataType()) &amp;&amp; (this.getValue()).equals(that.getValue());</span>
+		}
+
+<span class="nc" id="L377">		return false;</span>
+	}
+
+	@Override
+	public String toString(){
+<span class="nc" id="L382">		ToStringHelper helper = com.google.common.base.Objects.toStringHelper(this)</span>
+<span class="nc" id="L383">			.add(&quot;opType&quot;, getOpType())</span>
+<span class="nc" id="L384">			.add(&quot;dataType&quot;, getDataType())</span>
+<span class="nc" id="L385">			.add(&quot;value&quot;, getValue());</span>
+
+<span class="nc" id="L387">		return helper.toString();</span>
+	}
+
+	public DataType getDataType(){
+<span class="fc" id="L391">		return this.dataType;</span>
+	}
+
+	private void setDataType(DataType dataType){
+<span class="fc" id="L395">		this.dataType = dataType;</span>
+<span class="fc" id="L396">	}</span>
+
+	public Object getValue(){
+<span class="fc" id="L399">		return this.value;</span>
+	}
+
+	private void setValue(Object value){
+<span class="fc" id="L403">		this.value = value;</span>
+<span class="fc" id="L404">	}</span>
+
+	static
+	private Object filterValue(Object value){
+
+<span class="fc bfc" id="L409" title="All 2 branches covered.">		if(value instanceof Float){</span>
+<span class="fc" id="L410">			return filterValue((Float)value);</span>
+		} else
+
+<span class="fc bfc" id="L413" title="All 2 branches covered.">		if(value instanceof Double){</span>
+<span class="fc" id="L414">			return filterValue((Double)value);</span>
+		}
+
+<span class="fc" id="L417">		return value;</span>
+	}
+
+	static
+	private Float filterValue(Float value){
+
+<span class="fc bfc" id="L423" title="All 2 branches covered.">		if(value.doubleValue() == 0f){</span>
+<span class="fc" id="L424">			return Numbers.FLOAT_ZERO;</span>
+		}
+
+<span class="fc" id="L427">		return value;</span>
+	}
+
+	static
+	private Double filterValue(Double value){
+
+<span class="fc bfc" id="L433" title="All 2 branches covered.">		if(value.doubleValue() == 0d){</span>
+<span class="fc" id="L434">			return Numbers.DOUBLE_ZERO;</span>
+		}
+
+<span class="fc" id="L437">		return value;</span>
+	}
+
+	static
+	interface Scalar {
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

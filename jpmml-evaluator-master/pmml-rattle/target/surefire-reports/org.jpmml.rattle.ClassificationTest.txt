@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.jpmml.rattle.ClassificationTest
+-------------------------------------------------------------------------------
+Tests run: 18, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.657 s - in org.jpmml.rattle.ClassificationTest

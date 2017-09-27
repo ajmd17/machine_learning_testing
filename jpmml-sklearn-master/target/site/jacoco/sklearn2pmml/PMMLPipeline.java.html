@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PMMLPipeline.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML-SkLearn</a> &gt; <a href="index.source.html" class="el_package">sklearn2pmml</a> &gt; <span class="el_source">PMMLPipeline.java</span></div><h1>PMMLPipeline.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-SkLearn
+ *
+ * JPMML-SkLearn is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-SkLearn is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-SkLearn.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package sklearn2pmml;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.common.base.CharMatcher;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import net.razorvine.pickle.objects.ClassDict;
+import numpy.core.NDArray;
+import org.dmg.pmml.DataField;
+import org.dmg.pmml.DataType;
+import org.dmg.pmml.Extension;
+import org.dmg.pmml.FieldName;
+import org.dmg.pmml.MiningBuildTask;
+import org.dmg.pmml.MiningFunction;
+import org.dmg.pmml.Model;
+import org.dmg.pmml.OpType;
+import org.dmg.pmml.PMML;
+import org.jpmml.converter.CategoricalLabel;
+import org.jpmml.converter.ContinuousLabel;
+import org.jpmml.converter.Feature;
+import org.jpmml.converter.Label;
+import org.jpmml.converter.Schema;
+import org.jpmml.converter.ValueUtil;
+import org.jpmml.converter.WildcardFeature;
+import org.jpmml.sklearn.ClassDictUtil;
+import org.jpmml.sklearn.SkLearnEncoder;
+import org.jpmml.sklearn.TupleUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sklearn.Estimator;
+import sklearn.EstimatorUtil;
+import sklearn.HasNumberOfFeatures;
+import sklearn.Initializer;
+import sklearn.Transformer;
+import sklearn.TransformerUtil;
+import sklearn.TypeUtil;
+import sklearn.pipeline.Pipeline;
+
+public class PMMLPipeline extends Pipeline {
+
+	public PMMLPipeline(){
+<span class="fc" id="L62">		this(&quot;sklearn2pmml&quot;, &quot;PMMLPipeline&quot;);</span>
+<span class="fc" id="L63">	}</span>
+
+	public PMMLPipeline(String module, String name){
+<span class="fc" id="L66">		super(module, name);</span>
+<span class="fc" id="L67">	}</span>
+
+	public PMML encodePMML(){
+<span class="fc" id="L70">		List&lt;Transformer&gt; transformers = getTransformers();</span>
+<span class="fc" id="L71">		Estimator estimator = getEstimator();</span>
+<span class="fc" id="L72">		String repr = getRepr();</span>
+
+<span class="fc" id="L74">		SkLearnEncoder encoder = new SkLearnEncoder();</span>
+
+<span class="fc" id="L76">		Label label = null;</span>
+
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		if(estimator.isSupervised()){</span>
+<span class="fc" id="L79">			String targetField = getTargetField();</span>
+
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">			if(targetField == null){</span>
+<span class="nc" id="L82">				targetField = &quot;y&quot;;</span>
+
+<span class="nc" id="L84">				logger.warn(&quot;The 'target_field' attribute is not set. Assuming {} as the name of the target field&quot;, targetField);</span>
+			}
+
+<span class="fc" id="L87">			MiningFunction miningFunction = estimator.getMiningFunction();</span>
+<span class="pc bpc" id="L88" title="1 of 3 branches missed.">			switch(miningFunction){</span>
+				case CLASSIFICATION:
+					{
+<span class="fc" id="L91">						List&lt;?&gt; classes = EstimatorUtil.getClasses(estimator);</span>
+
+<span class="fc" id="L93">						DataField dataField = encoder.createDataField(FieldName.create(targetField), OpType.CATEGORICAL, TypeUtil.getDataType(classes, DataType.STRING), formatTargetCategories(classes));</span>
+
+<span class="fc" id="L95">						label = new CategoricalLabel(dataField);</span>
+					}
+<span class="fc" id="L97">					break;</span>
+				case REGRESSION:
+					{
+<span class="fc" id="L100">						DataField dataField = encoder.createDataField(FieldName.create(targetField), OpType.CONTINUOUS, DataType.DOUBLE);</span>
+
+<span class="fc" id="L102">						label = new ContinuousLabel(dataField);</span>
+					}
+<span class="fc" id="L104">					break;</span>
+				default:
+<span class="nc" id="L106">					throw new IllegalArgumentException();</span>
+			}
+		}
+
+<span class="fc" id="L110">		List&lt;Feature&gt; features = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L112">		Transformer transformer = TransformerUtil.getHead(transformers);</span>
+<span class="pc bpc" id="L113" title="1 of 2 branches missed.">		if(transformer != null){</span>
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">			if(!(transformer instanceof Initializer)){</span>
+<span class="fc" id="L116">				features = initFeatures(transformer, transformer.getOpType(), transformer.getDataType(), encoder);</span>
+			}
+
+<span class="fc" id="L119">			features = encodeFeatures(features, encoder);</span>
+		} else
+
+		{
+<span class="nc" id="L123">			features = initFeatures(estimator, estimator.getOpType(), estimator.getDataType(), encoder);</span>
+		}
+
+<span class="fc" id="L126">		int numberOfFeatures = estimator.getNumberOfFeatures();</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">		if(numberOfFeatures &gt; -1){</span>
+<span class="fc" id="L128">			ClassDictUtil.checkSize(numberOfFeatures, features);</span>
+		}
+
+<span class="fc" id="L131">		Schema schema = new Schema(label, features);</span>
+
+<span class="fc" id="L133">		Model model = estimator.encodeModel(schema, encoder);</span>
+
+<span class="fc" id="L135">		PMML pmml = encoder.encodePMML(model);</span>
+
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">		if(repr != null){</span>
+<span class="nc" id="L138">			Extension extension = new Extension()</span>
+<span class="nc" id="L139">				.addContent(repr);</span>
+
+<span class="nc" id="L141">			MiningBuildTask miningBuildTask = new MiningBuildTask()</span>
+<span class="nc" id="L142">				.addExtensions(extension);</span>
+
+<span class="nc" id="L144">			pmml.setMiningBuildTask(miningBuildTask);</span>
+		}
+
+<span class="fc" id="L147">		return pmml;</span>
+	}
+
+	private List&lt;Feature&gt; initFeatures(ClassDict object, OpType opType, DataType dataType, SkLearnEncoder encoder){
+<span class="fc" id="L151">		List&lt;String&gt; activeFields = getActiveFields();</span>
+
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">		if(activeFields == null){</span>
+<span class="nc" id="L154">			int numberOfFeatures = -1;</span>
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">			if(object instanceof HasNumberOfFeatures){</span>
+<span class="nc" id="L157">				HasNumberOfFeatures hasNumberOfFeatures = (HasNumberOfFeatures)object;</span>
+
+<span class="nc" id="L159">				numberOfFeatures = hasNumberOfFeatures.getNumberOfFeatures();</span>
+			} // End if
+
+<span class="nc bnc" id="L162" title="All 2 branches missed.">			if(numberOfFeatures &lt; 0){</span>
+<span class="nc" id="L163">				throw new IllegalArgumentException(&quot;The first transformer or estimator object (&quot; + ClassDictUtil.formatClass(object) + &quot;) does not specify the number of input features&quot;);</span>
+			}
+
+<span class="nc" id="L166">			activeFields = new ArrayList&lt;&gt;(numberOfFeatures);</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">			for(int i = 0, max = numberOfFeatures; i &lt; max; i++){</span>
+<span class="nc" id="L169">				activeFields.add(&quot;x&quot; + String.valueOf(i + 1));</span>
+			}
+
+<span class="nc" id="L172">			logger.warn(&quot;The 'active_fields' attribute is not set. Assuming {} as the names of active fields&quot;, activeFields);</span>
+		}
+
+<span class="fc" id="L175">		List&lt;Feature&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L177" title="All 2 branches covered.">		for(String activeField : activeFields){</span>
+<span class="fc" id="L178">			DataField dataField = encoder.createDataField(FieldName.create(activeField), opType, dataType);</span>
+
+<span class="fc" id="L180">			result.add(new WildcardFeature(encoder, dataField));</span>
+<span class="fc" id="L181">		}</span>
+
+<span class="fc" id="L183">		return result;</span>
+	}
+
+	@Override
+	public List&lt;Transformer&gt; getTransformers(){
+<span class="fc" id="L188">		List&lt;Object[]&gt; steps = getSteps();</span>
+
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">		if(steps.size() &gt; 0){</span>
+<span class="fc" id="L191">			steps = steps.subList(0, steps.size() - 1);</span>
+		}
+
+<span class="fc" id="L194">		return TransformerUtil.asTransformerList(TupleUtil.extractElementList(steps, 1));</span>
+	}
+
+	public Estimator getEstimator(){
+<span class="fc" id="L198">		List&lt;Object[]&gt; steps = getSteps();</span>
+
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">		if(steps.size() &lt; 1){</span>
+<span class="nc" id="L201">			throw new IllegalArgumentException(&quot;Expected one or more elements, got zero elements&quot;);</span>
+		}
+
+<span class="fc" id="L204">		Object[] lastStep = steps.get(steps.size() - 1);</span>
+
+<span class="fc" id="L206">		return EstimatorUtil.asEstimator(TupleUtil.extractElement(lastStep, 1));</span>
+	}
+
+	@Override
+	public List&lt;Object[]&gt; getSteps(){
+<span class="fc" id="L211">		return super.getSteps();</span>
+	}
+
+	public PMMLPipeline setSteps(List&lt;Object[]&gt; steps){
+<span class="fc" id="L215">		put(&quot;steps&quot;, steps);</span>
+
+<span class="fc" id="L217">		return this;</span>
+	}
+
+	public String getRepr(){
+<span class="fc" id="L221">		return (String)get(&quot;repr_&quot;);</span>
+	}
+
+	public PMMLPipeline setRepr(String repr){
+<span class="fc" id="L225">		put(&quot;repr_&quot;, repr);</span>
+
+<span class="fc" id="L227">		return this;</span>
+	}
+
+	public String getTargetField(){
+<span class="fc" id="L231">		return (String)get(&quot;target_field&quot;);</span>
+	}
+
+	public PMMLPipeline setTargetField(String targetField){
+<span class="fc" id="L235">		put(&quot;target_field&quot;, targetField);</span>
+
+<span class="fc" id="L237">		return this;</span>
+	}
+
+	public List&lt;String&gt; getActiveFields(){
+
+<span class="fc bfc" id="L242" title="All 2 branches covered.">		if(!containsKey(&quot;active_fields&quot;)){</span>
+<span class="fc" id="L243">			return null;</span>
+		}
+
+<span class="fc" id="L246">		return (List)ClassDictUtil.getArray(this, &quot;active_fields&quot;);</span>
+	}
+
+	public PMMLPipeline setActiveFields(List&lt;String&gt; activeFields){
+<span class="fc" id="L250">		NDArray array = new NDArray();</span>
+<span class="fc" id="L251">		array.put(&quot;data&quot;, activeFields);</span>
+<span class="fc" id="L252">		array.put(&quot;fortran_order&quot;, Boolean.FALSE);</span>
+
+<span class="fc" id="L254">		put(&quot;active_fields&quot;, array);</span>
+
+<span class="fc" id="L256">		return this;</span>
+	}
+
+	static
+	private List&lt;String&gt; formatTargetCategories(List&lt;?&gt; objects){
+<span class="fc" id="L261">		Function&lt;Object, String&gt; function = new Function&lt;Object, String&gt;(){</span>
+
+			@Override
+			public String apply(Object object){
+<span class="fc" id="L265">				String targetCategory = ValueUtil.formatValue(object);</span>
+
+<span class="pc bpc" id="L267" title="2 of 4 branches missed.">				if(targetCategory == null || CharMatcher.WHITESPACE.matchesAnyOf(targetCategory)){</span>
+<span class="nc" id="L268">					throw new IllegalArgumentException(targetCategory);</span>
+				}
+
+<span class="fc" id="L271">				return targetCategory;</span>
+			}
+		};
+
+<span class="fc" id="L275">		return Lists.transform(objects, function);</span>
+	}
+
+<span class="fc" id="L278">	private static final Logger logger = LoggerFactory.getLogger(PMMLPipeline.class);</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

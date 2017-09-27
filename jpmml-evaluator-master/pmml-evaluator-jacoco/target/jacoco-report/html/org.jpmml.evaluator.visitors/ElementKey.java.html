@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ElementKey.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">PMML class model evaluator code coverage</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.visitors</a> &gt; <span class="el_source">ElementKey.java</span></div><h1>ElementKey.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.visitors;
+
+import java.util.Arrays;
+
+class ElementKey {
+
+<span class="fc" id="L25">	private Object[] content = null;</span>
+
+
+<span class="fc" id="L28">	ElementKey(Object[] content){</span>
+<span class="fc" id="L29">		setContent(content);</span>
+<span class="fc" id="L30">	}</span>
+
+	@Override
+	public int hashCode(){
+<span class="fc" id="L34">		Object[] content = getContent();</span>
+
+<span class="fc" id="L36">		return Arrays.hashCode(content);</span>
+	}
+
+	@Override
+	public boolean equals(Object object){
+
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">		if(object instanceof ElementKey){</span>
+<span class="fc" id="L43">			ElementKey that = (ElementKey)object;</span>
+
+<span class="fc" id="L45">			return Arrays.equals(this.getContent(), that.getContent());</span>
+		}
+
+<span class="nc" id="L48">		return false;</span>
+	}
+
+	public Object[] getContent(){
+<span class="fc" id="L52">		return this.content;</span>
+	}
+
+	private void setContent(Object[] content){
+<span class="fc" id="L56">		this.content = content;</span>
+<span class="fc" id="L57">	}</span>
+
+<span class="fc" id="L59">	public static final ElementKey EMPTY = new ElementKey(new Object[0]);</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>

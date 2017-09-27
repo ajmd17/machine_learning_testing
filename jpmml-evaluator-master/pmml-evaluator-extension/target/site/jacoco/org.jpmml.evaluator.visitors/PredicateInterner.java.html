@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PredicateInterner.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JPMML evaluator extensions</a> &gt; <a href="index.source.html" class="el_package">org.jpmml.evaluator.visitors</a> &gt; <span class="el_source">PredicateInterner.java</span></div><h1>PredicateInterner.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2015 Villu Ruusmann
+ *
+ * This file is part of JPMML-Evaluator
+ *
+ * JPMML-Evaluator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * JPMML-Evaluator is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with JPMML-Evaluator.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package org.jpmml.evaluator.visitors;
+
+import org.dmg.pmml.Array;
+import org.dmg.pmml.False;
+import org.dmg.pmml.Predicate;
+import org.dmg.pmml.SimplePredicate;
+import org.dmg.pmml.SimpleSetPredicate;
+import org.dmg.pmml.True;
+import org.dmg.pmml.Visitable;
+import org.jpmml.evaluator.ArrayUtil;
+import org.jpmml.evaluator.ExtensionUtil;
+import org.jpmml.model.visitors.PredicateFilterer;
+
+/**
+ * &lt;p&gt;
+ * A Visitor that interns {@link Predicate} elements.
+ * &lt;/p&gt;
+ */
+<span class="fc" id="L37">public class PredicateInterner extends PredicateFilterer {</span>
+
+<span class="fc" id="L39">	private ElementHashMap&lt;SimplePredicate&gt; simplePredicateCache = new ElementHashMap&lt;SimplePredicate&gt;(){</span>
+
+		@Override
+		public ElementKey createKey(SimplePredicate simplePredicate){
+<span class="fc" id="L43">			Object[] content = {simplePredicate.getField(), simplePredicate.getOperator(), simplePredicate.getValue()};</span>
+
+<span class="fc" id="L45">			return new ElementKey(content);</span>
+		}
+	};
+
+<span class="fc" id="L49">	private ElementHashMap&lt;SimpleSetPredicate&gt; simpleSetPredicateCache = new ElementHashMap&lt;SimpleSetPredicate&gt;(){</span>
+
+		@Override
+		public ElementKey createKey(SimpleSetPredicate simpleSetPredicate){
+<span class="fc" id="L53">			Array array = simpleSetPredicate.getArray();</span>
+
+<span class="fc" id="L55">			Object[] content = {simpleSetPredicate.getField(), simpleSetPredicate.getBooleanOperator(), ArrayUtil.getContent(array)};</span>
+
+<span class="fc" id="L57">			return new ElementKey(content);</span>
+		}
+	};
+
+<span class="fc" id="L61">	private ElementHashMap&lt;True&gt; truePredicateCache = new ElementHashMap&lt;True&gt;(){</span>
+
+		@Override
+		public ElementKey createKey(True truePredicate){
+<span class="fc" id="L65">			return ElementKey.EMPTY;</span>
+		}
+	};
+
+<span class="fc" id="L69">	private ElementHashMap&lt;False&gt; falsePredicateCache = new ElementHashMap&lt;False&gt;(){</span>
+
+		@Override
+		public ElementKey createKey(False falsePredicate){
+<span class="fc" id="L73">			return ElementKey.EMPTY;</span>
+		}
+	};
+
+
+	@Override
+	public void applyTo(Visitable visitable){
+<span class="fc" id="L80">		reset();</span>
+
+<span class="fc" id="L82">		super.applyTo(visitable);</span>
+<span class="fc" id="L83">	}</span>
+
+	public void reset(){
+<span class="fc" id="L86">		this.simplePredicateCache.clear();</span>
+<span class="fc" id="L87">		this.simpleSetPredicateCache.clear();</span>
+<span class="fc" id="L88">		this.truePredicateCache.clear();</span>
+<span class="fc" id="L89">		this.falsePredicateCache.clear();</span>
+<span class="fc" id="L90">	}</span>
+
+	@Override
+	public Predicate filter(Predicate predicate){
+
+<span class="pc bpc" id="L95" title="2 of 4 branches missed.">		if(predicate == null || ExtensionUtil.hasExtensions(predicate)){</span>
+<span class="nc" id="L96">			return predicate;</span>
+		}
+
+<span class="fc" id="L99">		return intern(predicate);</span>
+	}
+
+	public Predicate intern(Predicate predicate){
+
+<span class="fc bfc" id="L104" title="All 2 branches covered.">		if(predicate instanceof SimplePredicate){</span>
+<span class="fc" id="L105">			return intern((SimplePredicate)predicate);</span>
+		} else
+
+<span class="fc bfc" id="L108" title="All 2 branches covered.">		if(predicate instanceof SimpleSetPredicate){</span>
+<span class="fc" id="L109">			return intern((SimpleSetPredicate)predicate);</span>
+		} else
+
+<span class="fc bfc" id="L112" title="All 2 branches covered.">		if(predicate instanceof True){</span>
+<span class="fc" id="L113">			return intern((True)predicate);</span>
+		} else
+
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">		if(predicate instanceof False){</span>
+<span class="fc" id="L117">			return intern((False)predicate);</span>
+		}
+
+<span class="nc" id="L120">		return predicate;</span>
+	}
+
+	private SimplePredicate intern(SimplePredicate simplePredicate){
+<span class="fc" id="L124">		return this.simplePredicateCache.intern(simplePredicate);</span>
+	}
+
+	private SimpleSetPredicate intern(SimpleSetPredicate simpleSetPredicate){
+<span class="fc" id="L128">		return this.simpleSetPredicateCache.intern(simpleSetPredicate);</span>
+	}
+
+	private True intern(True truePredicate){
+<span class="fc" id="L132">		return this.truePredicateCache.intern(truePredicate);</span>
+	}
+
+	private False intern(False falsePredicate){
+<span class="fc" id="L136">		return this.falsePredicateCache.intern(falsePredicate);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.7.9.201702052155</span></div></body></html>
