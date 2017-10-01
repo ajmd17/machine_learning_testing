@@ -1,7 +1,8 @@
-package org.jpmml.model;
+package org.schemaextractor;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.HashMap;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.ValidationEvent;
@@ -29,6 +30,8 @@ import com.beust.jcommander.ParameterException;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.dmg.pmml.PMML;
+import org.jpmml.model.JAXBUtil;
+import org.jpmml.model.ImportFilter;
 
 
 public class SchemaExtractor {
@@ -76,33 +79,55 @@ public class SchemaExtractor {
         }
     }
 
+    public PmmlSchema createSchemaFromPmml(PMML pmml) {
+        HashMap<String, PmmlSchema.PmmlField> shape = new HashMap<String, PmmlSchema.PmmlField>();
+
+        for (org.dmg.pmml.DataField df : pmml.getDataDictionary().getDataFields()) {
+            PmmlSchema.PmmlField field = new PmmlSchema.PmmlField(df.getOpType().value(), df.getDataType().value());
+
+            for (org.dmg.pmml.Value dv : df.getValues()) {
+                field.addPossibleValue(dv.getValue());
+            }
+
+            shape.put(df.getName().getValue(), field);
+        }
+
+        PmmlSchema s = new PmmlSchema(shape);
+        return s;
+    }
+
+    public JsonObject createJsonFromPmml(PMML pmml) {
+        // create json schema obj
+        JsonBuilderFactory factory = Json.createBuilderFactory(null);
+        JsonObjectBuilder json = factory.createObjectBuilder();
+        JsonObjectBuilder fields = factory.createObjectBuilder();
+
+        for (org.dmg.pmml.DataField df: pmml.getDataDictionary().getDataFields()) {
+            JsonObjectBuilder field = factory.createObjectBuilder();
+            JsonArrayBuilder values = factory.createArrayBuilder();
+
+            for (org.dmg.pmml.Value dv: df.getValues()) {
+                values.add(dv.getValue());
+            }
+
+            field.add("values", values);
+            field.add("opType", df.getOpType().value());
+            field.add("dataType", df.getDataType().value());
+            fields.add(df.getName().getValue(), field);
+        }
+
+        json.add("fields", fields);
+
+        return json.build();
+    }
+
     public void execute() {
         PMML pmml;
 
         try {
             pmml = unmarshalPMML(this.input);
+            JsonObject jsonObject = createJsonFromPmml(pmml);
 
-            // create json schema obj
-            JsonBuilderFactory factory = Json.createBuilderFactory(null);
-            JsonObjectBuilder json = factory.createObjectBuilder();
-            JsonObjectBuilder fields = factory.createObjectBuilder();
-
-            for (org.dmg.pmml.DataField df: pmml.getDataDictionary().getDataFields()) {
-                JsonObjectBuilder field = factory.createObjectBuilder();
-                JsonArrayBuilder values = factory.createArrayBuilder();
-
-                for (org.dmg.pmml.Value dv: df.getValues()) {
-                    values.add(dv.getValue());
-                }
-
-                field.add("values", values);
-                field.add("opType", df.getOpType().value());
-                field.add("dataType", df.getDataType().value());
-                fields.add(df.getName().getValue(), field);
-            }
-
-            json.add("fields", fields);
-            JsonObject jsonObject = json.build();
             System.out.println(jsonObject.toString());
         } catch (JAXBException | SAXException | IOException ex) {
             SchemaExtractor.logger.log(Level.SEVERE, ex.toString());
