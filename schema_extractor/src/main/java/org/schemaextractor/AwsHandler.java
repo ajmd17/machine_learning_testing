@@ -34,11 +34,9 @@ import org.jpmml.model.ImportFilter;
 import org.schemaextractor.SchemaExtractor;
 
 
-public class AwsHandler implements RequestHandler<PmmlS3Request, PmmlS3Response> {
+public class AwsHandler implements RequestHandler<PmmlS3Request, PmmlSchemaResponse> {
   @Override
-  public PmmlS3Response handleRequest(PmmlS3Request input, Context context) {
-    System.out.println("input = " + input.toString());
-
+  public PmmlSchemaResponse handleRequest(PmmlS3Request input, Context context) {
     String bucket = "mlmodeltestingbucket";
 
     InputStream dataInputStream;
@@ -63,8 +61,7 @@ public class AwsHandler implements RequestHandler<PmmlS3Request, PmmlS3Response>
       Source source = ImportFilter.apply(new InputSource(dataInputStream));
       PMML pmml = (PMML) unmarshaller.unmarshal(source);
 
-      PmmlS3Response res = new PmmlS3Response(se.createSchemaFromPmml(pmml));
-      return res;
+      return se.createSchemaFromPmml(pmml);
 
       /*JsonObject jsonObject = se.createJsonFromPmml(pmml);
 

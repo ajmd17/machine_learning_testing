@@ -4,10 +4,10 @@ import java.util.HashMap;
 import java.util.ArrayList;
 
 
-public class PmmlSchema {
+public class PmmlSchemaResponse {
   HashMap<String, PmmlField> shape;
 
-  public PmmlSchema(HashMap<String, PmmlField> shape) {
+  public PmmlSchemaResponse(HashMap<String, PmmlField> shape) {
     this.shape = shape;
   }
 

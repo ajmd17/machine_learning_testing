@@ -79,11 +79,11 @@ public class SchemaExtractor {
         }
     }
 
-    public PmmlSchema createSchemaFromPmml(PMML pmml) {
-        HashMap<String, PmmlSchema.PmmlField> shape = new HashMap<String, PmmlSchema.PmmlField>();
+    public PmmlSchemaResponse createSchemaFromPmml(PMML pmml) {
+        HashMap<String, PmmlSchemaResponse.PmmlField> shape = new HashMap<>();
 
         for (org.dmg.pmml.DataField df : pmml.getDataDictionary().getDataFields()) {
-            PmmlSchema.PmmlField field = new PmmlSchema.PmmlField(df.getOpType().value(), df.getDataType().value());
+            PmmlSchemaResponse.PmmlField field = new PmmlSchemaResponse.PmmlField(df.getOpType().value(), df.getDataType().value());
 
             for (org.dmg.pmml.Value dv : df.getValues()) {
                 field.addPossibleValue(dv.getValue());
@@ -92,8 +92,7 @@ public class SchemaExtractor {
             shape.put(df.getName().getValue(), field);
         }
 
-        PmmlSchema s = new PmmlSchema(shape);
-        return s;
+        return new PmmlSchemaResponse(shape);
     }
 
     public JsonObject createJsonFromPmml(PMML pmml) {
