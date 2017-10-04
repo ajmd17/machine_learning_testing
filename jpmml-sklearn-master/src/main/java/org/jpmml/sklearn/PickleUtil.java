@@ -41,6 +41,10 @@ public class PickleUtil {
 	private PickleUtil(){
 	}
 
+	static public Storage createStorage(InputStream is) throws IOException {
+		return new CompressedInputStreamStorage(is);
+	}
+
 	static
 	public Storage createStorage(File file){
 
