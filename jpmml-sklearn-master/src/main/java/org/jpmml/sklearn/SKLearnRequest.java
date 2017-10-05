@@ -3,6 +3,8 @@ package org.jpmml.sklearn;
 public class SKLearnRequest {
   private String key; // key of the pickle file
 
+  public SKLearnRequest() {}
+
   public SKLearnRequest(String key) {
     this.key = key;
   }

@@ -3,6 +3,8 @@ package org.jpmml.sklearn;
 public class SKLearnResponse {
   private String key; // key of the pmml file
 
+  public SKLearnResponse() {}
+
   public SKLearnResponse(String key) {
     this.key = key;
   }

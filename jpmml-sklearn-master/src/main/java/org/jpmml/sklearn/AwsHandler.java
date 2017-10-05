@@ -99,8 +99,8 @@ public class AwsHandler implements RequestHandler<SKLearnRequest, SKLearnRespons
 
 		try (Storage storage = PickleUtil.createStorage(inputStream)) {
 			object = PickleUtil.unpickle(storage);
-		} catch (Exception e) {
-			throw e;
+		} catch (IOException ex) {
+			throw new RuntimeException("Failed to unpickle object: " + ex.getMessage());
 		}
 
 		if(!(object instanceof PMMLPipeline)){
@@ -132,8 +132,8 @@ public class AwsHandler implements RequestHandler<SKLearnRequest, SKLearnRespons
 
 		try {
 			pmml = pipeline.encodePMML();
-		} catch (Exception e) {
-			throw e;
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to encode PMML: " + ex.getMessage());
 		}
 
     return pmml;
